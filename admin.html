@@ -83,6 +83,8 @@ input, select, textarea { padding: 10px 12px; border: 1px solid var(--border); b
   .separacao-header-actions { display: none; }
   #separacaoBackdrop { display: none !important; }
 }
+.form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px; }
+.form-grid input, .form-grid select { width:100%; }
 </style>
 </head>
 <body>
@@ -106,10 +108,12 @@ input, select, textarea { padding: 10px 12px; border: 1px solid var(--border); b
       <button id="tabClientes" class="active" onclick="setTab('clientes')">Clientes</button>
       <button id="tabPedidos" onclick="setTab('pedidos')">Encomendas</button>
       <button id="tabStock" onclick="setTab('stock')">Stock</button>
+      <button id="tabVendedores" onclick="setTab('vendedores')">Vendedores</button>
     </div>
 
     <div id="panelClientes"></div>
     <div id="panelPedidos" style="display:none;"></div>
+    <div id="panelVendedores" style="display:none;"></div>
     <div id="panelStock" style="display:none;">
       <input type="text" id="stockSearch" placeholder="Pesquisar produto..." oninput="renderStockList()" style="width:100%; margin-bottom:16px;">
       <div id="stockList"></div>
@@ -187,54 +191,194 @@ function setTab(tab) {
   document.getElementById('panelClientes').style.display = tab === 'clientes' ? 'block' : 'none';
   document.getElementById('panelPedidos').style.display = tab === 'pedidos' ? 'block' : 'none';
   document.getElementById('panelStock').style.display = tab === 'stock' ? 'block' : 'none';
+  document.getElementById('tabVendedores').classList.toggle('active', tab === 'vendedores');
+  document.getElementById('panelVendedores').style.display = tab === 'vendedores' ? 'block' : 'none';
+  if (tab === 'vendedores') loadVendedores();
   if (tab === 'clientes') loadClientes();
-  if (tab === 'pedidos') loadPedidos();
+  if (tab === 'pedidos') carregarVendedores().catch(() => []).then(loadPedidos);
   if (tab === 'stock') loadStockAdmin();
 }
 
+// ---------- Vendedores ----------
+let vendedores = [];
+function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function carregarVendedores() {
+  return db.collection('vendedores_b2b').orderBy('nome').get().then(snap => {
+    vendedores = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return vendedores;
+  });
+}
+function nomeVendedor(id) { const v = vendedores.find(x => x.id === id); return v ? v.nome + ' (' + v.zona + ')' : 'Sem vendedor'; }
+function opcoesVendedor(sel) {
+  return '<option value="">— Sem vendedor —</option>' + vendedores.map(v =>
+    `<option value="${v.id}" ${v.id === sel ? 'selected' : ''}>${esc(v.nome)} — ${esc(v.zona)}</option>`).join('');
+}
+
+function loadVendedores() {
+  const el = document.getElementById('panelVendedores');
+  el.innerHTML = '<div class="empty-state">A carregar...</div>';
+  carregarVendedores().then(() => {
+    el.innerHTML = `
+      <div class="entry-card">
+        <div class="entry-title" style="margin-bottom:10px;">Novo vendedor</div>
+        <div class="form-grid">
+          <input type="text" id="vNome" placeholder="Nome">
+          <select id="vZona"><option>Norte</option><option>Centro</option><option>Sul</option></select>
+          <input type="email" id="vEmail" placeholder="E-mail (recebe as encomendas)">
+        </div>
+        <div class="entry-actions"><button class="btn primary" onclick="criarVendedor()">Adicionar vendedor</button></div>
+      </div>` + (vendedores.length ? vendedores.map(v => `
+      <div class="entry-card">
+        <div class="entry-top">
+          <div><div class="entry-title">${esc(v.nome)}</div><div class="entry-sub">Zona ${esc(v.zona)} · ${esc(v.email)}</div></div>
+          <button class="btn" onclick="apagarVendedor('${v.id}')">Remover</button>
+        </div>
+      </div>`).join('') : '<div class="empty-state">Ainda não há vendedores.</div>');
+  });
+}
+function criarVendedor() {
+  const nome = document.getElementById('vNome').value.trim();
+  const zona = document.getElementById('vZona').value;
+  const email = document.getElementById('vEmail').value.trim();
+  if (!nome || !email) { alert('Preencha o nome e o e-mail do vendedor.'); return; }
+  db.collection('vendedores_b2b').add({ nome, zona, email }).then(loadVendedores);
+}
+function apagarVendedor(id) {
+  if (!confirm('Remover este vendedor? Os clientes dele ficam sem vendedor atribuído.')) return;
+  db.collection('vendedores_b2b').doc(id).delete().then(loadVendedores);
+}
+
 // ---------- Clientes ----------
+const PAGAMENTOS = { cheque30: 'Cheque a 30 dias', pronto: 'Pronto pagamento' };
+
+function formNovoCliente() {
+  return `
+    <div class="entry-card" id="novoClienteCard">
+      <div class="entry-title" style="margin-bottom:10px;">Novo cliente</div>
+      <div class="auth-error" id="ncErro"></div>
+      <div class="form-grid">
+        <input type="text" id="ncFaturacao" placeholder="Nome de faturação (ex.: Viel &amp; Oliveira Pinto, Lda)">
+        <input type="text" id="ncComercial" placeholder="Nome comercial (ex.: Centro Veterinário Linda-a-Velha)">
+        <input type="text" id="ncNif" placeholder="NIF">
+        <input type="text" id="ncContacto" placeholder="Pessoa de contacto">
+        <input type="tel" id="ncTelefone" placeholder="Telefone">
+        <input type="email" id="ncEmail" placeholder="E-mail de acesso do cliente">
+        <input type="text" id="ncMoradaFat" placeholder="Morada de faturação">
+        <input type="text" id="ncMoradaEnt" placeholder="Morada de entrega (vazio = igual à de faturação)">
+        <select id="ncVendedor">${opcoesVendedor('')}</select>
+        <span style="display:flex; align-items:center; gap:6px;"><label style="font-size:0.85rem; color:var(--gray);">Desconto fixo:</label><input type="number" id="ncDesconto" value="0" min="0" max="100" style="width:70px;"> %</span>
+      </div>
+      <div style="display:flex; gap:16px; margin:10px 0; font-size:0.9rem;">
+        <label><input type="checkbox" id="ncPagCheque" checked> Cheque a 30 dias</label>
+        <label><input type="checkbox" id="ncPagPronto" checked> Pronto pagamento</label>
+      </div>
+      <div class="entry-actions"><button class="btn primary" id="ncBtn" onclick="criarCliente()">Criar cliente e enviar convite</button></div>
+      <p style="font-size:0.8rem; color:var(--gray); margin-top:8px;">O cliente recebe um e-mail para definir a própria palavra-passe.</p>
+    </div>`;
+}
+
 function loadClientes() {
   const el = document.getElementById('panelClientes');
   el.innerHTML = '<div class="empty-state">A carregar...</div>';
-  db.collection('clientes_b2b').orderBy('criadoEm', 'desc').get().then(snap => {
-    if (snap.empty) { el.innerHTML = '<div class="empty-state">Ainda não há registos de clientes.</div>'; return; }
-    el.innerHTML = snap.docs.map(doc => {
-      const c = doc.data();
-      const desconto = c.desconto || 0;
+  carregarVendedores().catch(() => []).then(() => db.collection('clientes_b2b').orderBy('criadoEm', 'desc').get()).then(snap => {
+    const lista = snap.empty ? '<div class="empty-state">Ainda não há clientes.</div>' : snap.docs.map(doc => {
+      const c = doc.data(), id = doc.id;
+      const pags = c.pagamentos || ['cheque30', 'pronto'];
       return `
         <div class="entry-card">
           <div class="entry-top">
             <div>
-              <div class="entry-title">${c.empresa}</div>
-              <div class="entry-sub">${c.contacto} · ${c.email} · ${c.telefone}</div>
-              <div class="entry-sub">NIF: ${c.nif} · ${c.morada}</div>
+              <div class="entry-title">${esc(c.nomeComercial || c.empresa)}</div>
+              <div class="entry-sub">${esc(c.nomeFaturacao || '')}${c.nomeFaturacao ? ' · ' : ''}NIF: ${esc(c.nif)}</div>
+              <div class="entry-sub">${esc(c.contacto)} · ${esc(c.email)} · ${esc(c.telefone)}</div>
+              <div class="entry-sub">Faturação: ${esc(c.moradaFaturacao || c.morada)}</div>
+              <div class="entry-sub">Entrega: ${esc(c.moradaEntrega || c.moradaFaturacao || c.morada)}</div>
             </div>
-            <span class="badge ${c.aprovado ? 'aprovado' : 'pendente'}">${c.aprovado ? 'Aprovado' : 'Pendente'}</span>
+            <span class="badge ${c.aprovado ? 'aprovado' : 'pendente'}">${c.aprovado ? 'Ativo' : 'Inativo'}</span>
           </div>
-          <div class="entry-actions" style="align-items:center;">
+          <div class="entry-actions" style="align-items:center; flex-wrap:wrap;">
+            <select id="vend-${id}">${opcoesVendedor(c.vendedorId || '')}</select>
+            <span style="display:flex; align-items:center; gap:6px;"><label style="font-size:0.85rem; color:var(--gray);">Desconto:</label><input type="number" id="desc-${id}" value="${c.desconto || 0}" min="0" max="100" style="width:64px;"> %</span>
+            <label style="font-size:0.85rem;"><input type="checkbox" id="pc-${id}" ${pags.includes('cheque30') ? 'checked' : ''}> Cheque 30 dias</label>
+            <label style="font-size:0.85rem;"><input type="checkbox" id="pp-${id}" ${pags.includes('pronto') ? 'checked' : ''}> Pronto pagamento</label>
+            <button class="btn primary" onclick="guardarCliente('${id}')">Guardar</button>
+          </div>
+          <div class="entry-actions">
             ${c.aprovado
-              ? `<button class="btn" onclick="setAprovado('${doc.id}', false)">Revogar aprovação</button>`
-              : `<button class="btn primary" onclick="setAprovado('${doc.id}', true)">Aprovar</button>`}
-            <span style="display:flex; align-items:center; gap:6px; margin-left:6px;">
-              <label style="font-size:0.85rem; color:var(--gray);">Desconto:</label>
-              <input type="number" id="desc-${doc.id}" value="${desconto}" min="0" max="100" style="width:64px;"> %
-              <button class="btn" onclick="setDesconto('${doc.id}')">Guardar</button>
-            </span>
+              ? `<button class="btn" onclick="setAprovado('${id}', false)">Desativar acesso</button>`
+              : `<button class="btn primary" onclick="setAprovado('${id}', true)">Ativar acesso</button>`}
+            <button class="btn" onclick="reenviarConvite('${esc(c.email)}')">Reenviar e-mail de palavra-passe</button>
           </div>
         </div>`;
     }).join('');
-  });
+    el.innerHTML = formNovoCliente() + lista;
+  }).catch(err => { el.innerHTML = '<div class="empty-state">Erro ao carregar clientes.</div>'; console.error(err); });
+}
+
+function lerPagamentos(chequeId, prontoId) {
+  const p = [];
+  if (document.getElementById(chequeId).checked) p.push('cheque30');
+  if (document.getElementById(prontoId).checked) p.push('pronto');
+  return p;
+}
+
+function senhaAleatoria() {
+  const a = new Uint32Array(6); crypto.getRandomValues(a);
+  return Array.from(a, n => n.toString(36)).join('') + 'Aa1!';
+}
+
+async function criarCliente() {
+  const v = id => document.getElementById(id).value.trim();
+  const erro = document.getElementById('ncErro'); erro.classList.remove('show');
+  const dados = {
+    nomeFaturacao: v('ncFaturacao'), nomeComercial: v('ncComercial'), nif: v('ncNif'),
+    contacto: v('ncContacto'), telefone: v('ncTelefone'), email: v('ncEmail').toLowerCase(),
+    moradaFaturacao: v('ncMoradaFat'), moradaEntrega: v('ncMoradaEnt') || v('ncMoradaFat'),
+    vendedorId: v('ncVendedor'), desconto: parseFloat(v('ncDesconto') || '0') || 0,
+    pagamentos: lerPagamentos('ncPagCheque', 'ncPagPronto')
+  };
+  const falta = !dados.nomeFaturacao || !dados.nomeComercial || !dados.nif || !dados.email || !dados.moradaFaturacao;
+  if (falta) { erro.textContent = 'Preencha pelo menos nome de faturação, nome comercial, NIF, e-mail e morada de faturação.'; erro.classList.add('show'); return; }
+  if (!dados.pagamentos.length) { erro.textContent = 'Escolha pelo menos uma forma de pagamento.'; erro.classList.add('show'); return; }
+  const btn = document.getElementById('ncBtn'); btn.disabled = true; btn.textContent = 'A criar...';
+  const sec = firebase.apps.find(a => a.name === 'convites') || firebase.initializeApp(firebaseConfig, 'convites');
+  const secAuth = sec.auth(); secAuth.languageCode = 'pt';
+  try {
+    const cred = await secAuth.createUserWithEmailAndPassword(dados.email, senhaAleatoria());
+    await db.collection('clientes_b2b').doc(cred.user.uid).set({
+      ...dados, empresa: dados.nomeComercial, morada: dados.moradaFaturacao, aprovado: true,
+      criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await secAuth.sendPasswordResetEmail(dados.email);
+    await secAuth.signOut();
+    alert('Cliente criado. Foi enviado um e-mail para ' + dados.email + ' definir a palavra-passe.');
+    loadClientes();
+  } catch (err) {
+    const msgs = { 'auth/email-already-in-use': 'Já existe uma conta com este e-mail.', 'auth/invalid-email': 'E-mail inválido.' };
+    erro.textContent = msgs[err.code] || ('Não foi possível criar o cliente: ' + (err.message || err));
+    erro.classList.add('show');
+    btn.disabled = false; btn.textContent = 'Criar cliente e enviar convite';
+  }
+}
+
+function guardarCliente(id) {
+  const pagamentos = lerPagamentos('pc-' + id, 'pp-' + id);
+  if (!pagamentos.length) { alert('Escolha pelo menos uma forma de pagamento.'); return; }
+  db.collection('clientes_b2b').doc(id).update({
+    vendedorId: document.getElementById('vend-' + id).value,
+    desconto: parseFloat(document.getElementById('desc-' + id).value || '0') || 0,
+    pagamentos
+  }).then(() => alert('Cliente guardado.'));
 }
 
 function setAprovado(uid, aprovado) {
   db.collection('clientes_b2b').doc(uid).update({ aprovado }).then(loadClientes);
 }
 
-function setDesconto(uid) {
-  const val = parseFloat(document.getElementById(`desc-${uid}`).value || '0');
-  db.collection('clientes_b2b').doc(uid).update({ desconto: val }).then(() => {
-    alert('Desconto guardado: ' + val + '%');
-  });
+function reenviarConvite(email) {
+  auth.languageCode = 'pt';
+  auth.sendPasswordResetEmail(email).then(() => alert('E-mail enviado para ' + email));
 }
 
 // ---------- Encomendas ----------
@@ -258,7 +402,8 @@ function loadPedidos() {
           <div class="entry-top">
             <div>
               <div class="entry-title">${p.empresa}</div>
-              <div class="entry-sub">NIF: ${p.nif} · ${metodoLabel}</div>
+              <div class="entry-sub">${p.nomeFaturacao ? esc(p.nomeFaturacao) + ' · ' : ''}NIF: ${p.nif} · ${metodoLabel}${p.vendedorId ? ' · Vendedor: ' + esc(nomeVendedor(p.vendedorId)) : ''}</div>
+              ${p.moradaEntrega ? `<div class="entry-sub">Entrega: ${esc(p.moradaEntrega)}</div>` : ''}
               <div class="entry-sub">${p.subtotal ? `Subtotal: ${p.subtotal.toFixed(2)}€` : ''}${p.desconto ? ` · Desconto (${p.desconto}%): -${(p.valorDesconto || 0).toFixed(2)}€` : ''} · <strong>Total: ${(p.total || 0).toFixed(2)}€</strong></div>
             </div>
             <span class="badge ${p.estado}">${p.estado}</span>
