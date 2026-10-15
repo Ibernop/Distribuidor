@@ -113,6 +113,26 @@ footer.site { background: var(--charcoal); color: rgba(255,255,255,0.7); padding
 footer.site strong { color: #fff; }
 h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
 .btn { border-radius: 32px; }
+.cliente-nav { background: #fff; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 20; }
+.cliente-nav .wrap { display: flex; gap: 6px; padding-top: 10px; padding-bottom: 10px; overflow-x: auto; }
+.cliente-nav button { font: inherit; font-weight: 700; font-size: .85rem; border: 1.5px solid var(--border); background: #fff; color: var(--charcoal); padding: 9px 18px; border-radius: 32px; cursor: pointer; white-space: nowrap; }
+.cliente-nav button.on { background: var(--charcoal); border-color: var(--charcoal); color: #fff; }
+#historicoView, #contaView { padding: 36px 0 60px; }
+#historicoView h2, #contaView h2 { margin: 0 0 18px; }
+.hist-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; margin-bottom: 14px; }
+.hist-top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.hist-top span { display: block; color: var(--gray); font-size: .85rem; }
+.hist-total { text-align: right; font-weight: 800; font-size: 1.1rem; }
+.hist-total small { display: block; font-weight: 500; font-size: .78rem; color: var(--gray); }
+.hist-card ul { margin: 12px 0; padding-left: 18px; font-size: .9rem; }
+.hist-card em { color: var(--gray); font-style: normal; }
+.hist-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.hist-vazio { color: var(--gray); }
+.conta-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 8px 20px; max-width: 640px; }
+.conta-linha { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: .92rem; }
+.conta-linha:last-child { border-bottom: 0; }
+.conta-linha span { color: var(--gray); }
+.conta-linha strong { text-align: right; }
 </style>
 </head>
 <body>
@@ -193,6 +213,17 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
     </div>
   </div>
 </section>
+
+<nav id="clienteNav" class="cliente-nav" style="display:none;">
+  <div class="wrap">
+    <button data-v="catalog" onclick="irPara('catalog')">Catálogo</button>
+    <button data-v="historico" onclick="irPara('historico')">As minhas encomendas</button>
+    <button data-v="conta" onclick="irPara('conta')">A minha conta</button>
+  </div>
+</nav>
+
+<section id="historicoView" style="display:none;"><div class="wrap"><h2>As minhas encomendas</h2><div id="historicoLista"></div></div></section>
+<section id="contaView" style="display:none;"><div class="wrap"><h2>A minha conta</h2><div id="contaDados"></div></div></section>
 
 <!-- ---------- Vista: aprovado, catálogo ---------- -->
 <section id="catalogView" style="display:none;">
@@ -458,6 +489,94 @@ function showView(view) {
   document.getElementById('pendingView').style.display = view === 'pending' ? 'block' : 'none';
   document.getElementById('catalogView').style.display = view === 'catalog' ? 'block' : 'none';
   document.getElementById('cartFab').style.display = view === 'catalog' ? 'flex' : 'none';
+  const cliente = ['catalog', 'historico', 'conta'].includes(view);
+  document.getElementById('clienteNav').style.display = cliente ? 'block' : 'none';
+  document.getElementById('historicoView').style.display = view === 'historico' ? 'block' : 'none';
+  document.getElementById('contaView').style.display = view === 'conta' ? 'block' : 'none';
+  document.querySelectorAll('#clienteNav button').forEach(b => b.classList.toggle('on', b.dataset.v === view));
+}
+
+// ---------- Área do cliente: histórico, repetir encomenda, conta ----------
+const eur = v => (Number(v) || 0).toFixed(2).replace('.', ',') + ' €';
+const escH = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let minhasEncomendas = [];
+
+function irPara(view) {
+  showView(view);
+  if (view === 'historico') carregarHistorico();
+  if (view === 'conta') mostrarConta();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function dataPT(ts) {
+  const d = ts && ts.toDate ? ts.toDate() : null;
+  return d ? d.toLocaleDateString('pt-PT') + ' ' + d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '';
+}
+
+function carregarHistorico() {
+  const el = document.getElementById('historicoLista');
+  el.innerHTML = '<p class="hist-vazio">A carregar...</p>';
+  db.collection('pedidos_b2b').where('clienteUid', '==', currentUser.uid).get().then(snap => {
+    minhasEncomendas = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => ((b.criadoEm && b.criadoEm.seconds) || 0) - ((a.criadoEm && a.criadoEm.seconds) || 0));
+    if (!minhasEncomendas.length) { el.innerHTML = '<p class="hist-vazio">Ainda não fez nenhuma encomenda.</p>'; return; }
+    el.innerHTML = minhasEncomendas.map(p => {
+      const total = p.total || 0;
+      return `<div class="hist-card">
+        <div class="hist-top"><div><strong>Encomenda ${p.id.slice(-6).toUpperCase()}</strong><span>${dataPT(p.criadoEm)} · ${p.metodoPagamento === 'cheque30' ? 'Cheque a 30 dias' : 'Pronto pagamento'}</span></div>
+        <div class="hist-total">${eur(total * 1.23)}<small>c/ IVA · ${eur(total)} s/ IVA</small></div></div>
+        <ul>${(p.itens || []).map(it => `<li>${it.qty}× ${escH(it.nome)} <em>(${escH(it.tamanho)})</em></li>`).join('')}</ul>
+        <div class="hist-acoes">
+          <button class="btn btn-gold" onclick="repetirEncomenda('${p.id}')">Repetir encomenda</button>
+          <button class="btn btn-outline" onclick="imprimirEncomenda('${p.id}')">Imprimir</button>
+        </div></div>`;
+    }).join('');
+  }).catch(() => { el.innerHTML = '<p class="hist-vazio">Não foi possível carregar as encomendas.</p>'; });
+}
+
+function repetirEncomenda(id) {
+  const p = minhasEncomendas.find(x => x.id === id); if (!p) return;
+  const falta = [];
+  (p.itens || []).forEach(it => {
+    const prod = produtos.find(x => x.nome === it.nome);
+    const t = prod && prod.tamanhos.find(x => x.label === it.tamanho);
+    if (!t) { falta.push(it.nome + ' (' + it.tamanho + ')'); return; }
+    const key = prod.id + '_' + t.label;
+    if (cart[key]) cart[key].qty += it.qty;
+    else cart[key] = { nome: prod.nome, tamanho: t.label, preco: t.preco, qty: it.qty };
+  });
+  renderCart();
+  irPara('catalog');
+  openCart();
+  if (falta.length) alert('Estes produtos já não estão disponíveis e não foram adicionados:\n' + falta.join('\n'));
+}
+
+function imprimirEncomenda(id) {
+  const p = minhasEncomendas.find(x => x.id === id); if (!p) return;
+  const c = currentCliente || {}; const total = p.total || 0;
+  const linhas = (p.itens || []).map(it => `<tr><td>${it.qty}</td><td>${escH(it.nome)}</td><td>${escH(it.tamanho)}</td><td style="text-align:right">${eur(it.preco)}</td><td style="text-align:right">${eur(it.preco * it.qty)}</td></tr>`).join('');
+  const w = window.open('', '_blank');
+  w.document.write(`<html><head><title>Encomenda ${p.id.slice(-6).toUpperCase()}</title><style>body{font-family:Arial,sans-serif;color:#1c262d;padding:30px}h1{font-size:20px;margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px}td,th{border-bottom:1px solid #ddd;padding:6px;text-align:left}.t td{border:0}</style></head><body>
+    <h1>IBERNOP · Encomenda ${p.id.slice(-6).toUpperCase()}</h1><div>${dataPT(p.criadoEm)}</div>
+    <p><strong>${escH(c.nomeComercial || p.empresa)}</strong><br>${escH(c.nomeFaturacao || '')} · NIF ${escH(p.nif || c.nif || '')}<br>Entrega: ${escH(p.moradaEntrega || c.moradaEntrega || '')}<br>Pagamento: ${p.metodoPagamento === 'cheque30' ? 'Cheque a 30 dias' : 'Pronto pagamento'}</p>
+    <table><tr><th>Qtd</th><th>Produto</th><th>Tamanho</th><th style="text-align:right">Preço</th><th style="text-align:right">Total</th></tr>${linhas}</table>
+    <table class="t" style="width:280px;margin-left:auto"><tr><td>Subtotal</td><td style="text-align:right">${eur(p.subtotal)}</td></tr><tr><td>Desconto (${p.desconto || 0}%)</td><td style="text-align:right">-${eur(p.valorDesconto)}</td></tr><tr><td>Total sem IVA</td><td style="text-align:right">${eur(total)}</td></tr><tr><td>IVA (23%)</td><td style="text-align:right">${eur(total * 0.23)}</td></tr><tr><td><strong>Total com IVA</strong></td><td style="text-align:right"><strong>${eur(total * 1.23)}</strong></td></tr></table>
+    <script>window.onload=function(){window.print()}<\/script></body></html>`);
+  w.document.close();
+}
+
+function mostrarConta() {
+  const c = currentCliente || {}; const el = document.getElementById('contaDados');
+  const pags = (c.pagamentos || ['cheque30', 'pronto']).map(x => x === 'cheque30' ? 'Cheque a 30 dias' : 'Pronto pagamento').join(' · ');
+  const linha = (k, v) => v ? `<div class="conta-linha"><span>${k}</span><strong>${escH(v)}</strong></div>` : '';
+  el.innerHTML = '<div class="conta-card">' + linha('Nome comercial', c.nomeComercial || c.empresa) + linha('Nome de faturação', c.nomeFaturacao) + linha('NIF', c.nif)
+    + linha('Morada de faturação', c.moradaFaturacao || c.morada) + linha('Morada de entrega', c.moradaEntrega) + linha('Contacto', c.contacto) + linha('Telefone', c.telefone) + linha('E-mail', c.email)
+    + linha('Desconto', (c.desconto || 0) + '%') + linha('Formas de pagamento', pags) + '<div id="contaVendedor"></div></div>'
+    + '<p class="hist-vazio">Para alterar algum dado, contacte a Ibernop ou o seu vendedor.</p>';
+  if (c.vendedorId) db.collection('vendedores_b2b').doc(c.vendedorId).get().then(d => {
+    if (!d.exists) return; const v = d.data();
+    document.getElementById('contaVendedor').innerHTML = linha('O seu vendedor', v.nome + ' — zona ' + v.zona) + `<div class="conta-linha"><span>E-mail do vendedor</span><strong><a href="mailto:${escH(v.email)}">${escH(v.email)}</a></strong></div>`;
+  }).catch(() => {});
 }
 
 // ---------- Catálogo ----------
