@@ -54,7 +54,12 @@ section.block{padding:90px 0}
 .vdx-card li{padding:10px 0;border-top:1px solid rgba(255,255,255,.15)}
 .btn{display:inline-block;background:var(--ink);color:#fff;text-decoration:none;padding:13px 22px;border-radius:12px;font-weight:600;margin-top:18px}
 .btn.light{background:#fff;color:var(--ink)}
-.lojas{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;margin-top:26px}
+.lojas{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:22px}
+.zonas{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap}
+.zonas button{font:inherit;border:1px solid var(--ink);background:transparent;padding:8px 18px;border-radius:99px;cursor:pointer}
+.zonas button.on{background:var(--ink);color:#fff}
+@media (max-width:1000px){.lojas{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:700px){.lojas{grid-template-columns:repeat(2,1fr)}}
 .loja{background:var(--paper);border-radius:16px;overflow:hidden;border:1px solid var(--line)}
 .loja img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
 .loja div{padding:12px 14px}.loja b{display:block}.loja span{font-size:.85rem;color:var(--muted)}
@@ -111,6 +116,7 @@ footer a{color:#fff}
   <div class="eyebrow">Onde comprar</div>
   <h2>Lojas e clínicas parceiras</h2>
   <p>Encontre Ownat perto de si, nas lojas e clínicas que trabalham connosco.</p>
+  <div class="zonas" id="zonas"></div>
   <div class="lojas" id="lista-lojas"></div>
 </div></section>
 
@@ -134,10 +140,10 @@ footer a{color:#fff}
 </div></footer>
 
 <script src="produtos-data.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 document.getElementById('ano').textContent = new Date().getFullYear();
-// Lojas parceiras: acrescentar aqui { nome, local, foto }. A secção só aparece quando houver lojas.
-const LOJAS = [];
 const GAMAS = { Classic:'O essencial, equilibrado para o dia a dia.', Ultra:'Receitas com mais proteína animal.', Author:'Carne e peixe frescos, receitas de autor.', Just:'Sem cereais, ingredientes simples.', Prime:'Sem cereais, nutrição completa.', Care:'Para necessidades especiais e dietas específicas.' };
 const ORDEM = ['Classic','Ultra','Author','Just','Prime','Care'];
 const esc = v => String(v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -150,10 +156,23 @@ function render(especie, alvo){
   }).join('');
 }
 render('cao','g-cao'); render('gato','g-gato');
-if (LOJAS.length) {
+// Lojas parceiras: geridas no painel (Clientes → Montra no site), por zona e por ordem alfabética
+firebase.initializeApp({ apiKey: "AIzaSyBAlMWFnh8JM4sVuWjEJhde88AbmNhfv7k", authDomain: "ibernop-7a0d6.firebaseapp.com", projectId: "ibernop-7a0d6", appId: "1:345246578720:web:d43f2156277ee44257a445" });
+firebase.firestore().collection('lojas_publicas').get().then(snap => {
+  const lojas = snap.docs.map(d => d.data()).filter(l => l.foto);
+  if (!lojas.length) return;
+  const zonas = ['Norte', 'Centro', 'Sul', 'Outras'].filter(z => lojas.some(l => l.zona === z));
+  const mostrar = z => {
+    document.querySelectorAll('#zonas button').forEach(b => b.classList.toggle('on', b.dataset.z === z));
+    document.getElementById('lista-lojas').innerHTML = lojas.filter(l => l.zona === z)
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt'))
+      .map(l => '<div class="loja"><img loading="lazy" src="' + l.foto + '" alt="Fachada de ' + esc(l.nome) + '"><div><b>' + esc(l.nome) + '</b><span>' + esc(l.localidade || '') + '</span></div></div>').join('');
+  };
+  document.getElementById('zonas').innerHTML = zonas.map(z => '<button type="button" data-z="' + z + '">' + z + '</button>').join('');
+  document.querySelectorAll('#zonas button').forEach(b => b.onclick = () => mostrar(b.dataset.z));
   document.getElementById('lojas').hidden = false;
-  document.getElementById('lista-lojas').innerHTML = LOJAS.map(l => '<div class="loja"><img loading="lazy" src="' + esc(l.foto) + '" alt="Fachada de ' + esc(l.nome) + '"><div><b>' + esc(l.nome) + '</b><span>' + esc(l.local) + '</span></div></div>').join('');
-}
+  mostrar(zonas[0]);
+}).catch(() => {});
 </script>
 </body>
 </html>

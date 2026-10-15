@@ -85,6 +85,9 @@ input, select, textarea { padding: 10px 12px; border: 1px solid var(--border); b
 }
 .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px; }
 .form-grid input, .form-grid select { width:100%; }
+.montra-box { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start; margin-top:12px; padding-top:12px; border-top:1px dashed #ddd; }
+.montra-foto { width:140px; height:105px; border-radius:10px; background:#f1f1ee; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:0.8rem; color:#888; }
+.montra-foto img { width:100%; height:100%; object-fit:cover; }
 </style>
 </head>
 <body>
@@ -266,6 +269,7 @@ function formNovoCliente() {
         <input type="email" id="ncEmail" placeholder="E-mail de acesso do cliente">
         <input type="text" id="ncMoradaFat" placeholder="Morada de faturação">
         <input type="text" id="ncMoradaEnt" placeholder="Morada de entrega (vazio = igual à de faturação)">
+        <input type="text" id="ncLocalidade" placeholder="Localidade (aparece no site, ex.: Linda-a-Velha)">
         <select id="ncVendedor">${opcoesVendedor('')}</select>
         <span style="display:flex; align-items:center; gap:6px;"><label style="font-size:0.85rem; color:var(--gray);">Desconto fixo:</label><input type="number" id="ncDesconto" value="0" min="0" max="100" style="width:70px;"> %</span>
       </div>
@@ -281,7 +285,7 @@ function formNovoCliente() {
 function loadClientes() {
   const el = document.getElementById('panelClientes');
   el.innerHTML = '<div class="empty-state">A carregar...</div>';
-  carregarVendedores().catch(() => []).then(() => db.collection('clientes_b2b').orderBy('criadoEm', 'desc').get()).then(snap => {
+  carregarVendedores().catch(() => []).then(() => db.collection('lojas_publicas').get()).then(ps => { publicas = {}; ps.forEach(d => { publicas[d.id] = d.data(); }); }).then(() => db.collection('clientes_b2b').orderBy('criadoEm', 'desc').get()).then(snap => {
     const lista = snap.empty ? '<div class="empty-state">Ainda não há clientes.</div>' : snap.docs.map(doc => {
       const c = doc.data(), id = doc.id;
       const pags = c.pagamentos || ['cheque30', 'pronto'];
@@ -310,10 +314,53 @@ function loadClientes() {
               : `<button class="btn primary" onclick="setAprovado('${id}', true)">Ativar acesso</button>`}
             <button class="btn" onclick="reenviarConvite('${esc(c.email)}')">Reenviar e-mail de palavra-passe</button>
           </div>
+          <div class="montra-box">
+            <div class="montra-foto">${publicas[id] && publicas[id].foto ? `<img src="${publicas[id].foto}" alt="">` : '<span>Sem foto</span>'}</div>
+            <div style="flex:1; min-width:220px;">
+              <div style="font-weight:600; margin-bottom:6px;">Montra no site (lojas parceiras)</div>
+              <input type="text" id="loc-${id}" value="${esc(c.localidade || '')}" placeholder="Localidade" style="width:100%; margin-bottom:6px;">
+              <input type="file" id="foto-${id}" accept="image/*" style="margin-bottom:6px;">
+              <label style="display:block; font-size:0.85rem; margin-bottom:6px;"><input type="checkbox" id="pub-${id}" ${publicas[id] ? 'checked' : ''}> Mostrar esta loja no site</label>
+              <button class="btn primary" onclick="guardarMontra('${id}')">Guardar montra</button>
+            </div>
+          </div>
         </div>`;
     }).join('');
     el.innerHTML = formNovoCliente() + lista;
   }).catch(err => { el.innerHTML = '<div class="empty-state">Erro ao carregar clientes.</div>'; console.error(err); });
+}
+
+let publicas = {};
+function reduzirFoto(file) {
+  return new Promise((ok, falha) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const max = 900, k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      ok(c.toDataURL('image/jpeg', 0.72));
+    };
+    img.onerror = falha; img.src = url;
+  });
+}
+async function guardarMontra(id) {
+  try {
+    const doc = await db.collection('clientes_b2b').doc(id).get(); const c = doc.data();
+    const localidade = document.getElementById('loc-' + id).value.trim();
+    const mostrar = document.getElementById('pub-' + id).checked;
+    const ficheiro = document.getElementById('foto-' + id).files[0];
+    const foto = ficheiro ? await reduzirFoto(ficheiro) : (publicas[id] && publicas[id].foto) || '';
+    await db.collection('clientes_b2b').doc(id).update({ localidade });
+    if (mostrar) {
+      if (!foto) { alert('Escolha uma foto da fachada antes de mostrar a loja no site.'); return; }
+      const v = vendedores.find(x => x.id === c.vendedorId);
+      await db.collection('lojas_publicas').doc(id).set({ nome: c.nomeComercial || c.empresa, localidade, zona: v ? v.zona : 'Outras', foto });
+    } else {
+      await db.collection('lojas_publicas').doc(id).delete();
+    }
+    alert(mostrar ? 'Loja visível no site.' : 'Loja retirada do site.');
+    loadClientes();
+  } catch (e) { alert('Não foi possível guardar: ' + (e.message || e)); }
 }
 
 function lerPagamentos(chequeId, prontoId) {
@@ -334,7 +381,7 @@ async function criarCliente() {
   const dados = {
     nomeFaturacao: v('ncFaturacao'), nomeComercial: v('ncComercial'), nif: v('ncNif'),
     contacto: v('ncContacto'), telefone: v('ncTelefone'), email: v('ncEmail').toLowerCase(),
-    moradaFaturacao: v('ncMoradaFat'), moradaEntrega: v('ncMoradaEnt') || v('ncMoradaFat'),
+    localidade: v('ncLocalidade'), moradaFaturacao: v('ncMoradaFat'), moradaEntrega: v('ncMoradaEnt') || v('ncMoradaFat'),
     vendedorId: v('ncVendedor'), desconto: parseFloat(v('ncDesconto') || '0') || 0,
     pagamentos: lerPagamentos('ncPagCheque', 'ncPagPronto')
   };
