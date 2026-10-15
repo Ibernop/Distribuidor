@@ -106,14 +106,14 @@ footer a{color:#fff}
 <body>
 <header class="bar"><div class="wrap">
   <a href="#"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop"></a>
-  <nav><a href="#ownat">Ownat</a><a href="#vetdiagnostix">Vet Diagnostix</a><a href="#lojas">Onde comprar</a><a href="#contactos">Contactos</a><a class="btn" href="loja.html">Área de cliente</a></nav>
+  <nav><a href="#ownat">Ownat</a><a href="#vetdiagnostix">Vet Diagnostix</a><a href="#lojas">Onde comprar</a><a href="#revenda">Revendedores</a><a href="#contactos">Contactos</a><a class="btn" href="loja.html">Área de cliente</a></nav>
 </div></header>
 
 <section class="hero"><div class="wrap">
   <div class="eb">Fornecedor de produtos para animais</div>
   <h1>Os melhores produtos para um cuidado de excelência</h1>
   <p>Fundada por médicos veterinários, a Ibernop distribui em Portugal a alimentação Ownat para cão e gato e as soluções de diagnóstico Vet Diagnostix.</p>
-  <div class="row"><a class="btn white" href="#ownat">Ver produtos</a><a class="btn line" href="loja.html">Área de cliente</a></div>
+  <div class="row"><a class="btn white" href="#lojas">Tenho um animal: onde comprar</a><a class="btn line" href="#revenda">Sou loja ou clínica</a></div>
 </div></section>
 
 <section class="s g" id="ownat"><div class="wrap">
@@ -136,16 +136,18 @@ footer a{color:#fff}
   </div>
 </div></section>
 
-<section class="s g" id="lojas" hidden><div class="wrap">
-  <div class="head"><div class="eb">Onde comprar</div><h2>Lojas e clínicas parceiras</h2><p>Encontre os nossos produtos perto de si.</p></div>
+<section class="s g" id="lojas"><div class="wrap">
+  <div class="head"><div class="eb">Para donos de animais</div><h2>Onde comprar</h2><p>Encontre os nossos produtos nas lojas e clínicas parceiras perto de si.</p></div>
+  <p id="lojas-vazio" style="text-align:center;color:var(--muted)">Em breve vai encontrar aqui as lojas parceiras. Entretanto, <a href="#contactos">contacte-nos</a> e indicamos-lhe a mais próxima.</p>
   <div class="zonas" id="zonas"></div>
   <div class="lojas" id="lista-lojas"></div>
 </div></section>
 
-<section class="s cta"><div class="wrap">
+<section class="s cta" id="revenda"><div class="wrap">
+  <div style="font-weight:700;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;opacity:.75;margin-bottom:8px">Para lojas e clínicas</div>
   <h2>Quer vender os nossos produtos?</h2>
   <p>Temos um vendedor dedicado para cada zona do país: Norte, Centro e Sul. As lojas parceiras encomendam online, a qualquer hora.</p>
-  <a class="btn white" href="#contactos">Fale connosco</a>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"><a class="btn white" href="#contactos">Quero ser parceiro</a><a class="btn line" href="loja.html">Já sou cliente: área de cliente</a></div>
 </div></section>
 
 <footer id="contactos"><div class="wrap">
@@ -208,7 +210,7 @@ firebase.firestore().collection('lojas_publicas').get().then(snap => {
   };
   document.getElementById('zonas').innerHTML = zonas.map(z => '<button type="button" data-z="' + z + '">' + z + '</button>').join('');
   document.querySelectorAll('#zonas button').forEach(b => b.onclick = () => mostrar(b.dataset.z));
-  document.getElementById('lojas').hidden = false;
+  document.getElementById('lojas-vazio').hidden = true;
   mostrar(zonas[0]);
 }).catch(() => {});
 </script>
