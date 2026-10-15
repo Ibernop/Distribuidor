@@ -3,140 +3,126 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ibernop | Distribuição veterinária</title>
-<meta name="description" content="Ibernop, distribuidora fundada por médicos veterinários. Distribuidor de Ownat em Portugal e distribuidor oficial Vet Diagnostix.">
+<title>Ibernop | Fornecedor de Produtos para Animais</title>
+<meta name="description" content="Ibernop, fornecedor de produtos para animais fundado por médicos veterinários. Ownat para cão e gato e distribuição oficial Vet Diagnostix.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--ink:#1d1f1c;--cream:#f6f1e7;--paper:#fffdf8;--dog:#e9a65a;--dog-d:#b8661f;--cat:#9fb8a6;--cat-d:#4d6e58;--muted:#6b6a64;--line:#e4dccb}
+:root{--navy:#07202e;--navy2:#0d3346;--blue:#1b86f1;--grey:#f3f5f7;--line:#e2e6ea;--txt:#1c262d;--muted:#5f6b74}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:Inter,system-ui,sans-serif;color:var(--ink);background:var(--cream);line-height:1.6}
+body{font-family:Montserrat,system-ui,sans-serif;color:var(--txt);background:#fff;line-height:1.6}
 a{color:inherit}
 .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
-h1,h2,h3{font-family:Fraunces,Georgia,serif;line-height:1.1}
-header.top{position:absolute;inset:0 0 auto 0;z-index:5}
-header.top .wrap{display:flex;align-items:center;justify-content:space-between;padding-top:18px}
-.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff;font-weight:600;letter-spacing:.18em;font-size:.85rem}
-.brand img{height:46px;width:auto}
-nav.menu a{color:#fff;text-decoration:none;margin-left:22px;font-size:.92rem;opacity:.9}
-nav.menu a:hover{opacity:1;text-decoration:underline}
-.hero{background:radial-gradient(1200px 500px at 70% -10%,#3a3d36 0,transparent 60%),var(--ink);color:#fff;padding:150px 0 90px;position:relative;overflow:hidden}
-.hero h1{font-size:clamp(2.2rem,5.5vw,4.2rem);max-width:780px;font-weight:800}
-.hero h1 em{font-style:normal;color:var(--dog)}
-.hero p{max-width:600px;margin-top:20px;font-size:1.1rem;opacity:.85}
-.hero .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
-.chip{border:1px solid rgba(255,255,255,.3);border-radius:99px;padding:8px 16px;font-size:.88rem;text-decoration:none}
-.chip:hover{background:#fff;color:var(--ink)}
-.globe{position:absolute;right:-80px;bottom:-120px;width:460px;opacity:.07;pointer-events:none}
-.split{display:grid;grid-template-columns:1fr 1fr}
-.side{padding:70px 6vw 80px;min-height:100%}
-.side.dog{background:var(--dog)}
-.side.cat{background:var(--cat)}
-.side .kicker{font-family:Fraunces,serif;font-size:clamp(2.6rem,6vw,4.6rem);font-weight:800;letter-spacing:.02em}
-.side.dog .kicker{color:var(--dog-d)}.side.cat .kicker{color:var(--cat-d)}
-.side .lead{max-width:440px;margin:6px 0 28px}
-.gama{background:var(--paper);border-radius:18px;padding:18px 18px 8px;margin-bottom:16px;box-shadow:0 1px 0 rgba(0,0,0,.05)}
-.gama h3{font-size:1.25rem;display:flex;justify-content:space-between;align-items:baseline}
-.gama h3 small{font-family:Inter,sans-serif;font-size:.78rem;color:var(--muted);font-weight:500}
-.gama p.d{font-size:.9rem;color:var(--muted);margin:2px 0 10px}
-.rail{display:flex;gap:12px;overflow-x:auto;padding-bottom:12px;scroll-snap-type:x mandatory}
-.prod{flex:0 0 132px;scroll-snap-align:start;text-align:center}
-.prod .ph{background:#fff;border:1px solid var(--line);border-radius:12px;height:132px;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.prod img{max-width:88%;max-height:88%;object-fit:contain}
-.prod span{display:block;font-size:.76rem;line-height:1.25;margin-top:6px}
-section.block{padding:90px 0}
-.eyebrow{text-transform:uppercase;letter-spacing:.16em;font-size:.78rem;font-weight:600;color:var(--muted)}
-.block h2{font-size:clamp(1.9rem,4vw,2.8rem);margin:8px 0 16px}
-.vdx{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
-.vdx-card{background:var(--ink);color:#fff;border-radius:24px;padding:36px}
-.vdx-card ul{list-style:none;margin-top:14px}
-.vdx-card li{padding:10px 0;border-top:1px solid rgba(255,255,255,.15)}
-.btn{display:inline-block;background:var(--ink);color:#fff;text-decoration:none;padding:13px 22px;border-radius:12px;font-weight:600;margin-top:18px}
-.btn.light{background:#fff;color:var(--ink)}
-.lojas{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:22px}
-.zonas{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap}
-.zonas button{font:inherit;border:1px solid var(--ink);background:transparent;padding:8px 18px;border-radius:99px;cursor:pointer}
-.zonas button.on{background:var(--ink);color:#fff}
-@media (max-width:1000px){.lojas{grid-template-columns:repeat(3,1fr)}}
-@media (max-width:700px){.lojas{grid-template-columns:repeat(2,1fr)}}
-.loja{background:var(--paper);border-radius:16px;overflow:hidden;border:1px solid var(--line)}
+h1,h2,h3{font-weight:700;line-height:1.15}
+.up{text-transform:uppercase;letter-spacing:.04em}
+.bar{position:absolute;inset:0 0 auto;z-index:5}
+.bar .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:16px}
+.bar img{height:58px}
+.bar nav{display:flex;align-items:center;gap:22px}
+.bar nav a{color:#fff;text-decoration:none;font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.bar nav a:hover{opacity:.8}
+.btn{display:inline-block;text-decoration:none;font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;padding:13px 26px;border-radius:32px;background:var(--navy);color:#fff;border:2px solid var(--navy)}
+.btn:hover{background:var(--navy2)}
+.btn.white{background:#fff;color:var(--navy);border-color:#fff}
+.btn.line{background:transparent;color:#fff;border-color:#fff}
+.bar nav a.btn{padding:9px 18px;background:#fff;color:var(--navy);border-color:#fff}
+.hero{position:relative;color:#fff;padding:170px 0 110px;background:linear-gradient(90deg,rgba(7,32,46,.92) 0,rgba(7,32,46,.65) 55%,rgba(7,32,46,.35) 100%),url(https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/3-wxftt2-1500.webp) center/cover}
+.hero .eb{font-size:.9rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;opacity:.9}
+.hero h1{font-size:clamp(2rem,4.6vw,3.3rem);text-transform:uppercase;max-width:760px;margin:10px 0 18px}
+.hero p{max-width:600px;font-weight:500;opacity:.92}
+.hero .row{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
+section.s{padding:84px 0}
+section.g{background:var(--grey)}
+.head{text-align:center;max-width:720px;margin:0 auto 38px}
+.head .eb{color:var(--blue);font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.12em}
+.head h2{font-size:clamp(1.7rem,3.4vw,2.4rem);text-transform:uppercase;margin:8px 0 10px}
+.head p{color:var(--muted)}
+.esp{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.col{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px}
+.col h3{display:flex;align-items:center;gap:10px;font-size:1.35rem;text-transform:uppercase}
+.col h3 span{font-size:1.6rem}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 16px}
+.chips button{font:inherit;font-size:.78rem;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--txt);padding:6px 12px;border-radius:20px;cursor:pointer}
+.chips button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.card{border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;background:#fff}
+.card .im{height:120px;display:flex;align-items:center;justify-content:center}
+.card img{max-width:100%;max-height:120px;object-fit:contain}
+.card .t{font-size:.66rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-top:6px}
+.card .n{font-size:.78rem;font-weight:600;line-height:1.3}
+.mais{display:block;margin:14px auto 0;font:inherit;font-weight:700;font-size:.8rem;text-transform:uppercase;background:none;border:0;color:var(--navy);cursor:pointer;text-decoration:underline}
+.vdx{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:center}
+.vdx .box{background:var(--navy);color:#fff;border-radius:18px;padding:34px}
+.vdx .box li{list-style:none;padding:11px 0;border-top:1px solid rgba(255,255,255,.15);font-weight:500}
+.vdx h3{font-size:1.6rem;text-transform:uppercase;margin-bottom:12px}
+.vdx p{color:var(--muted);margin-bottom:20px}
+.zonas{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.zonas button{font:inherit;font-weight:700;font-size:.8rem;text-transform:uppercase;border:2px solid var(--navy);background:#fff;color:var(--navy);padding:8px 20px;border-radius:32px;cursor:pointer}
+.zonas button.on{background:var(--navy);color:#fff}
+.lojas{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.loja{border-radius:14px;overflow:hidden;background:#fff;border:1px solid var(--line)}
 .loja img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
-.loja div{padding:12px 14px}.loja b{display:block}.loja span{font-size:.85rem;color:var(--muted)}
-.about{background:var(--paper)}
-.about .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:26px}
-.about .grid div{border-top:3px solid var(--ink);padding-top:14px}
-.about .grid b{font-family:Fraunces,serif;font-size:1.2rem}
-footer{background:var(--ink);color:#d9d6cc;padding:60px 0 30px}
-footer .cols{display:grid;grid-template-columns:2fr 1fr 1fr;gap:30px}
-footer h3{color:#fff;font-size:1.1rem;margin-bottom:10px}
+.loja div{padding:12px 14px}.loja b{display:block;font-size:.92rem}.loja span{font-size:.82rem;color:var(--muted)}
+.cta{background:var(--navy);color:#fff;text-align:center}
+.cta h2{text-transform:uppercase;font-size:clamp(1.6rem,3vw,2.2rem)}
+.cta p{opacity:.85;margin:10px auto 24px;max-width:620px}
+footer{background:#041620;color:#c9d3da;padding:56px 0 26px;font-size:.92rem}
+footer .cols{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:28px}
+footer h4{color:#fff;text-transform:uppercase;font-size:.85rem;letter-spacing:.08em;margin-bottom:10px}
 footer a{color:#fff}
-.legal{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:40px;padding-top:18px;border-top:1px solid rgba(255,255,255,.12);font-size:.8rem;opacity:.7}
-.legal a.area{opacity:.75;text-decoration:none}
-.legal a.area:hover{opacity:1;text-decoration:underline}
-@media (max-width:820px){.split,.vdx,.about .grid,footer .cols{grid-template-columns:1fr}nav.menu{display:none}.hero{padding-top:120px}}
+.legal{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:36px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);font-size:.78rem;opacity:.75}
+@media(max-width:980px){.lojas{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:820px){.esp,.vdx,footer .cols{grid-template-columns:1fr}.bar nav a:not(.btn){display:none}.lojas{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
-<header class="top"><div class="wrap">
-  <a class="brand" href="#"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop"></a>
-  <nav class="menu"><a href="#ownat">Ownat</a><a href="#vetdiagnostix">Vet Diagnostix</a><a href="#lojas">Onde comprar</a><a href="#contactos">Contactos</a></nav>
+<header class="bar"><div class="wrap">
+  <a href="#"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop"></a>
+  <nav><a href="#ownat">Ownat</a><a href="#vetdiagnostix">Vet Diagnostix</a><a href="#lojas">Onde comprar</a><a href="#contactos">Contactos</a><a class="btn" href="loja.html">Área de cliente</a></nav>
 </div></header>
 
-<section class="hero">
-  <img class="globe" src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="" aria-hidden="true">
-  <div class="wrap">
-    <h1>Alimentação e diagnóstico escolhidos por <em>veterinários</em>.</h1>
-    <p>A Ibernop foi fundada por médicos veterinários e distribui em Portugal marcas em que confiamos: a alimentação Ownat e as soluções de diagnóstico Vet Diagnostix.</p>
-    <div class="chips"><a class="chip" href="#ownat">Ownat para cão</a><a class="chip" href="#ownat">Ownat para gato</a><a class="chip" href="#vetdiagnostix">Vet Diagnostix</a><a class="chip" href="#lojas">Lojas parceiras</a></div>
-  </div>
-</section>
+<section class="hero"><div class="wrap">
+  <div class="eb">Fornecedor de produtos para animais</div>
+  <h1>Os melhores produtos para um cuidado de excelência</h1>
+  <p>Fundada por médicos veterinários, a Ibernop distribui em Portugal a alimentação Ownat para cão e gato e as soluções de diagnóstico Vet Diagnostix.</p>
+  <div class="row"><a class="btn white" href="#ownat">Ver produtos</a><a class="btn line" href="loja.html">Área de cliente</a></div>
+</div></section>
 
-<section id="ownat">
-  <div class="split">
-    <div class="side dog"><div class="kicker">CÃO</div><p class="lead">Do cachorro ao sénior, com gamas para cada fase da vida e necessidades específicas.</p><div id="g-cao"></div></div>
-    <div class="side cat"><div class="kicker">GATO</div><p class="lead">Receitas para gatos de interior, esterilizados e com cuidados especiais.</p><div id="g-gato"></div></div>
-  </div>
-</section>
-
-<section class="block" id="vetdiagnostix"><div class="wrap vdx">
-  <div>
-    <div class="eyebrow">Distribuidor oficial</div>
-    <h2>Vet Diagnostix</h2>
-    <p>Equipamentos e tecnologia de diagnóstico para o consultório: resultados rápidos e fiáveis para decidir melhor e acompanhar cada caso.</p>
-    <a class="btn" href="#contactos">Pedir informação</a>
-  </div>
-  <div class="vdx-card">
-    <h3>Para clínicas e hospitais</h3>
-    <ul><li>Diagnóstico rápido no próprio consultório</li><li>Apoio técnico na instalação e utilização</li><li>Acompanhamento por médicos veterinários</li></ul>
+<section class="s g" id="ownat"><div class="wrap">
+  <div class="head"><div class="eb">Alimentação</div><h2>Ownat</h2><p>Gamas completas para cão e gato, para cada fase da vida e necessidades específicas.</p></div>
+  <div class="esp">
+    <div class="col"><h3><span>🐶</span>Cão</h3><div class="chips" id="f-cao"></div><div class="grid" id="g-cao"></div><button class="mais" id="m-cao" hidden>Ver todos</button></div>
+    <div class="col"><h3><span>🐱</span>Gato</h3><div class="chips" id="f-gato"></div><div class="grid" id="g-gato"></div><button class="mais" id="m-gato" hidden>Ver todos</button></div>
   </div>
 </div></section>
 
-<section class="block" id="lojas" hidden><div class="wrap">
-  <div class="eyebrow">Onde comprar</div>
-  <h2>Lojas e clínicas parceiras</h2>
-  <p>Encontre Ownat perto de si, nas lojas e clínicas que trabalham connosco.</p>
+<section class="s" id="vetdiagnostix"><div class="wrap vdx">
+  <div><div class="head" style="text-align:left;margin:0"><div class="eb">Distribuidor oficial</div><h2>Vet Diagnostix</h2></div>
+    <p>Equipamentos e tecnologia de diagnóstico para o consultório, com resultados rápidos e fiáveis para decidir melhor e acompanhar cada caso.</p>
+    <a class="btn" href="#contactos">Pedir informação</a></div>
+  <div class="box"><h3>Para clínicas e hospitais</h3><ul><li>Diagnóstico rápido no próprio consultório</li><li>Apoio na instalação e utilização</li><li>Acompanhamento por médicos veterinários</li></ul></div>
+</div></section>
+
+<section class="s g" id="lojas" hidden><div class="wrap">
+  <div class="head"><div class="eb">Onde comprar</div><h2>Lojas e clínicas parceiras</h2><p>Encontre os nossos produtos perto de si.</p></div>
   <div class="zonas" id="zonas"></div>
   <div class="lojas" id="lista-lojas"></div>
 </div></section>
 
-<section class="block about"><div class="wrap">
-  <div class="eyebrow">Sobre nós</div>
-  <h2>De veterinários, para quem cuida de animais</h2>
-  <div class="grid">
-    <div><b>Escolha criteriosa</b><p>Só distribuímos marcas que usaríamos nos nossos próprios pacientes.</p></div>
-    <div><b>Perto de si</b><p>Um vendedor dedicado para cada zona do país: Norte, Centro e Sul.</p></div>
-    <div><b>Encomendas simples</b><p>As lojas parceiras encomendam online, a qualquer hora, e nós tratamos da entrega.</p></div>
-  </div>
+<section class="s cta"><div class="wrap">
+  <h2>Quer vender os nossos produtos?</h2>
+  <p>Temos um vendedor dedicado para cada zona do país: Norte, Centro e Sul. As lojas parceiras encomendam online, a qualquer hora.</p>
+  <a class="btn white" href="#contactos">Fale connosco</a>
 </div></section>
 
 <footer id="contactos"><div class="wrap">
   <div class="cols">
-    <div><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop" style="height:70px"><p style="margin-top:14px;max-width:360px">Distribuição de produtos veterinários. Quer vender Ownat na sua loja ou clínica? Fale connosco.</p></div>
-    <div><h3>Contactos</h3><p><a href="tel:+351938093411">938 093 411</a><br><a href="tel:+351212454927">212 454 927</a><br><a href="mailto:geral@ibernop.com">geral@ibernop.com</a></p></div>
-    <div><h3>Morada</h3><p>Rua das Acácias, 32-B<br>Vila Chã<br>2835-750 Santo António da Charneca</p></div>
+    <div><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop" style="height:80px"><p style="margin-top:12px;max-width:340px">Fornecedor de produtos para animais, fundado por médicos veterinários.</p></div>
+    <div><h4>Contactos</h4><p><a href="tel:+351938093411">938 093 411</a><br><a href="tel:+351212454927">212 454 927</a><br><a href="mailto:geral@ibernop.com">geral@ibernop.com</a></p></div>
+    <div><h4>Morada</h4><p>Rua das Acácias, 32-B, Vila Chã<br>2835-750 Santo António da Charneca</p></div>
   </div>
-  <div class="legal"><span>© <span id="ano">2026</span> Ibernop</span><span><a href="https://www.livroreclamacoes.pt" target="_blank" rel="noopener">Livro de Reclamações</a> · <a class="area" href="loja.html">Área de cliente</a></span></div>
+  <div class="legal"><span>© <span id="ano">2026</span> Ibernop</span><span><a href="https://www.livroreclamacoes.pt" target="_blank" rel="noopener">Livro de Reclamações</a> · <a href="loja.html">Área de cliente</a></span></div>
 </div></footer>
 
 <script src="produtos-data.js"></script>
@@ -144,18 +130,27 @@ footer a{color:#fff}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 document.getElementById('ano').textContent = new Date().getFullYear();
-const GAMAS = { Classic:'O essencial, equilibrado para o dia a dia.', Ultra:'Receitas com mais proteína animal.', Author:'Carne e peixe frescos, receitas de autor.', Just:'Sem cereais, ingredientes simples.', Prime:'Sem cereais, nutrição completa.', Care:'Para necessidades especiais e dietas específicas.' };
 const ORDEM = ['Classic','Ultra','Author','Just','Prime','Care'];
 const esc = v => String(v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function render(especie, alvo){
-  const lista = (typeof produtos !== 'undefined' ? produtos : []).filter(p => p.especie === especie);
-  document.getElementById(alvo).innerHTML = ORDEM.map(g => {
-    const ps = lista.filter(p => p.gama === g); if (!ps.length) return '';
-    return '<div class="gama"><h3>' + g + ' <small>' + ps.length + (ps.length > 1 ? ' produtos' : ' produto') + '</small></h3><p class="d">' + (GAMAS[g] || '') + '</p><div class="rail">' +
-      ps.map(p => '<div class="prod"><div class="ph"><img loading="lazy" src="' + esc(p.imagem) + '" alt="' + esc(p.nome) + '"></div><span>' + esc(p.nome.replace(/^Ownat\s*/,'').replace(/\s*\((Cão|Gato)\)/,'')) + '</span></div>').join('') + '</div></div>';
-  }).join('');
+const LIMITE = 6;
+function montar(esp) {
+  const todos = (typeof produtos !== 'undefined' ? produtos : []).filter(p => p.especie === esp);
+  const gamas = ['Todas'].concat(ORDEM.filter(g => todos.some(p => p.gama === g)));
+  let gama = 'Todas', aberto = false;
+  const f = document.getElementById('f-' + esp), g = document.getElementById('g-' + esp), m = document.getElementById('m-' + esp);
+  function desenhar() {
+    f.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.g === gama));
+    const lista = todos.filter(p => gama === 'Todas' || p.gama === gama);
+    const ver = aberto ? lista : lista.slice(0, LIMITE);
+    g.innerHTML = ver.map(p => '<div class="card"><div class="im"><img loading="lazy" src="' + esc(p.imagem) + '" alt="' + esc(p.nome) + '"></div><div class="t">' + esc(p.gama) + '</div><div class="n">' + esc(p.nome.replace(/^Ownat\s*/, '').replace(/\s*\((Cão|Gato)\)/, '')) + '</div></div>').join('');
+    m.hidden = lista.length <= LIMITE; m.textContent = aberto ? 'Ver menos' : 'Ver todos (' + lista.length + ')';
+  }
+  f.innerHTML = gamas.map(x => '<button type="button" data-g="' + x + '">' + x + '</button>').join('');
+  f.querySelectorAll('button').forEach(b => b.onclick = () => { gama = b.dataset.g; aberto = false; desenhar(); });
+  m.onclick = () => { aberto = !aberto; desenhar(); };
+  desenhar();
 }
-render('cao','g-cao'); render('gato','g-gato');
+montar('cao'); montar('gato');
 // Lojas parceiras: geridas no painel (Clientes → Montra no site), por zona e por ordem alfabética
 firebase.initializeApp({ apiKey: "AIzaSyBAlMWFnh8JM4sVuWjEJhde88AbmNhfv7k", authDomain: "ibernop-7a0d6.firebaseapp.com", projectId: "ibernop-7a0d6", appId: "1:345246578720:web:d43f2156277ee44257a445" });
 firebase.firestore().collection('lojas_publicas').get().then(snap => {
