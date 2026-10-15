@@ -242,6 +242,7 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
       <button data-g="Care" onclick="setGamaFilter('Care', this)">Care</button>
       <button data-g="Classic" onclick="setGamaFilter('Classic', this)">Classic</button>
       <button data-g="Salmon Oil" onclick="setGamaFilter('Salmon Oil', this)">Salmon Oil</button>
+      <button data-g="Testes rápidos" onclick="setGamaFilter('Testes rápidos', this)">Testes rápidos</button>
     </div>
     <div class="product-grid" id="productGrid"></div>
   </div>
@@ -313,7 +314,10 @@ let liveStock = {}; // { "produtoId_tamanhoLabel": qty } — vindo do Firestore,
 const LIMITE_STOCK_BAIXO = 5; // a partir daqui mostra o aviso "restam apenas X" — muda aqui se quiseres outro valor
 
 function loadStock() {
-  db.collection('estoque_b2b').get().then(snap => {
+  // Preços alterados na Gestão sobrepõem-se aos da lista
+  db.collection('precos_b2b').get().then(ps => {
+    ps.forEach(d => { const [pid, ...lab] = d.id.split('_'); const p = produtos.find(x => String(x.id) === pid); const t = p && p.tamanhos.find(x => x.label === lab.join('_')); if (t && typeof d.data().preco === 'number') t.preco = d.data().preco; });
+  }).catch(() => {}).then(() => db.collection('estoque_b2b').get()).then(snap => {
     liveStock = {};
     snap.forEach(doc => { liveStock[doc.id] = doc.data().qty; });
     renderCatalog();
@@ -614,7 +618,7 @@ function renderCatalog() {
       return `
       <div class="size-opt ${i === idxInicial ? 'selected' : ''} ${esgotado ? 'esgotado' : ''}" data-produto="${p.id}" data-idx="${i}" ${esgotado ? '' : `onclick="selectSize(${p.id}, ${i})"`} style="${esgotado ? 'opacity:0.5; cursor:not-allowed;' : ''}">
         <span>${t.label}</span>
-        <span style="display:flex; align-items:center; gap:8px;">${avisoHtml}${(currentCliente && currentCliente.desconto > 0) ? `<span class="price"><s style="color:var(--gray-light);font-weight:500;margin-right:6px">${t.preco.toFixed(2)}€</s>${(t.preco * (1 - currentCliente.desconto / 100)).toFixed(2)}€</span>` : `<span class="price">${t.preco.toFixed(2)}€</span>`}${t.unidades > 1 ? `<small style="display:block;font-size:.72rem;color:var(--gray);font-weight:600;text-align:right">${((t.preco * (1 - ((currentCliente && currentCliente.desconto) || 0) / 100)) / t.unidades).toFixed(2)}€ / unidade</small>` : ''}</span>
+        <span style="display:flex; align-items:center; gap:8px;">${avisoHtml}${(currentCliente && currentCliente.desconto > 0) ? `<span class="price"><s style="color:var(--gray-light);font-weight:500;margin-right:6px">${t.preco.toFixed(2)}€</s>${(t.preco * (1 - currentCliente.desconto / 100)).toFixed(2)}€</span>` : `<span class="price">${t.preco.toFixed(2)}€</span>`}${t.unidades > 1 ? `<small style="display:block;font-size:.72rem;color:var(--gray);font-weight:600;text-align:right">quantidade = n.º de caixas · ${((t.preco * (1 - ((currentCliente && currentCliente.desconto) || 0) / 100)) / t.unidades).toFixed(2)}€ / unidade</small>` : ''}</span>
       </div>`;
     }).join('');
     const todosEsgotados = primeiroComStock === -1;
@@ -631,7 +635,7 @@ function renderCatalog() {
           <input type="number" id="qty-${p.id}" value="1" min="1">
           <button onclick="changeQty(${p.id}, 1)">+</button>
         </div>
-        <button class="btn btn-outline" style="width:100%; justify-content:center;" onclick="addToCart(${p.id})" ${todosEsgotados ? 'disabled' : ''}>${todosEsgotados ? 'Esgotado' : 'Adicionar'}</button>
+        <button class="btn btn-outline" style="width:100%; justify-content:center;" onclick="addToCart(${p.id})" ${(todosEsgotados || !(p.tamanhos[0].preco > 0)) ? 'disabled' : ''}>${!(p.tamanhos[0].preco > 0) ? 'Preço a definir' : (todosEsgotados ? 'Esgotado' : (p.tamanhos.some(t => t.unidades > 1) ? 'Adicionar caixas' : 'Adicionar'))}</button>
       </div>`;
   }).join('');
 }
