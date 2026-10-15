@@ -156,9 +156,10 @@ const firebaseConfig = {
   messagingSenderId: "345246578720",
   appId: "1:345246578720:web:d43f2156277ee44257a445"
 };
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+// Sessão própria para a gestão (app com nome diferente), para não interferir com o login da área de cliente no mesmo navegador
+const appGestao = firebase.initializeApp(firebaseConfig, 'gestao');
+const auth = appGestao.auth();
+const db = appGestao.firestore();
 
 const ADMIN_EMAILS = ["ibernop@outlook.com"];
 
