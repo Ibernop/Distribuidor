@@ -50,7 +50,8 @@ section.g{background:var(--grey)}
 .grid{display:flex;gap:12px;transition:transform .7s ease}
 .grid .card{flex:0 0 calc((100% - 24px)/3)}
 .dots{display:flex;justify-content:center;gap:6px;margin-top:14px}
-.dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.dots i{width:9px;height:9px;border-radius:50%;background:var(--line);cursor:pointer;transition:transform .2s}
+.dots i:hover{transform:scale(1.4);background:var(--muted)}
 .dots i.on{background:var(--navy)}
 .card{border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;background:#fff}
 .card .im{height:120px;display:flex;align-items:center;justify-content:center}
@@ -142,13 +143,14 @@ function montar(esp) {
   const todos = (typeof produtos !== 'undefined' ? produtos : []).filter(p => p.especie === esp);
   const gamas = ['Todas'].concat(ORDEM.filter(g => todos.some(p => p.gama === g)));
   const f = document.getElementById('f-' + esp), g = document.getElementById('g-' + esp), d = document.getElementById('d-' + esp);
-  let gama = 'Todas', pos = 0, total = 0, parado = false;
+  let gama = 'Todas', pos = 0, total = 0, parado = false, pausa = 0;
   const porVez = () => (window.innerWidth <= 980 ? 2 : 3);
   function mover() {
     const max = Math.max(0, total - porVez()); if (pos > max) pos = 0;
     const card = g.querySelector('.card'); const passo = card ? card.offsetWidth + 12 : 0;
     g.style.transform = 'translateX(' + (-pos * passo) + 'px)';
-    d.innerHTML = Array.from({ length: max + 1 }, (_, i) => '<i class="' + (i === pos ? 'on' : '') + '"></i>').join('');
+    d.innerHTML = Array.from({ length: max + 1 }, (_, i) => '<i data-i="' + i + '" title="Ir para ' + (i + 1) + '" class="' + (i === pos ? 'on' : '') + '"></i>').join('');
+    d.querySelectorAll('i').forEach(el => el.onclick = () => { pos = +el.dataset.i; mover(); pausa = Date.now(); });
   }
   function desenhar() {
     f.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.g === gama));
@@ -162,7 +164,7 @@ function montar(esp) {
   const caixa = g.parentElement;
   caixa.addEventListener('mouseenter', () => parado = true);
   caixa.addEventListener('mouseleave', () => parado = false);
-  setInterval(() => { if (!parado && total > porVez()) { pos++; mover(); } }, 3000);
+  setInterval(() => { if (!parado && Date.now() - pausa > 6000 && total > porVez()) { pos++; mover(); } }, 3000);
   window.addEventListener('resize', mover);
   desenhar();
 }
