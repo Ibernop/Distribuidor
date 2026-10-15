@@ -318,6 +318,7 @@ function doLogin() {
     errEl.classList.add('show');
     return;
   }
+  registarAtividade(); // novo login: a contagem de 1h recomeça agora
   auth.signInWithEmailAndPassword(email, password).catch(err => {
     errEl.textContent = 'E-mail ou palavra-passe incorretos.';
     errEl.classList.add('show');
@@ -417,6 +418,7 @@ setInterval(() => {
 auth.onAuthStateChanged(user => {
   currentUser = user;
   if (!user) {
+    try { localStorage.removeItem(CHAVE_ULTIMA_ATIVIDADE); } catch (e) {}
     showView('auth');
     updateHeaderActions();
     return;
