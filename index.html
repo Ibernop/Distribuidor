@@ -60,6 +60,14 @@ section.g{background:var(--grey)}
 .card .n{font-size:.78rem;font-weight:600;line-height:1.3}
 .mais{display:block;margin:14px auto 0;font:inherit;font-weight:700;font-size:.8rem;text-transform:uppercase;background:none;border:0;color:var(--navy);cursor:pointer;text-decoration:underline}
 .vdx{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:center}
+.testes{display:grid;gap:16px}
+.teste{display:flex;gap:16px;background:#fff;border:1px solid var(--line);border-left:5px solid var(--navy);border-radius:14px;padding:20px}
+.teste .ic{font-size:2rem;line-height:1}
+.teste .tt{color:var(--blue);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
+.teste h3{font-size:1.2rem;text-transform:uppercase;margin:2px 0 6px}
+.teste p{color:var(--muted);font-size:.9rem;margin:0 0 10px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags span{font-size:.75rem;font-weight:600;background:var(--grey);border-radius:20px;padding:4px 10px}
 .vdx .box{background:var(--navy);color:#fff;border-radius:18px;padding:34px}
 .vdx .box li{list-style:none;padding:11px 0;border-top:1px solid rgba(255,255,255,.15);font-weight:500}
 .vdx h3{font-size:1.6rem;text-transform:uppercase;margin-bottom:12px}
@@ -106,9 +114,12 @@ footer a{color:#fff}
 
 <section class="s" id="vetdiagnostix"><div class="wrap vdx">
   <div><div class="head" style="text-align:left;margin:0"><div class="eb">Distribuidor oficial</div><h2>Vet Diagnostix</h2></div>
-    <p>Equipamentos e tecnologia de diagnóstico para o consultório, com resultados rápidos e fiáveis para decidir melhor e acompanhar cada caso.</p>
+    <p>Testes rápidos para usar no próprio consultório: resultado em 5 a 10 minutos, durante a consulta, sem enviar amostras para laboratório.</p>
     <a class="btn" href="#contactos">Pedir informação</a></div>
-  <div class="box"><h3>Para clínicas e hospitais</h3><ul><li>Diagnóstico rápido no próprio consultório</li><li>Apoio na instalação e utilização</li><li>Acompanhamento por médicos veterinários</li></ul></div>
+  <div class="testes">
+    <div class="teste"><div class="ic">🦠</div><div><div class="tt">Teste rápido</div><h3>Parvovirose canina</h3><p>Deteta o parvovírus nas fezes do cão. Ajuda a confirmar logo na consulta um caso suspeito de gastroenterite por parvovírus.</p><div class="tags"><span>🐶 Cão</span><span>Amostra: fezes</span><span>5–10 min</span></div></div></div>
+    <div class="teste"><div class="ic">🩸</div><div><div class="tt">Teste rápido</div><h3>Leishmaniose</h3><p>Deteta anticorpos contra a Leishmania. Útil no rastreio antes da vacinação e na suspeita de leishmaniose.</p><div class="tags"><span>🐶 Cão</span><span>Amostra: sangue</span><span>5–10 min</span></div></div></div>
+  </div>
 </div></section>
 
 <section class="s g" id="lojas" hidden><div class="wrap">
