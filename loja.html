@@ -3,27 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Portal de Encomendas Ownat | Ibernop</title>
+<title>Área de Cliente | Ibernop</title>
 <meta name="description" content="Portal de encomendas B2B Ownat para lojas e clínicas veterinárias — Ibernop.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
   --ink: #1c2321;
-  --charcoal: #1e3a2b;
-  --charcoal-2: #28502f;
-  --gold: #cc7a35;
-  --gold-dark: #a85f24;
+  --charcoal: #07202e;
+  --charcoal-2: #0d3346;
+  --gold: #1b86f1;
+  --gold-dark: #0f5fb0;
   --gray: #5c6b64;
   --gray-light: #8a978f;
   --bg: #ffffff;
-  --bg-alt: #f4f6f4;
-  --border: #e1e6e2;
-  --green-soft: #e6f0e8;
+  --bg-alt: #f3f5f7;
+  --border: #e2e6ea;
+  --green-soft: #eaf3fd;
   --red: #b23b3b;
   --radius: 12px;
   --radius-pill: 999px;
-  --font: "Inter", "Segoe UI", sans-serif;
+  --font: "Montserrat", "Segoe UI", sans-serif;
   --container: 1180px;
 }
 * { box-sizing: border-box; }
@@ -111,6 +111,8 @@ section { padding: 48px 0; }
 
 footer.site { background: var(--charcoal); color: rgba(255,255,255,0.7); padding: 30px 0; margin-top: 40px; font-size: 0.85rem; text-align: center; }
 footer.site strong { color: #fff; }
+h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
+.btn { border-radius: 32px; }
 </style>
 </head>
 <body>
@@ -118,10 +120,10 @@ footer.site strong { color: #fff; }
 <header class="site">
   <div class="wrap">
     <div class="brand">
-      🐾
+      <a href="index.html"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop" style="height:46px;display:block"></a>
       <div>
-        OWNAT B2B
-        <span class="brand-sub">Portal de Encomendas · Ibernop</span>
+        IBERNOP
+        <span class="brand-sub">Área de Cliente · Encomendas</span>
       </div>
     </div>
     <div class="header-actions" id="headerActions">
@@ -132,7 +134,7 @@ footer.site strong { color: #fff; }
 
 <div class="hero-strip">
   <div class="wrap">
-    <h1>Portal de Encomendas Ownat</h1>
+    <h1>ÁREA DE CLIENTE</h1>
     <p>Acesso exclusivo para lojas e clínicas parceiras. Faça login para consultar o catálogo e encomendar. Se ainda não é cliente, contacte a Ibernop.</p>
   </div>
 </div>
@@ -208,6 +210,7 @@ footer.site strong { color: #fff; }
       <button data-g="Ultra" onclick="setGamaFilter('Ultra', this)">Ultra</button>
       <button data-g="Care" onclick="setGamaFilter('Care', this)">Care</button>
       <button data-g="Classic" onclick="setGamaFilter('Classic', this)">Classic</button>
+      <button data-g="Wetline" onclick="setGamaFilter('Wetline', this)">Húmido / Wetline</button>
     </div>
     <div class="product-grid" id="productGrid"></div>
   </div>
@@ -239,7 +242,7 @@ footer.site strong { color: #fff; }
 
 <footer class="site">
   <div class="wrap">
-    <strong>Ownat B2B</strong> — portal de encomendas Ibernop para profissionais.<br>
+    <strong>Ibernop</strong> — área de encomendas para lojas e clínicas parceiras. Preços sem IVA.<br>
     Dúvidas? <a href="mailto:geral@ibernop.com">geral@ibernop.com</a>
   </div>
 </footer>
@@ -488,7 +491,7 @@ function renderCatalog() {
       return `
       <div class="size-opt ${i === idxInicial ? 'selected' : ''} ${esgotado ? 'esgotado' : ''}" data-produto="${p.id}" data-idx="${i}" ${esgotado ? '' : `onclick="selectSize(${p.id}, ${i})"`} style="${esgotado ? 'opacity:0.5; cursor:not-allowed;' : ''}">
         <span>${t.label}</span>
-        <span style="display:flex; align-items:center; gap:8px;">${avisoHtml}<span class="price">${t.preco.toFixed(2)}€</span></span>
+        <span style="display:flex; align-items:center; gap:8px;">${avisoHtml}${(currentCliente && currentCliente.desconto > 0) ? `<span class="price"><s style="color:var(--gray-light);font-weight:500;margin-right:6px">${t.preco.toFixed(2)}€</s>${(t.preco * (1 - currentCliente.desconto / 100)).toFixed(2)}€</span>` : `<span class="price">${t.preco.toFixed(2)}€</span>`}</span>
       </div>`;
     }).join('');
     const todosEsgotados = primeiroComStock === -1;
