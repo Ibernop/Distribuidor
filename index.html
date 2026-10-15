@@ -161,7 +161,7 @@ footer a{color:#fff}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 document.getElementById('ano').textContent = new Date().getFullYear();
-const ORDEM = ['Classic','Ultra','Author','Just','Prime','Care','Wetline'];
+const ORDEM = ['Classic','Ultra','Author','Just','Prime','Care'];
 const esc = v => String(v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function montar(esp) {
   const todos = (typeof produtos !== 'undefined' ? produtos : []).filter(p => p.especie === esp && p.imagem);

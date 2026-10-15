@@ -452,7 +452,7 @@ function loadPedidos() {
               <div class="entry-title">${p.empresa}</div>
               <div class="entry-sub">${p.nomeFaturacao ? esc(p.nomeFaturacao) + ' · ' : ''}NIF: ${p.nif} · ${metodoLabel}${p.vendedorId ? ' · Vendedor: ' + esc(nomeVendedor(p.vendedorId)) : ''}</div>
               ${p.moradaEntrega ? `<div class="entry-sub">Entrega: ${esc(p.moradaEntrega)}</div>` : ''}
-              <div class="entry-sub">${p.subtotal ? `Subtotal: ${p.subtotal.toFixed(2)}€` : ''}${p.desconto ? ` · Desconto (${p.desconto}%): -${(p.valorDesconto || 0).toFixed(2)}€` : ''} · <strong>Total: ${(p.total || 0).toFixed(2)}€</strong></div>
+              <div class="entry-sub">${p.subtotal ? `Subtotal: ${p.subtotal.toFixed(2)}€` : ''}${p.desconto ? ` · Desconto (${p.desconto}%): -${(p.valorDesconto || 0).toFixed(2)}€` : ''} · <strong>Total s/ IVA: ${(p.total || 0).toFixed(2)}€</strong> · IVA 23%: ${((p.total || 0) * 0.23).toFixed(2)}€ · <strong>c/ IVA: ${((p.total || 0) * 1.23).toFixed(2)}€</strong></div>
             </div>
             <span class="badge ${p.estado}">${p.estado}</span>
           </div>
