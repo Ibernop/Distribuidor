@@ -614,7 +614,7 @@ function renderCatalog() {
       return `
       <div class="size-opt ${i === idxInicial ? 'selected' : ''} ${esgotado ? 'esgotado' : ''}" data-produto="${p.id}" data-idx="${i}" ${esgotado ? '' : `onclick="selectSize(${p.id}, ${i})"`} style="${esgotado ? 'opacity:0.5; cursor:not-allowed;' : ''}">
         <span>${t.label}</span>
-        <span style="display:flex; align-items:center; gap:8px;">${avisoHtml}${(currentCliente && currentCliente.desconto > 0) ? `<span class="price"><s style="color:var(--gray-light);font-weight:500;margin-right:6px">${t.preco.toFixed(2)}€</s>${(t.preco * (1 - currentCliente.desconto / 100)).toFixed(2)}€</span>` : `<span class="price">${t.preco.toFixed(2)}€</span>`}</span>
+        <span style="display:flex; align-items:center; gap:8px;">${avisoHtml}${(currentCliente && currentCliente.desconto > 0) ? `<span class="price"><s style="color:var(--gray-light);font-weight:500;margin-right:6px">${t.preco.toFixed(2)}€</s>${(t.preco * (1 - currentCliente.desconto / 100)).toFixed(2)}€</span>` : `<span class="price">${t.preco.toFixed(2)}€</span>`}${t.unidades > 1 ? `<small style="display:block;font-size:.72rem;color:var(--gray);font-weight:600;text-align:right">${((t.preco * (1 - ((currentCliente && currentCliente.desconto) || 0) / 100)) / t.unidades).toFixed(2)}€ / unidade</small>` : ''}</span>
       </div>`;
     }).join('');
     const todosEsgotados = primeiroComStock === -1;
