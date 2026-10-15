@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gestão | Ownat B2B — Ibernop</title>
+<title>Gestão | Ibernop</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --ink: #1c2321; --charcoal: #1e3a2b; --charcoal-2: #28502f;
-  --gold: #cc7a35; --gold-dark: #a85f24;
+  --ink: #1c2321; --charcoal: #07202e; --charcoal-2: #0d3346;
+  --gold: #1b86f1; --gold-dark: #0f5fb0;
   --gray: #5c6b64; --gray-light: #8a978f;
-  --bg: #ffffff; --bg-alt: #f4f6f4; --border: #e1e6e2;
-  --green-soft: #e6f0e8; --red: #b23b3b;
+  --bg: #ffffff; --bg-alt: #f3f5f7; --border: #e2e6ea;
+  --green-soft: #eaf3fd; --red: #b23b3b;
   --radius: 12px; --radius-pill: 999px;
-  --font: "Inter", "Segoe UI", sans-serif;
+  --font: "Montserrat", "Segoe UI", sans-serif;
 }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: var(--font); color: var(--ink); background: var(--bg-alt); }
@@ -88,6 +88,9 @@ input, select, textarea { padding: 10px 12px; border: 1px solid var(--border); b
 .montra-box { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start; margin-top:12px; padding-top:12px; border-top:1px dashed #ddd; }
 .montra-foto { width:140px; height:105px; border-radius:10px; background:#f1f1ee; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:0.8rem; color:#888; }
 .montra-foto img { width:100%; height:100%; object-fit:cover; }
+.btn { border-radius: 32px; }
+h1, h2, .entry-title { letter-spacing: .01em; }
+.tabs button { border-radius: 32px !important; }
 </style>
 </head>
 <body>
@@ -104,7 +107,7 @@ input, select, textarea { padding: 10px 12px; border: 1px solid var(--border); b
 <div id="app">
   <div class="wrap">
     <div class="topbar">
-      <h1>Gestão Ibernop</h1>
+      <h1 style="display:flex;align-items:center;gap:14px"><span style="background:var(--charcoal);border-radius:12px;padding:6px 10px;display:inline-flex"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="" style="height:38px"></span>GESTÃO IBERNOP</h1>
       <button class="btn" onclick="doLogout()">Sair</button>
     </div>
     <div class="tabs">
