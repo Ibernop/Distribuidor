@@ -119,6 +119,7 @@ h1, h2, .entry-title { letter-spacing: .01em; }
       <button id="tabStock" onclick="setTab('stock')">Stock e preços</button>
       <button id="tabVendedores" onclick="setTab('vendedores')">Vendedores</button>
       <button id="tabEquipa" onclick="setTab('equipa')">Equipa</button>
+      <button id="tabIncidencias" onclick="setTab('incidencias')">Incidências <span id="contaInc" class="badge-n" style="display:none;"></span></button>
     </div>
 
     <div class="entry-actions" style="margin:0 0 16px;"><button class="btn" id="btnExpClientes" onclick="exportarClientes()">Exportar clientes (Excel)</button><button class="btn" onclick="exportarEncomendas()">Exportar encomendas (Excel)</button><button class="btn" id="btnImpClientes" onclick="importarClientes()">Importar clientes (Excel)</button><button class="btn" id="btnModeloClientes" onclick="modeloClientes()">Modelo de importação</button></div>
@@ -126,6 +127,7 @@ h1, h2, .entry-title { letter-spacing: .01em; }
     <div id="panelPedidos" style="display:none;"></div>
     <div id="panelVendedores" style="display:none;"></div>
     <div id="panelEquipa" style="display:none;"></div>
+    <div id="panelIncidencias" style="display:none;"></div>
     <div id="panelStock" style="display:none;">
       <div class="entry-actions" style="margin:0 0 12px;"><button class="btn" onclick="exportarTabelaPrecos()">Descarregar tabela de preços (Excel)</button><button class="btn primary" onclick="importarTabelaPrecos()">Importar nova tabela de preços</button></div>
       <p style="font-size:0.8rem; color:var(--gray); margin:0 0 12px;">Para atualizar preços em massa: descarregue a tabela, altere a coluna "Preço s/ IVA" (ou use uma lista com colunas Código/EAN e Preço) e importe. Os produtos são reconhecidos pelo EAN ou pelo código.</p>
@@ -221,11 +223,46 @@ function setTab(tab) {
   document.getElementById('panelVendedores').style.display = tab === 'vendedores' ? 'block' : 'none';
   document.getElementById('tabEquipa').classList.toggle('active', tab === 'equipa');
   document.getElementById('panelEquipa').style.display = tab === 'equipa' ? 'block' : 'none';
+  document.getElementById('tabIncidencias').classList.toggle('active', tab === 'incidencias');
+  document.getElementById('panelIncidencias').style.display = tab === 'incidencias' ? 'block' : 'none';
+  if (tab === 'incidencias') loadIncidencias();
   if (tab === 'equipa') loadEquipa();
   if (tab === 'vendedores') loadVendedores();
   if (tab === 'clientes') loadClientes();
   if (tab === 'pedidos') carregarVendedores().catch(() => []).then(loadPedidos);
   if (tab === 'stock') loadStockAdmin();
+}
+
+// ---------- Incidências ----------
+function queryIncidencias() {
+  return ehVendedor() ? db.collection('incidencias_b2b').where('vendedorId', '==', meuVendedorId) : db.collection('incidencias_b2b');
+}
+function contarIncidencias() {
+  queryIncidencias().get().then(s => { const n = s.docs.filter(d => d.data().estado !== 'resolvida').length; const b = document.getElementById('contaInc'); b.textContent = n; b.style.display = n ? '' : 'none'; }).catch(() => {});
+}
+function loadIncidencias() {
+  const el = document.getElementById('panelIncidencias');
+  el.innerHTML = '<div class="empty-state">A carregar...</div>';
+  carregarVendedores().catch(() => []).then(() => queryIncidencias().get()).then(snap => {
+    const l = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.estado === 'resolvida') - (b.estado === 'resolvida') || ((b.criadoEm && b.criadoEm.seconds) || 0) - ((a.criadoEm && a.criadoEm.seconds) || 0));
+    if (!l.length) { el.innerHTML = '<div class="empty-state">Não há incidências.</div>'; return; }
+    el.innerHTML = l.map(i => `<div class="entry-card">
+      <div class="entry-top"><div>
+        <div class="entry-title">${esc(i.tipo)} — ${esc(i.empresa)}</div>
+        <div class="entry-sub">Fatura <strong>${esc(i.fatura)}</strong> de ${esc((i.dataFatura || '').split('-').reverse().join('/'))} · Vendedor: ${esc(i.vendedorId ? nomeVendedor(i.vendedorId) : 'Sem vendedor')}</div>
+        <div class="entry-sub">${esc(i.gama)} · ${esc(i.produto)} · ${esc(i.peso)} · Ref. ${esc(i.referencia)} · EAN ${esc(i.ean)} · Qtd ${i.quantidade}</div>
+        ${i.descricao ? `<div class="entry-sub">"${esc(i.descricao)}"</div>` : ''}
+        <div class="entry-sub">Comunicada em ${i.criadoEm && i.criadoEm.toDate ? i.criadoEm.toDate().toLocaleString('pt-PT') : ''}</div>
+      </div><span class="badge ${i.estado === 'resolvida' ? 'aprovado' : 'pendente'}">${i.estado === 'resolvida' ? 'Resolvida' : 'Aberta'}</span></div>
+      <div class="entry-actions" style="align-items:center;flex-wrap:wrap;">
+        <input type="text" id="resp-${i.id}" value="${esc(i.resposta || '')}" placeholder="Resposta ao cliente (ex.: nota de crédito, substituição)" style="flex:1;min-width:240px;">
+        <button class="btn" onclick="guardarIncidencia('${i.id}', '${i.estado === 'resolvida' ? 'aberta' : 'resolvida'}')">${i.estado === 'resolvida' ? 'Reabrir' : 'Marcar como resolvida'}</button>
+      </div></div>`).join('');
+  }).catch(e => { el.innerHTML = '<div class="empty-state">Erro ao carregar incidências.</div>'; console.error(e); });
+}
+function guardarIncidencia(id, estado) {
+  const resposta = (document.getElementById('resp-' + id).value || '').trim();
+  db.collection('incidencias_b2b').doc(id).update({ estado, resposta }).then(() => { loadIncidencias(); contarIncidencias(); }).catch(e => alert('Não foi possível guardar: ' + e.message));
 }
 
 // ---------- Vendedores ----------
@@ -480,6 +517,7 @@ function aplicarPapel(user) {
   ['tabStock', 'tabVendedores', 'tabEquipa', 'btnExpClientes', 'btnImpClientes', 'btnModeloClientes'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = v ? 'none' : ''; });
   document.getElementById('papelInfo').textContent = (meuNome || user.email) + ' · ' + (v ? 'Vendedor' : 'Administrador');
   iniciarAvisos();
+  contarIncidencias();
   if (v) setTab('pedidos'); else loadClientes();
 }
 

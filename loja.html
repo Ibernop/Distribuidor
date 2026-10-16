@@ -128,6 +128,14 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
 .hist-card em { color: var(--gray); font-style: normal; }
 .hist-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
 .hist-vazio { color: var(--gray); }
+#incidenciasView { padding: 36px 0 60px; }
+.inc-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; }
+.inc-grid label, .inc-full { display:flex; flex-direction:column; gap:4px; font-size:.82rem; font-weight:600; color:var(--gray); }
+.inc-full { margin-top:12px; }
+.inc-grid input, .inc-grid select, .inc-full textarea { padding:10px; border:1.5px solid var(--border); border-radius:8px; font:inherit; font-size:.95rem; color:var(--charcoal); font-weight:400; }
+.inc-item { background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px 16px; margin-bottom:10px; }
+.inc-estado { font-size:.75rem; font-weight:700; padding:3px 10px; border-radius:20px; background:#fff3cd; color:#8a6d00; }
+.inc-estado.resolvida { background:#d9f2e3; color:#1e7a46; }
 .conta-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 8px 20px; max-width: 640px; }
 .conta-linha { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: .92rem; }
 .conta-linha:last-child { border-bottom: 0; }
@@ -219,11 +227,31 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
   <div class="wrap">
     <button data-v="catalog" onclick="irPara('catalog')">Catálogo</button>
     <button data-v="historico" onclick="irPara('historico')">As minhas encomendas</button>
+    <button data-v="incidencias" onclick="irPara('incidencias')">Incidências</button>
     <button data-v="conta" onclick="irPara('conta')">A minha conta</button>
   </div>
 </nav>
 
 <section id="historicoView" style="display:none;"><div class="wrap"><h2>As minhas encomendas</h2><div id="historicoLista"></div></div></section>
+<section id="incidenciasView" style="display:none;"><div class="wrap"><h2>Incidências</h2>
+  <p class="hist-vazio" style="margin:-8px 0 16px;">Chegou algum saco roto, produto em falta ou errado? Comunique aqui e o seu vendedor é avisado.</p>
+  <div class="conta-card" style="padding:18px 20px;">
+    <div class="inc-grid">
+      <label>N.º da fatura *<input id="incFatura" type="text" placeholder="Ex.: FT 2026/123"></label>
+      <label>Data da fatura *<input id="incData" type="date"></label>
+      <label>Tipo *<select id="incTipo"><option>Saco roto / danificado</option><option>Produto em falta</option><option>Produto errado</option><option>Outro</option></select></label>
+      <label>Gama *<select id="incGama" onchange="incGamaMudou()"></select></label>
+      <label>Referência (produto) *<select id="incProduto" onchange="incProdutoMudou()"></select></label>
+      <label>Peso *<select id="incPeso"></select></label>
+      <label>Quantidade afetada<input id="incQtd" type="number" min="1" value="1"></label>
+    </div>
+    <label class="inc-full">Descrição<textarea id="incDesc" rows="3" placeholder="Descreva o que aconteceu"></textarea></label>
+    <button class="btn btn-gold" style="margin-top:12px;" onclick="enviarIncidencia()">Enviar incidência</button>
+    <p id="incMsg" style="margin-top:10px; font-size:.9rem;"></p>
+  </div>
+  <h3 style="margin:28px 0 12px;">As minhas incidências</h3>
+  <div id="incLista"></div>
+</div></section>
 <section id="contaView" style="display:none;"><div class="wrap"><h2>A minha conta</h2><div id="contaDados"></div></div></section>
 
 <!-- ---------- Vista: aprovado, catálogo ---------- -->
@@ -496,7 +524,8 @@ function showView(view) {
   document.getElementById('pendingView').style.display = view === 'pending' ? 'block' : 'none';
   document.getElementById('catalogView').style.display = view === 'catalog' ? 'block' : 'none';
   document.getElementById('cartFab').style.display = view === 'catalog' ? 'flex' : 'none';
-  const cliente = ['catalog', 'historico', 'conta'].includes(view);
+  const cliente = ['catalog', 'historico', 'incidencias', 'conta'].includes(view);
+  document.getElementById('incidenciasView').style.display = view === 'incidencias' ? 'block' : 'none';
   document.getElementById('clienteNav').style.display = cliente ? 'block' : 'none';
   document.getElementById('historicoView').style.display = view === 'historico' ? 'block' : 'none';
   document.getElementById('contaView').style.display = view === 'conta' ? 'block' : 'none';
@@ -512,6 +541,7 @@ function irPara(view) {
   showView(view);
   if (view === 'historico') carregarHistorico();
   if (view === 'conta') mostrarConta();
+  if (view === 'incidencias') abrirIncidencias();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -584,6 +614,72 @@ function mostrarConta() {
     if (!d.exists) return; const v = d.data();
     document.getElementById('contaVendedor').innerHTML = linha('O seu vendedor', v.nome + ' — zona ' + v.zona) + `<div class="conta-linha"><span>E-mail do vendedor</span><strong><a href="mailto:${escH(v.email)}">${escH(v.email)}</a></strong></div>`;
   }).catch(() => {});
+}
+
+// ---------- E-mails automáticos (EmailJS) ----------
+// Preencher a publicKey para ativar. Cópias: sempre encomendas@ibernop.com e o próprio cliente.
+const EMAILJS = { publicKey: '', service: 'service_ibernop', tplEncomenda: 'template_encomenda', tplIncidencia: 'template_incidencia', copia: 'encomendas@ibernop.com' };
+function emailVendedor() {
+  const id = currentCliente && currentCliente.vendedorId;
+  if (!id) return Promise.resolve('');
+  return db.collection('vendedores_b2b').doc(id).get().then(d => d.exists ? (d.data().email || '') : '').catch(() => '');
+}
+function enviarEmail(template, params) {
+  if (!EMAILJS.publicKey) return Promise.resolve(false);
+  return emailVendedor().then(vend => {
+    const cc = [EMAILJS.copia, currentCliente.email].filter(Boolean).filter(e => e !== vend);
+    const body = { service_id: EMAILJS.service, template_id: template, user_id: EMAILJS.publicKey,
+      template_params: Object.assign({ to_email: vend || EMAILJS.copia, cc_email: cc.join(','), reply_to: currentCliente.email || '', cliente: currentCliente.nomeComercial || currentCliente.empresa || '', nif: currentCliente.nif || '', contacto: currentCliente.contacto || '', telefone: currentCliente.telefone || '' }, params) };
+    return fetch('https://api.emailjs.com/api/v1.0/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.ok);
+  }).catch(() => false);
+}
+
+// ---------- Incidências ----------
+function abrirIncidencias() {
+  const g = document.getElementById('incGama');
+  if (!g.options.length) {
+    g.innerHTML = '<option value="">Escolha a gama</option>' + [...new Set(produtos.map(p => p.gama))].map(x => `<option>${escH(x)}</option>`).join('');
+    incGamaMudou();
+  }
+  carregarIncidencias();
+}
+function incGamaMudou() {
+  const gama = document.getElementById('incGama').value;
+  const lista = produtos.filter(p => p.gama === gama);
+  document.getElementById('incProduto').innerHTML = '<option value="">' + (gama ? 'Escolha o produto' : 'Escolha primeiro a gama') + '</option>' + lista.map(p => `<option value="${p.id}">${escH(p.nome)}</option>`).join('');
+  incProdutoMudou();
+}
+function incProdutoMudou() {
+  const p = produtos.find(x => String(x.id) === document.getElementById('incProduto').value);
+  document.getElementById('incPeso').innerHTML = p ? p.tamanhos.map(t => `<option value="${escH(t.label)}">${escH(t.label)}${t.cod ? ' · ref. ' + escH(t.cod) : ''}</option>`).join('') : '<option value="">—</option>';
+}
+function enviarIncidencia() {
+  const v = id => document.getElementById(id).value.trim();
+  const msg = document.getElementById('incMsg');
+  const p = produtos.find(x => String(x.id) === v('incProduto'));
+  if (!v('incFatura') || !v('incData') || !p || !v('incPeso')) { msg.textContent = 'Preencha o n.º e a data da fatura, a gama, o produto e o peso.'; msg.style.color = 'var(--red)'; return; }
+  const t = p.tamanhos.find(x => x.label === v('incPeso')) || {};
+  const inc = { clienteUid: currentUser.uid, empresa: currentCliente.nomeComercial || currentCliente.empresa || '', nif: currentCliente.nif || '',
+    vendedorId: currentCliente.vendedorId || '', fatura: v('incFatura'), dataFatura: v('incData'), tipo: v('incTipo'), gama: p.gama, produto: p.nome,
+    referencia: t.cod || '', ean: t.ean || '', peso: v('incPeso'), quantidade: Number(v('incQtd')) || 1, descricao: v('incDesc'),
+    estado: 'aberta', criadoEm: firebase.firestore.FieldValue.serverTimestamp() };
+  msg.textContent = 'A enviar...'; msg.style.color = 'var(--gray)';
+  db.collection('incidencias_b2b').add(inc).then(ref => {
+    enviarEmail(EMAILJS.tplIncidencia, { referencia_incidencia: ref.id.slice(-6).toUpperCase(), tipo: inc.tipo, fatura: inc.fatura, data_fatura: inc.dataFatura.split('-').reverse().join('/'), gama: inc.gama, produto: inc.produto, referencia: inc.referencia, peso: inc.peso, quantidade: inc.quantidade, descricao: inc.descricao || '—' });
+    msg.textContent = 'Incidência enviada. O seu vendedor vai entrar em contacto.'; msg.style.color = 'var(--gold-dark)';
+    ['incFatura', 'incData', 'incDesc'].forEach(id => { document.getElementById(id).value = ''; }); document.getElementById('incQtd').value = 1;
+    carregarIncidencias();
+  }).catch(e => { msg.textContent = 'Erro ao enviar: ' + e.message; msg.style.color = 'var(--red)'; });
+}
+function carregarIncidencias() {
+  const el = document.getElementById('incLista');
+  el.innerHTML = '<p class="hist-vazio">A carregar...</p>';
+  db.collection('incidencias_b2b').where('clienteUid', '==', currentUser.uid).get().then(snap => {
+    const l = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => ((b.criadoEm && b.criadoEm.seconds) || 0) - ((a.criadoEm && a.criadoEm.seconds) || 0));
+    el.innerHTML = l.length ? l.map(i => `<div class="inc-item"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;"><strong>${escH(i.tipo)} · ${escH(i.produto)} ${escH(i.peso)}</strong><span class="inc-estado ${i.estado === 'resolvida' ? 'resolvida' : ''}">${i.estado === 'resolvida' ? 'Resolvida' : 'Em análise'}</span></div>
+      <div class="hist-vazio" style="font-size:.85rem;margin-top:4px;">Fatura ${escH(i.fatura)} de ${escH((i.dataFatura || '').split('-').reverse().join('/'))} · Ref. ${escH(i.referencia)} · Qtd ${i.quantidade} · Comunicada em ${dataPT(i.criadoEm)}</div>${i.descricao ? `<div style="font-size:.9rem;margin-top:6px;">${escH(i.descricao)}</div>` : ''}${i.resposta ? `<div style="font-size:.9rem;margin-top:6px;"><b>Resposta:</b> ${escH(i.resposta)}</div>` : ''}</div>`).join('')
+      : '<p class="hist-vazio">Ainda não comunicou nenhuma incidência.</p>';
+  }).catch(() => { el.innerHTML = '<p class="hist-vazio">Não foi possível carregar.</p>'; });
 }
 
 // ---------- Catálogo ----------
@@ -795,7 +891,8 @@ function submitPedido() {
     totalComIva: Math.round(total * 1.23 * 100) / 100,
     estado: 'pendente', // pendente -> separado -> enviado
     criadoEm: firebase.firestore.FieldValue.serverTimestamp()
-  })).then(() => {
+  })).then(ref => {
+    enviarEmail(EMAILJS.tplEncomenda, { referencia: ref.id.slice(-6).toUpperCase(), data: new Date().toLocaleString('pt-PT'), nome_faturacao: currentCliente.nomeFaturacao || '', morada_entrega: currentCliente.moradaEntrega || currentCliente.morada || '', pagamento: metodoPagamento === 'cheque30' ? 'Cheque a 30 dias' : 'Pronto pagamento', itens_html: itens.map(it => `<tr><td>${it.qty}x</td><td>${escH(it.nome)} (${escH(it.tamanho)})</td><td style="text-align:right">${eur(it.preco * it.qty)}</td></tr>`).join(''), subtotal: eur(subtotal), desconto: desconto + '% (-' + eur(valorDesconto) + ')', total_sem_iva: eur(total), iva: eur(total * 0.23), total_com_iva: eur(total * 1.23) });
     msgEl.textContent = 'Encomenda enviada! Vamos preparar e avisamos quando for enviada.';
     msgEl.style.color = 'var(--gold-dark)';
     cart = {};
