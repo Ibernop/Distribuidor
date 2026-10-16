@@ -177,6 +177,7 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
         <button class="btn btn-gold" onclick="doLogin()">Entrar</button>
         <p class="auth-note"><a href="#" onclick="resetSenha(); return false;">Esqueci-me da palavra-passe</a></p>
         <p class="auth-note">Ainda não é cliente? Contacte a Ibernop para criar o seu acesso.</p>
+        <p class="auth-note">Ao entrar, aceita os <a href="termos.html" target="_blank" rel="noopener">Termos e a Política de Privacidade</a>.</p>
       </div>
 
       <div id="registerForm" class="auth-form" style="display:none;">
@@ -228,6 +229,7 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
 <!-- ---------- Vista: aprovado, catálogo ---------- -->
 <section id="catalogView" style="display:none;">
   <div class="wrap">
+    <input type="search" id="pesquisaProduto" placeholder="Pesquisar por nome, código ou EAN…" oninput="renderCatalog()" style="width:100%; padding:12px 16px; border:1px solid var(--border); border-radius:32px; font:inherit; margin:0 0 14px;">
     <div class="catalog-filters" id="catalogFilters">
       <button class="active" data-f="todos" onclick="setCatalogFilter('todos', this)">Todos</button>
       <button data-f="cao" onclick="setCatalogFilter('cao', this)">Cão</button>
@@ -278,7 +280,7 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
 <footer class="site">
   <div class="wrap">
     <strong>Ibernop</strong> — área de encomendas para lojas e clínicas parceiras. Preços sem IVA.<br>
-    Dúvidas? <a href="mailto:geral@ibernop.com">geral@ibernop.com</a>
+    Dúvidas? <a href="mailto:geral@ibernop.com">geral@ibernop.com</a> · <a href="termos.html" target="_blank" rel="noopener">Termos e privacidade</a> · <a href="https://www.livroreclamacoes.pt" target="_blank" rel="noopener">Livro de Reclamações</a>
   </div>
 </footer>
 
@@ -595,6 +597,8 @@ function renderCatalog() {
   const grid = document.getElementById('productGrid');
   let lista = catalogFilter === 'todos' ? produtos : produtos.filter(p => p.especie === catalogFilter);
   if (gamaFilter !== 'todas') lista = lista.filter(p => p.gama === gamaFilter);
+  const termo = ((document.getElementById('pesquisaProduto') || {}).value || '').trim().toLowerCase();
+  if (termo) lista = lista.filter(p => p.nome.toLowerCase().includes(termo) || p.tamanhos.some(t => String(t.cod || '').includes(termo) || String(t.ean || '').includes(termo)));
   if (lista.length === 0) {
     grid.innerHTML = '<div class="empty-state">Sem produtos nesta combinação de filtros.</div>';
     return;

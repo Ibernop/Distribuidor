@@ -91,6 +91,8 @@ input, select, textarea { padding: 10px 12px; border: 1px solid var(--border); b
 .btn { border-radius: 32px; }
 h1, h2, .entry-title { letter-spacing: .01em; }
 .tabs button { border-radius: 32px !important; }
+.badge-n { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #e5484d; color: #fff; font-size: 0.72rem; font-weight: 800; align-items: center; justify-content: center; margin-left: 6px; }
+.aviso-toast { position: fixed; right: 20px; bottom: 20px; z-index: 999; background: var(--charcoal); color: #fff; padding: 14px 18px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.25); font-weight: 700; cursor: pointer; max-width: 340px; }
 </style>
 </head>
 <body>
@@ -108,20 +110,24 @@ h1, h2, .entry-title { letter-spacing: .01em; }
   <div class="wrap">
     <div class="topbar">
       <h1 style="display:flex;align-items:center;gap:14px"><span style="background:var(--charcoal);border-radius:12px;padding:6px 10px;display:inline-flex"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="" style="height:38px"></span>GESTÃO IBERNOP</h1>
-      <button class="btn" onclick="doLogout()">Sair</button>
+      <div style="display:flex; align-items:center; gap:12px;"><span id="papelInfo" style="font-size:0.82rem; color:var(--gray);"></span><button class="btn" onclick="doLogout()">Sair</button></div>
     </div>
     <div class="tabs">
       <button id="tabClientes" class="active" onclick="setTab('clientes')">Clientes</button>
-      <button id="tabPedidos" onclick="setTab('pedidos')">Encomendas</button>
+      <button id="tabPedidos" onclick="setTab('pedidos')">Encomendas <span id="contaPendentes" class="badge-n" style="display:none;"></span></button>
       <button id="tabStock" onclick="setTab('stock')">Stock e preços</button>
       <button id="tabVendedores" onclick="setTab('vendedores')">Vendedores</button>
+      <button id="tabEquipa" onclick="setTab('equipa')">Equipa</button>
     </div>
 
-    <div class="entry-actions" style="margin:0 0 16px;"><button class="btn" onclick="exportarClientes()">Exportar clientes (Excel)</button><button class="btn" onclick="exportarEncomendas()">Exportar encomendas (Excel)</button></div>
+    <div class="entry-actions" style="margin:0 0 16px;"><button class="btn" id="btnExpClientes" onclick="exportarClientes()">Exportar clientes (Excel)</button><button class="btn" onclick="exportarEncomendas()">Exportar encomendas (Excel)</button><button class="btn" id="btnImpClientes" onclick="importarClientes()">Importar clientes (Excel)</button><button class="btn" id="btnModeloClientes" onclick="modeloClientes()">Modelo de importação</button></div>
     <div id="panelClientes"></div>
     <div id="panelPedidos" style="display:none;"></div>
     <div id="panelVendedores" style="display:none;"></div>
+    <div id="panelEquipa" style="display:none;"></div>
     <div id="panelStock" style="display:none;">
+      <div class="entry-actions" style="margin:0 0 12px;"><button class="btn" onclick="exportarTabelaPrecos()">Descarregar tabela de preços (Excel)</button><button class="btn primary" onclick="importarTabelaPrecos()">Importar nova tabela de preços</button></div>
+      <p style="font-size:0.8rem; color:var(--gray); margin:0 0 12px;">Para atualizar preços em massa: descarregue a tabela, altere a coluna "Preço s/ IVA" (ou use uma lista com colunas Código/EAN e Preço) e importe. Os produtos são reconhecidos pelo EAN ou pelo código.</p>
       <input type="text" id="stockSearch" placeholder="Pesquisar produto..." oninput="renderStockList()" style="width:100%; margin-bottom:16px;">
       <div id="stockList"></div>
     </div>
@@ -179,12 +185,23 @@ function doLogin() {
 }
 function doLogout() { auth.signOut(); }
 
-auth.onAuthStateChanged(user => {
-  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+auth.onAuthStateChanged(async user => {
+  let ok = false; papel = null; meuVendedorId = ''; meuNome = '';
+  if (avisoUnsub) { avisoUnsub(); avisoUnsub = null; }
+  if (user) {
+    if (ADMIN_EMAILS.includes((user.email || '').toLowerCase())) { papel = 'admin'; ok = true; }
+    else {
+      try {
+        const d = await db.collection('equipa_b2b').doc(user.uid).get();
+        if (d.exists) { const m = d.data(); papel = m.papel; meuVendedorId = m.vendedorId || ''; meuNome = m.nome || ''; ok = papel === 'admin' || (papel === 'vendedor' && !!meuVendedorId); }
+      } catch (e) { ok = false; }
+    }
+  }
+  const isAdmin = ok;
   document.getElementById('loginBox').style.display = isAdmin ? 'none' : 'block';
   document.getElementById('app').style.display = isAdmin ? 'block' : 'none';
   if (isAdmin) {
-    loadClientes();
+    carregarVendedores().catch(() => []).then(() => aplicarPapel(user));
   } else if (user && !isAdmin) {
     document.getElementById('loginError').textContent = 'Esta conta não tem acesso à gestão.';
     document.getElementById('loginError').classList.add('show');
@@ -201,6 +218,9 @@ function setTab(tab) {
   document.getElementById('panelStock').style.display = tab === 'stock' ? 'block' : 'none';
   document.getElementById('tabVendedores').classList.toggle('active', tab === 'vendedores');
   document.getElementById('panelVendedores').style.display = tab === 'vendedores' ? 'block' : 'none';
+  document.getElementById('tabEquipa').classList.toggle('active', tab === 'equipa');
+  document.getElementById('panelEquipa').style.display = tab === 'equipa' ? 'block' : 'none';
+  if (tab === 'equipa') loadEquipa();
   if (tab === 'vendedores') loadVendedores();
   if (tab === 'clientes') loadClientes();
   if (tab === 'pedidos') carregarVendedores().catch(() => []).then(loadPedidos);
@@ -436,6 +456,194 @@ function reenviarConvite(email) {
 // ---------- Encomendas ----------
 let allPedidos = [];
 
+
+// ---------- Papéis (administrador / vendedor), equipa e avisos ----------
+let papel = null, meuVendedorId = '', meuNome = '';
+let avisoUnsub = null, pendentesVistos = null;
+const ehVendedor = () => papel === 'vendedor';
+
+function aplicarPapel(user) {
+  const v = ehVendedor();
+  ['tabClientes', 'tabStock', 'tabVendedores', 'tabEquipa', 'btnExpClientes', 'btnImpClientes', 'btnModeloClientes'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = v ? 'none' : ''; });
+  document.getElementById('papelInfo').textContent = (meuNome || user.email) + ' · ' + (v ? 'Vendedor' : 'Administrador');
+  iniciarAvisos();
+  if (v) setTab('pedidos'); else loadClientes();
+}
+
+function iniciarAvisos() {
+  if (avisoUnsub) avisoUnsub();
+  pendentesVistos = null;
+  let q = db.collection('pedidos_b2b').where('estado', '==', 'pendente');
+  if (ehVendedor()) q = q.where('vendedorId', '==', meuVendedorId);
+  avisoUnsub = q.onSnapshot(s => {
+    const n = s.size, b = document.getElementById('contaPendentes');
+    b.textContent = n; b.style.display = n ? 'inline-flex' : 'none';
+    document.title = (n ? '(' + n + ') ' : '') + 'Gestão | Ibernop';
+    if (pendentesVistos !== null) s.docChanges().forEach(ch => { if (ch.type === 'added') mostrarAviso('Nova encomenda: ' + (ch.doc.data().empresa || '')); });
+    pendentesVistos = n;
+  }, () => {});
+}
+
+function mostrarAviso(txt) {
+  const t = document.createElement('div');
+  t.className = 'aviso-toast'; t.textContent = txt + ' — ver encomendas';
+  t.onclick = () => { setTab('pedidos'); t.remove(); };
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 10000);
+}
+
+function queryPedidos() {
+  const q = ehVendedor() ? db.collection('pedidos_b2b').where('vendedorId', '==', meuVendedorId) : db.collection('pedidos_b2b');
+  return q.get().then(s => {
+    const docs = s.docs.slice().sort((a, b) => (((b.data().criadoEm || {}).seconds) || 0) - (((a.data().criadoEm || {}).seconds) || 0));
+    return { empty: !docs.length, docs, forEach: f => docs.forEach(f) };
+  });
+}
+
+function loadEquipa() {
+  const el = document.getElementById('panelEquipa');
+  el.innerHTML = '<div class="empty-state">A carregar...</div>';
+  carregarVendedores().catch(() => []).then(() => db.collection('equipa_b2b').get()).then(snap => {
+    const membros = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt'));
+    el.innerHTML = `
+      <div class="entry-card">
+        <div class="entry-title" style="margin-bottom:6px;">Novo acesso à Gestão</div>
+        <p style="font-size:0.82rem; color:var(--gray); margin:0 0 10px;">Cada pessoa entra com o seu e-mail. O <strong>administrador</strong> vê tudo; o <strong>vendedor</strong> só vê as encomendas da sua zona e pode marcá-las como separadas/enviadas.</p>
+        <div class="auth-error" id="eqErro"></div>
+        <div class="form-grid">
+          <input type="text" id="eqNome" placeholder="Nome">
+          <input type="email" id="eqEmail" placeholder="E-mail de acesso">
+          <select id="eqPapel" onchange="document.getElementById('eqVend').style.display = this.value === 'vendedor' ? '' : 'none'"><option value="vendedor">Vendedor</option><option value="admin">Administrador</option></select>
+          <select id="eqVend">${opcoesVendedor('')}</select>
+        </div>
+        <div class="entry-actions"><button class="btn primary" id="eqBtn" onclick="criarMembro()">Criar acesso e enviar convite</button></div>
+      </div>` + (membros.length ? membros.map(m => `
+      <div class="entry-card">
+        <div class="entry-top">
+          <div><div class="entry-title">${esc(m.nome)}</div><div class="entry-sub">${esc(m.email)} · ${m.papel === 'admin' ? 'Administrador' : 'Vendedor — ' + esc(nomeVendedor(m.vendedorId))}</div></div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn" onclick="reenviarConvite('${esc(m.email)}')">Reenviar e-mail</button><button class="btn" onclick="removerMembro('${m.id}')">Retirar acesso</button></div>
+        </div>
+      </div>`).join('') : '<div class="empty-state">Ainda não há outras pessoas com acesso. A conta ibernop@outlook.com é sempre administradora.</div>');
+  }).catch(e => { el.innerHTML = '<div class="empty-state">Erro ao carregar a equipa.</div>'; console.error(e); });
+}
+
+async function criarMembro() {
+  const v = id => document.getElementById(id).value.trim();
+  const erro = document.getElementById('eqErro'); erro.classList.remove('show');
+  const dados = { nome: v('eqNome'), email: v('eqEmail').toLowerCase(), papel: v('eqPapel'), vendedorId: v('eqPapel') === 'vendedor' ? v('eqVend') : '' };
+  if (!dados.nome || !dados.email) { erro.textContent = 'Preencha o nome e o e-mail.'; erro.classList.add('show'); return; }
+  if (dados.papel === 'vendedor' && !dados.vendedorId) { erro.textContent = 'Escolha o vendedor/zona (crie-o primeiro no separador Vendedores).'; erro.classList.add('show'); return; }
+  const btn = document.getElementById('eqBtn'); btn.disabled = true; btn.textContent = 'A criar...';
+  const sec = firebase.apps.find(a => a.name === 'convites') || firebase.initializeApp(firebaseConfig, 'convites');
+  const secAuth = sec.auth(); secAuth.languageCode = 'pt';
+  try {
+    const cred = await secAuth.createUserWithEmailAndPassword(dados.email, senhaAleatoria());
+    await db.collection('equipa_b2b').doc(cred.user.uid).set({ ...dados, criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+    await secAuth.sendPasswordResetEmail(dados.email);
+    await secAuth.signOut();
+    alert('Acesso criado. Foi enviado um e-mail para ' + dados.email + ' definir a palavra-passe.');
+    loadEquipa();
+  } catch (e) {
+    erro.textContent = e.code === 'auth/email-already-in-use' ? 'Já existe uma conta com este e-mail (por exemplo, um cliente). Use outro e-mail para o acesso à Gestão.' : 'Não foi possível criar: ' + (e.message || e);
+    erro.classList.add('show'); btn.disabled = false; btn.textContent = 'Criar acesso e enviar convite';
+  }
+}
+
+function removerMembro(id) {
+  if (!confirm('Retirar o acesso à Gestão a esta pessoa?')) return;
+  db.collection('equipa_b2b').doc(id).delete().then(loadEquipa);
+}
+
+// ---------- Importação a partir de Excel ----------
+function carregarXLSX() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise((ok, falha) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = () => ok(window.XLSX); s.onerror = () => falha(new Error('não foi possível carregar o leitor de Excel')); document.head.appendChild(s); });
+}
+function escolherFicheiro(accept) { return new Promise(ok => { const i = document.createElement('input'); i.type = 'file'; i.accept = accept; i.onchange = () => ok(i.files[0]); i.click(); }); }
+async function lerFolha(file) { const X = await carregarXLSX(); const wb = X.read(await file.arrayBuffer()); return X.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }); }
+function campo(row, ...nomes) {
+  const ks = Object.keys(row);
+  for (const n of nomes) { const k = ks.find(k => k.toLowerCase().trim().startsWith(n.toLowerCase())); if (k && String(row[k]).trim()) return String(row[k]).trim(); }
+  return '';
+}
+const COLS_CLI = ['Nome comercial', 'Nome de faturação', 'NIF', 'Contacto', 'Telefone', 'E-mail', 'Morada de faturação', 'Morada de entrega', 'Localidade', 'Vendedor (nome ou zona)', 'Desconto %', 'Pagamentos (cheque e/ou pronto)'];
+async function modeloClientes() {
+  try {
+    const X = await carregarXLSX();
+    const ws = X.utils.aoa_to_sheet([COLS_CLI, ['Centro Veterinário Exemplo', 'Exemplo, Lda', '500000000', 'Ana Silva', '912345678', 'loja@exemplo.pt', 'Rua Exemplo 1, 1000-000 Lisboa', '', 'Lisboa', 'Sul', '10', 'cheque, pronto']]);
+    const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, 'Clientes'); X.writeFile(wb, 'modelo-clientes-ibernop.xlsx');
+  } catch (e) { alert(e.message); }
+}
+async function importarClientes() {
+  const f = await escolherFicheiro('.xlsx,.xls,.csv'); if (!f) return;
+  let rows; try { rows = await lerFolha(f); } catch (e) { alert('Não foi possível ler o ficheiro: ' + e.message); return; }
+  await carregarVendedores().catch(() => []);
+  const existentes = new Set(); (await db.collection('clientes_b2b').get()).forEach(d => existentes.add((d.data().email || '').toLowerCase()));
+  const lista = rows.map(r => ({ nomeComercial: campo(r, 'Nome comercial'), nomeFaturacao: campo(r, 'Nome de fatura'), nif: campo(r, 'NIF'), contacto: campo(r, 'Contacto'), telefone: campo(r, 'Telefone'), email: campo(r, 'E-mail', 'Email').toLowerCase(), moradaFaturacao: campo(r, 'Morada de fatura'), moradaEntrega: campo(r, 'Morada de entrega'), localidade: campo(r, 'Localidade'), vend: campo(r, 'Vendedor'), desc: campo(r, 'Desconto'), pag: campo(r, 'Pagamento').toLowerCase() })).filter(c => c.email || c.nomeComercial);
+  const validos = lista.filter(c => c.email && c.nomeComercial && c.nif && !existentes.has(c.email));
+  const ignorados = lista.length - validos.length;
+  if (!validos.length) { alert('Nenhum cliente novo para importar (' + ignorados + ' linhas sem nome comercial, NIF ou e-mail, ou já existentes).'); return; }
+  if (!confirm('Importar ' + validos.length + ' clientes novos?' + (ignorados ? ' (' + ignorados + ' linhas ignoradas: incompletas ou já existentes)' : '') + '\n\nCada cliente recebe um e-mail para definir a palavra-passe.')) return;
+  const sec = firebase.apps.find(a => a.name === 'convites') || firebase.initializeApp(firebaseConfig, 'convites');
+  const secAuth = sec.auth(); secAuth.languageCode = 'pt';
+  const el = document.getElementById('panelClientes'); let ok = 0; const erros = [];
+  for (let i = 0; i < validos.length; i++) {
+    const c = validos[i];
+    el.innerHTML = '<div class="empty-state">A importar ' + (i + 1) + ' de ' + validos.length + '… não feche esta página.</div>';
+    const vv = (c.vend || '').toLowerCase();
+    const v = vendedores.find(x => (x.nome || '').toLowerCase() === vv) || vendedores.find(x => (x.zona || '').toLowerCase() === vv);
+    const pags = []; if (!c.pag || c.pag.includes('cheque')) pags.push('cheque30'); if (!c.pag || c.pag.includes('pronto')) pags.push('pronto');
+    const dados = { nomeFaturacao: c.nomeFaturacao || c.nomeComercial, nomeComercial: c.nomeComercial, nif: c.nif, contacto: c.contacto, telefone: c.telefone, email: c.email, localidade: c.localidade, moradaFaturacao: c.moradaFaturacao, moradaEntrega: c.moradaEntrega || c.moradaFaturacao, vendedorId: v ? v.id : '', desconto: parseFloat(String(c.desc).replace(',', '.')) || 0, pagamentos: pags };
+    try {
+      const cred = await secAuth.createUserWithEmailAndPassword(dados.email, senhaAleatoria());
+      await db.collection('clientes_b2b').doc(cred.user.uid).set({ ...dados, empresa: dados.nomeComercial, morada: dados.moradaFaturacao, aprovado: true, criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+      await secAuth.sendPasswordResetEmail(dados.email);
+      await secAuth.signOut();
+      ok++;
+    } catch (e) { erros.push(dados.email + ': ' + (e.code === 'auth/email-already-in-use' ? 'já existe uma conta com este e-mail' : (e.message || e))); }
+    await new Promise(r => setTimeout(r, 1200));
+  }
+  alert('Importação concluída: ' + ok + ' clientes criados.' + (erros.length ? '\n\nNão importados:\n' + erros.join('\n') : ''));
+  loadClientes();
+}
+
+async function exportarTabelaPrecos() {
+  try {
+    const X = await carregarXLSX();
+    const ps = await db.collection('precos_b2b').get(); const pr = {}; ps.forEach(d => { pr[d.id] = d.data().preco; });
+    const L = [['Código', 'EAN', 'Produto', 'Tamanho', 'Preço s/ IVA']];
+    produtos.forEach(p => p.tamanhos.forEach(t => { const k = p.id + '_' + t.label; L.push([t.cod || '', t.ean || '', p.nome, t.label, pr[k] !== undefined ? pr[k] : t.preco]); }));
+    const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet(L), 'Preços'); X.writeFile(wb, 'tabela-precos-ibernop.xlsx');
+  } catch (e) { alert('Não foi possível exportar: ' + e.message); }
+}
+async function importarTabelaPrecos() {
+  const f = await escolherFicheiro('.xlsx,.xls,.csv'); if (!f) return;
+  let rows; try { rows = await lerFolha(f); } catch (e) { alert('Não foi possível ler o ficheiro: ' + e.message); return; }
+  const ps = await db.collection('precos_b2b').get(); const atual = {}; ps.forEach(d => { atual[d.id] = d.data().preco; });
+  const porEan = {}, porCod = {};
+  produtos.forEach(p => p.tamanhos.forEach(t => { const k = p.id + '_' + t.label; const info = { k, p, t }; if (t.ean) porEan[String(t.ean)] = info; if (t.cod) porCod[String(t.cod).padStart(6, '0')] = info; }));
+  const mudancas = []; let semMatch = 0;
+  rows.forEach(r => {
+    const ean = campo(r, 'EAN').replace(/\D/g, ''), cod = campo(r, 'Código', 'Codigo', 'Cod').replace(/\D/g, '');
+    const precoTxt = campo(r, 'Preço', 'Preco'); if (!precoTxt) return;
+    const preco = Math.round(parseFloat(precoTxt.replace(/[^\d,.-]/g, '').replace(',', '.')) * 100) / 100; if (!(preco > 0)) return;
+    const info = (ean && porEan[ean]) || (cod && porCod[cod.padStart(6, '0')]);
+    if (!info) { semMatch++; return; }
+    const antes = atual[info.k] !== undefined ? atual[info.k] : info.t.preco;
+    if (Math.abs(antes - preco) > 0.001) mudancas.push({ k: info.k, nome: info.p.nome + ' ' + info.t.label, antes, preco });
+  });
+  if (!mudancas.length) { alert('Nenhum preço diferente encontrado.' + (semMatch ? ' (' + semMatch + ' linhas sem produto correspondente)' : '')); return; }
+  const amostra = mudancas.slice(0, 15).map(m => m.nome + ': ' + m.antes.toFixed(2) + ' → ' + m.preco.toFixed(2) + ' €').join('\n');
+  if (!confirm(mudancas.length + ' preços vão ser atualizados' + (semMatch ? ' (' + semMatch + ' linhas sem produto correspondente foram ignoradas)' : '') + ':\n\n' + amostra + (mudancas.length > 15 ? '\n…' : '') + '\n\nConfirmar?')) return;
+  try {
+    for (let i = 0; i < mudancas.length; i += 400) {
+      const b = db.batch(); mudancas.slice(i, i + 400).forEach(m => b.set(db.collection('precos_b2b').doc(m.k), { preco: m.preco })); await b.commit();
+    }
+    alert(mudancas.length + ' preços atualizados. A área de cliente já usa os novos valores.');
+    loadStockAdmin();
+  } catch (e) { alert('Não foi possível guardar: ' + e.message); }
+}
+
 // ---------- Verificação de preços, stock e exportação ----------
 let pedidosClientes = {}, pedidosPrecos = {};
 function chaveItem(it) {
@@ -462,7 +670,8 @@ function totaisOficiais(p) {
   return { subtotal, desconto, valorDesconto, total, iva: Math.round(total * 23) / 100, comIva: Math.round(total * 123) / 100, diferente: Math.abs(total - (p.total || 0)) > 0.01, desconhecido };
 }
 function carregarRefsPedidos() {
-  return Promise.all([db.collection('clientes_b2b').get(), db.collection('precos_b2b').get().catch(() => null)]).then(([cs, ps]) => {
+  const qc = ehVendedor() ? db.collection('clientes_b2b').where('vendedorId', '==', meuVendedorId) : db.collection('clientes_b2b');
+  return Promise.all([qc.get(), db.collection('precos_b2b').get().catch(() => null)]).then(([cs, ps]) => {
     pedidosClientes = {}; cs.forEach(d => { pedidosClientes[d.id] = d.data(); });
     pedidosPrecos = {}; if (ps) ps.forEach(d => { pedidosPrecos[d.id] = d.data().preco; });
   });
@@ -488,7 +697,7 @@ async function exportarEncomendas() {
   try {
     await carregarVendedores().catch(() => []);
     await carregarRefsPedidos();
-    const s = await db.collection('pedidos_b2b').orderBy('criadoEm', 'desc').get();
+    const s = await queryPedidos();
     const L = [['Data', 'Ref.', 'Estado', 'Cliente', 'Nome de faturação', 'NIF', 'Vendedor', 'Pagamento', 'Código', 'EAN', 'Produto', 'Tamanho', 'Qtd', 'Preço s/ IVA', 'Total linha s/ IVA', 'Desconto %', 'Total encomenda s/ IVA', 'IVA 23%', 'Total encomenda c/ IVA']];
     s.forEach(d => {
       const p = { id: d.id, ...d.data() }, o = totaisOficiais(p);
@@ -519,7 +728,7 @@ function mexerStock(p, sinal) {
 function loadPedidos() {
   const el = document.getElementById('panelPedidos');
   el.innerHTML = '<div class="empty-state">A carregar...</div>';
-  carregarRefsPedidos().then(() => db.collection('pedidos_b2b').orderBy('criadoEm', 'desc').get()).then(snap => {
+  carregarRefsPedidos().then(() => queryPedidos()).then(snap => {
     if (snap.empty) { el.innerHTML = '<div class="empty-state">Ainda não há encomendas.</div>'; return; }
     allPedidos = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     el.innerHTML = allPedidos.map(p => {
