@@ -18,7 +18,9 @@ h1,h2,h3{font-weight:700;line-height:1.15}
 .up{text-transform:uppercase;letter-spacing:.04em}
 .bar{position:absolute;inset:0 0 auto;z-index:5}
 .bar .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:16px}
-.bar img{height:58px}
+.bar img{height:84px}
+.bar .logo{display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff}.bar .logo span{font-weight:800;font-size:1.6rem;letter-spacing:.14em}
+@media(max-width:560px){.bar img{height:60px}.bar .logo span{font-size:1.15rem}}
 .bar nav{display:flex;align-items:center;gap:22px}
 .bar nav a{color:#fff;text-decoration:none;font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
 .bar nav a:hover{opacity:.8}
@@ -27,7 +29,7 @@ h1,h2,h3{font-weight:700;line-height:1.15}
 .btn.white{background:#fff;color:var(--navy);border-color:#fff}
 .btn.line{background:transparent;color:#fff;border-color:#fff}
 .bar nav a.btn{padding:9px 18px;background:#fff;color:var(--navy);border-color:#fff}
-.hero{position:relative;color:#fff;padding:170px 0 110px;background:linear-gradient(90deg,rgba(7,32,46,.92) 0,rgba(7,32,46,.65) 55%,rgba(7,32,46,.35) 100%),url(https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/3-wxftt2-1500.webp) center/cover}
+.hero{position:relative;color:#fff;padding:170px 0 110px;background:linear-gradient(90deg,rgba(7,32,46,.9) 0,rgba(7,32,46,.68) 40%,rgba(7,32,46,.1) 72%,rgba(7,32,46,0) 100%),url(https://images.unsplash.com/photo-1623387641168-d9803ddd3f35?auto=format&fit=crop&w=2000&q=75) 50% 40%/cover}
 .hero .eb{font-size:.9rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;opacity:.9}
 .hero h1{font-size:clamp(2rem,4.6vw,3.3rem);text-transform:uppercase;max-width:760px;margin:10px 0 18px}
 .hero p{max-width:600px;font-weight:500;opacity:.92}
@@ -105,7 +107,7 @@ footer a{color:#fff}
 </head>
 <body>
 <header class="bar"><div class="wrap">
-  <a href="#"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop"></a>
+  <a class="logo" href="#"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt=""><span>IBERNOP</span></a>
   <nav><a href="#ownat">Ownat</a><a href="#vetdiagnostix">Vet Diagnostix</a><a href="#lojas">Onde comprar</a><a href="#revenda">Revendedores</a><a href="#contactos">Contactos</a><a class="btn" href="loja.html">Área de cliente</a></nav>
 </div></header>
 
