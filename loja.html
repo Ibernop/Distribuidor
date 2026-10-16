@@ -172,7 +172,6 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
 <div class="hero-strip">
   <div class="wrap">
     <h1>ÁREA DE CLIENTE</h1>
-    <p>Acesso exclusivo para lojas e clínicas parceiras. Faça login para consultar o catálogo e encomendar. Se ainda não é cliente, contacte a Ibernop.</p>
   </div>
 </div>
 
@@ -246,7 +245,7 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
 
 <section id="historicoView" style="display:none;"><div class="wrap"><h2>As minhas encomendas</h2><div id="historicoLista"></div></div></section>
 <section id="incidenciasView" style="display:none;"><div class="wrap"><h2>Incidências</h2>
-  <p class="hist-vazio" style="margin:-8px 0 16px;">Chegou algum saco roto, produto em falta ou errado? Comunique aqui e o seu vendedor é avisado.</p>
+  <p class="hist-vazio" style="margin:-8px 0 16px;">Chegou algum saco roto, produto em falta ou errado? Comunique aqui e o seu gestor de zona é avisado.</p>
   <div class="conta-card" style="padding:18px 20px;">
     <div class="inc-grid">
       <label>N.º da fatura *<input id="incFatura" type="text" placeholder="Ex.: FT 2026/123"></label>
@@ -623,30 +622,24 @@ function mostrarConta() {
   el.innerHTML = '<div class="conta-card">' + linha('Nome comercial', c.nomeComercial || c.empresa) + linha('Nome de faturação', c.nomeFaturacao) + linha('NIF', c.nif)
     + linha('Morada de faturação', c.moradaFaturacao || c.morada) + linha('Morada de entrega', c.moradaEntrega) + linha('Contacto', c.contacto) + linha('Telefone', c.telefone) + linha('E-mail', c.email)
     + linha('Desconto', (c.desconto || 0) + '%') + linha('Formas de pagamento', pags) + '<div id="contaVendedor"></div></div>'
-    + '<p class="hist-vazio">Para alterar algum dado, contacte a Ibernop ou o seu vendedor.</p>';
+    + '<p class="hist-vazio">Para alterar algum dado, contacte a Ibernop ou o seu gestor de zona.</p>';
   if (c.vendedorId) db.collection('vendedores_b2b').doc(c.vendedorId).get().then(d => {
     if (!d.exists) return; const v = d.data();
-    document.getElementById('contaVendedor').innerHTML = linha('O seu vendedor', v.nome + ' — zona ' + v.zona) + `<div class="conta-linha"><span>E-mail do vendedor</span><strong><a href="mailto:${escH(v.email)}">${escH(v.email)}</a></strong></div>`;
+    document.getElementById('contaVendedor').innerHTML = linha('O seu gestor de zona', v.nome + ' — zona ' + v.zona) + `<div class="conta-linha"><span>E-mail do gestor de zona</span><strong><a href="mailto:${escH(v.email)}">${escH(v.email)}</a></strong></div>`;
   }).catch(() => {});
 }
 
 // ---------- E-mails automáticos (EmailJS) ----------
 // Preencher a publicKey para ativar. Cópias: sempre encomendas@ibernop.com e o próprio cliente.
-const EMAILJS = { publicKey: '0Ni3oLJ6TbxRKEgTQ', service: 'service_ibernop', tplEncomenda: 'template_encomenda', tplIncidencia: 'template_incidencia', copia: 'encomendas@ibernop.com' };
+const EMAILJS = { servidor: 'https://empty-sun-ba57.ibernop-cac.workers.dev', tplEncomenda: 'encomenda', tplIncidencia: 'incidencia' };
 function emailVendedor() {
   const id = currentCliente && currentCliente.vendedorId;
   if (!id) return Promise.resolve({});
   return db.collection('vendedores_b2b').doc(id).get().then(d => d.exists ? d.data() : {}).catch(() => ({}));
 }
-function enviarEmail(template, params) {
-  if (!EMAILJS.publicKey) return Promise.resolve(false);
-  return emailVendedor().then(vd => {
-    const vend = vd.email || '';
-    const cc = [EMAILJS.copia, currentCliente.email].filter(Boolean).filter(e => e !== vend);
-    const body = { service_id: EMAILJS.service, template_id: template, user_id: EMAILJS.publicKey,
-      template_params: Object.assign({ to_email: vend || EMAILJS.copia, cc_email: cc.join(','), reply_to: currentCliente.email || '', cliente: currentCliente.nomeComercial || currentCliente.empresa || '', nif: currentCliente.nif || '', contacto: currentCliente.contacto || '', telefone: currentCliente.telefone || '', vendedor: vd.nome ? vd.nome + ' (' + vd.zona + ')' : 'Sem vendedor' }, params) };
-    return fetch('https://api.emailjs.com/api/v1.0/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.ok);
-  }).catch(() => false);
+function enviarEmail(tipo, params) {
+  // O envio passa pelo servidor da Ibernop (Cloudflare), que guarda a chave secreta e define os destinatários
+  return currentUser.getIdToken().then(idToken => fetch(EMAILJS.servidor, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken, tipo, params }) })).then(r => r.ok).catch(() => false);
 }
 
 // ---------- Incidências ----------
@@ -681,7 +674,7 @@ function enviarIncidencia() {
   msg.textContent = 'A enviar...'; msg.style.color = 'var(--gray)';
   db.collection('incidencias_b2b').add(inc).then(ref => {
     enviarEmail(EMAILJS.tplIncidencia, { referencia_incidencia: ref.id.slice(-6).toUpperCase(), tipo: inc.tipo, fatura: inc.fatura, data_fatura: inc.dataFatura.split('-').reverse().join('/'), gama: inc.gama, produto: inc.produto, referencia: inc.referencia, peso: inc.peso, quantidade: inc.quantidade, descricao: inc.descricao || '—' });
-    msg.textContent = 'Incidência enviada. O seu vendedor vai entrar em contacto.'; msg.style.color = 'var(--gold-dark)';
+    msg.textContent = 'Incidência enviada. O seu gestor de zona vai entrar em contacto.'; msg.style.color = 'var(--gold-dark)';
     ['incFatura', 'incData', 'incDesc'].forEach(id => { document.getElementById(id).value = ''; }); document.getElementById('incQtd').value = 1;
     carregarIncidencias();
   }).catch(e => { msg.textContent = 'Erro ao enviar: ' + e.message; msg.style.color = 'var(--red)'; });
@@ -907,7 +900,7 @@ function submitPedido() {
     estado: 'pendente', // pendente -> separado -> enviado
     criadoEm: firebase.firestore.FieldValue.serverTimestamp()
   })).then(ref => {
-    enviarEmail(EMAILJS.tplEncomenda, { referencia: ref.id.slice(-6).toUpperCase(), data: new Date().toLocaleString('pt-PT'), nome_faturacao: currentCliente.nomeFaturacao || '', morada_entrega: currentCliente.moradaEntrega || currentCliente.morada || '', pagamento: metodoPagamento === 'cheque30' ? 'Cheque a 30 dias' : 'Pronto pagamento', itens_html: itens.map(it => `<tr><td>${it.qty}x</td><td>${escH(it.nome)} (${escH(it.tamanho)})</td><td style="text-align:right">${eur(it.preco * it.qty)}</td></tr>`).join(''), subtotal: eur(subtotal), desconto: desconto + '% (-' + eur(valorDesconto) + ')', total_sem_iva: eur(total), iva: eur(total * 0.23), total_com_iva: eur(total * 1.23) });
+    enviarEmail(EMAILJS.tplEncomenda, { referencia: ref.id.slice(-6).toUpperCase(), data: new Date().toLocaleString('pt-PT'), nome_faturacao: currentCliente.nomeFaturacao || '', morada_entrega: currentCliente.moradaEntrega || currentCliente.morada || '', pagamento: metodoPagamento === 'cheque30' ? 'Cheque a 30 dias' : 'Pronto pagamento', itens_html: '<table style="width:100%;border-collapse:collapse;font-size:14px;margin:4px 0 14px"><tr style="background:#07202e;color:#fff"><th align="center" style="padding:7px 8px">Qtd</th><th align="left" style="padding:7px 8px">Produto</th><th align="left" style="padding:7px 8px">Embalagem</th><th align="right" style="padding:7px 8px">Preço</th><th align="right" style="padding:7px 8px">Total</th></tr>' + itens.map(it => `<tr><td align="center" style="padding:7px 8px;border-bottom:1px solid #e3e6e8;font-weight:bold">${it.qty}</td><td style="padding:7px 8px;border-bottom:1px solid #e3e6e8">${escH(it.nome)}</td><td style="padding:7px 8px;border-bottom:1px solid #e3e6e8">${escH(it.tamanho)}</td><td align="right" style="padding:7px 8px;border-bottom:1px solid #e3e6e8;white-space:nowrap">${eur(it.preco)}</td><td align="right" style="padding:7px 8px;border-bottom:1px solid #e3e6e8;white-space:nowrap">${eur(it.preco * it.qty)}</td></tr>`).join('') + '</table>', subtotal: eur(subtotal), desconto: desconto + '% (-' + eur(valorDesconto) + ')', total_sem_iva: eur(total), iva: eur(total * 0.23), total_com_iva: eur(total * 1.23) });
     msgEl.textContent = 'Encomenda enviada! Vamos preparar e avisamos quando for enviada.';
     msgEl.style.color = 'var(--gold-dark)';
     cart = {};
