@@ -618,18 +618,19 @@ function mostrarConta() {
 
 // ---------- E-mails automáticos (EmailJS) ----------
 // Preencher a publicKey para ativar. Cópias: sempre encomendas@ibernop.com e o próprio cliente.
-const EMAILJS = { publicKey: '', service: 'service_ibernop', tplEncomenda: 'template_encomenda', tplIncidencia: 'template_incidencia', copia: 'encomendas@ibernop.com' };
+const EMAILJS = { publicKey: '0Ni3oLJ6TbxRKEgTQ', service: 'service_ibernop', tplEncomenda: 'template_encomenda', tplIncidencia: 'template_incidencia', copia: 'encomendas@ibernop.com' };
 function emailVendedor() {
   const id = currentCliente && currentCliente.vendedorId;
-  if (!id) return Promise.resolve('');
-  return db.collection('vendedores_b2b').doc(id).get().then(d => d.exists ? (d.data().email || '') : '').catch(() => '');
+  if (!id) return Promise.resolve({});
+  return db.collection('vendedores_b2b').doc(id).get().then(d => d.exists ? d.data() : {}).catch(() => ({}));
 }
 function enviarEmail(template, params) {
   if (!EMAILJS.publicKey) return Promise.resolve(false);
-  return emailVendedor().then(vend => {
+  return emailVendedor().then(vd => {
+    const vend = vd.email || '';
     const cc = [EMAILJS.copia, currentCliente.email].filter(Boolean).filter(e => e !== vend);
     const body = { service_id: EMAILJS.service, template_id: template, user_id: EMAILJS.publicKey,
-      template_params: Object.assign({ to_email: vend || EMAILJS.copia, cc_email: cc.join(','), reply_to: currentCliente.email || '', cliente: currentCliente.nomeComercial || currentCliente.empresa || '', nif: currentCliente.nif || '', contacto: currentCliente.contacto || '', telefone: currentCliente.telefone || '' }, params) };
+      template_params: Object.assign({ to_email: vend || EMAILJS.copia, cc_email: cc.join(','), reply_to: currentCliente.email || '', cliente: currentCliente.nomeComercial || currentCliente.empresa || '', nif: currentCliente.nif || '', contacto: currentCliente.contacto || '', telefone: currentCliente.telefone || '', vendedor: vd.nome ? vd.nome + ' (' + vd.zona + ')' : 'Sem vendedor' }, params) };
     return fetch('https://api.emailjs.com/api/v1.0/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.ok);
   }).catch(() => false);
 }
