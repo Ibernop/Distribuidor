@@ -503,6 +503,7 @@ auth.onAuthStateChanged(user => {
   currentUser = user;
   if (!user) {
     try { localStorage.removeItem(CHAVE_ULTIMA_ATIVIDADE); } catch (e) {}
+    cart = {};
     showView('auth');
     updateHeaderActions();
     return;
@@ -521,6 +522,8 @@ auth.onAuthStateChanged(user => {
       aplicarPagamentos();
       loadStock();
       renderCatalog();
+      try { cart = JSON.parse(localStorage.getItem('carrinho_' + user.uid) || '{}') || {}; } catch (e) { cart = {}; }
+      renderCart();
     } else {
       showView('pending');
     }
@@ -797,6 +800,8 @@ function avisoCarrinho(txt) {
 
 // ---------- Carrinho ----------
 function renderCart() {
+  // Guarda o carrinho neste dispositivo, para não se perder se o cliente sair
+  try { if (currentUser) localStorage.setItem('carrinho_' + currentUser.uid, JSON.stringify(cart)); } catch (e) {}
   const keys = Object.keys(cart);
   const countEl = document.getElementById('cartCount');
   const itemsEl = document.getElementById('cartItems');
