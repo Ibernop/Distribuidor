@@ -85,6 +85,7 @@ input, select, textarea { padding: 10px 12px; border: 1px solid var(--border); b
 }
 .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px; }
 .form-grid input, .form-grid select { width:100%; }
+.montra-det { margin-top:12px; } .montra-det summary { cursor:pointer; font-size:0.85rem; color:var(--gray); font-weight:600; }
 .montra-box { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start; margin-top:12px; padding-top:12px; border-top:1px dashed #ddd; }
 .montra-foto { width:140px; height:105px; border-radius:10px; background:#f1f1ee; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:0.8rem; color:#888; }
 .montra-foto img { width:100%; height:100%; object-fit:cover; }
@@ -310,9 +311,19 @@ function formNovoCliente() {
 function loadClientes() {
   const el = document.getElementById('panelClientes');
   el.innerHTML = '<div class="empty-state">A carregar...</div>';
-  carregarVendedores().catch(() => []).then(() => db.collection('lojas_publicas').get()).then(ps => { publicas = {}; ps.forEach(d => { publicas[d.id] = d.data(); }); }).then(() => db.collection('clientes_b2b').orderBy('criadoEm', 'desc').get()).then(snap => {
-    const lista = snap.empty ? '<div class="empty-state">Ainda não há clientes.</div>' : snap.docs.map(doc => {
+  carregarVendedores().catch(() => []).then(() => db.collection('lojas_publicas').get()).then(ps => { publicas = {}; ps.forEach(d => { publicas[d.id] = d.data(); }); }).then(() => ehVendedor() ? db.collection('clientes_b2b').where('vendedorId', '==', meuVendedorId).get() : db.collection('clientes_b2b').orderBy('criadoEm', 'desc').get()).then(snap => {
+    const docs = ehVendedor() ? snap.docs.slice().sort((a, b) => String(a.data().nomeComercial || a.data().empresa || '').localeCompare(String(b.data().nomeComercial || b.data().empresa || ''), 'pt')) : snap.docs;
+    const lista = snap.empty ? '<div class="empty-state">Ainda não há clientes.</div>' : docs.map(doc => {
       const c = doc.data(), id = doc.id;
+      if (ehVendedor()) return `
+        <div class="entry-card">
+          <div class="entry-title">${esc(c.nomeComercial || c.empresa)}</div>
+          <div class="entry-sub">${esc(c.nomeFaturacao || '')}${c.nomeFaturacao ? ' · ' : ''}NIF: ${esc(c.nif)}</div>
+          <div class="entry-sub">${esc(c.contacto)} · <a href="tel:${esc(c.telefone)}">${esc(c.telefone)}</a> · <a href="mailto:${esc(c.email)}">${esc(c.email)}</a></div>
+          <div class="entry-sub">Faturação: ${esc(c.moradaFaturacao || c.morada)}</div>
+          <div class="entry-sub">Entrega: ${esc(c.moradaEntrega || c.moradaFaturacao || c.morada)}</div>
+          <div class="entry-sub">Desconto: ${c.desconto || 0}% · Pagamento: ${(c.pagamentos || ['cheque30', 'pronto']).map(x => x === 'cheque30' ? 'Cheque 30 dias' : 'Pronto pagamento').join(', ')}</div>
+        </div>`;
       const pags = c.pagamentos || ['cheque30', 'pronto'];
       return `
         <div class="entry-card">
@@ -339,6 +350,7 @@ function loadClientes() {
               : `<button class="btn primary" onclick="setAprovado('${id}', true)">Ativar acesso</button>`}
             <button class="btn" onclick="reenviarConvite('${esc(c.email)}')">Reenviar e-mail de palavra-passe</button>
           </div>
+          <details class="montra-det"><summary>Montra no site · ${publicas[id] ? 'visível' : 'não visível'}</summary>
           <div class="montra-box">
             <div class="montra-foto">${publicas[id] && publicas[id].foto ? `<img src="${publicas[id].foto}" alt="">` : '<span>Sem foto</span>'}</div>
             <div style="flex:1; min-width:220px;">
@@ -349,9 +361,10 @@ function loadClientes() {
               <button class="btn primary" onclick="guardarMontra('${id}')">Guardar montra</button>
             </div>
           </div>
+          </details>
         </div>`;
     }).join('');
-    el.innerHTML = formNovoCliente() + lista;
+    el.innerHTML = (ehVendedor() ? '' : formNovoCliente()) + lista;
   }).catch(err => { el.innerHTML = '<div class="empty-state">Erro ao carregar clientes.</div>'; console.error(err); });
 }
 
@@ -464,7 +477,7 @@ const ehVendedor = () => papel === 'vendedor';
 
 function aplicarPapel(user) {
   const v = ehVendedor();
-  ['tabClientes', 'tabStock', 'tabVendedores', 'tabEquipa', 'btnExpClientes', 'btnImpClientes', 'btnModeloClientes'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = v ? 'none' : ''; });
+  ['tabStock', 'tabVendedores', 'tabEquipa', 'btnExpClientes', 'btnImpClientes', 'btnModeloClientes'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = v ? 'none' : ''; });
   document.getElementById('papelInfo').textContent = (meuNome || user.email) + ' · ' + (v ? 'Vendedor' : 'Administrador');
   iniciarAvisos();
   if (v) setTab('pedidos'); else loadClientes();
