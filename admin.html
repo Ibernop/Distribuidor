@@ -117,6 +117,7 @@ h1, h2, .entry-title { letter-spacing: .01em; }
       <button id="tabVendedores" onclick="setTab('vendedores')">Vendedores</button>
     </div>
 
+    <div class="entry-actions" style="margin:0 0 16px;"><button class="btn" onclick="exportarClientes()">Exportar clientes (Excel)</button><button class="btn" onclick="exportarEncomendas()">Exportar encomendas (Excel)</button></div>
     <div id="panelClientes"></div>
     <div id="panelPedidos" style="display:none;"></div>
     <div id="panelVendedores" style="display:none;"></div>
@@ -435,14 +436,94 @@ function reenviarConvite(email) {
 // ---------- Encomendas ----------
 let allPedidos = [];
 
+// ---------- Verificação de preços, stock e exportação ----------
+let pedidosClientes = {}, pedidosPrecos = {};
+function chaveItem(it) {
+  if (it.key) {
+    const pid = it.key.split('_')[0], lab = it.key.split('_').slice(1).join('_');
+    const p = produtos.find(x => String(x.id) === pid), t = p && p.tamanhos.find(x => x.label === lab);
+    if (t) return { key: it.key, p, t };
+  }
+  const p = produtos.find(x => x.nome === it.nome), t = p && p.tamanhos.find(x => x.label === it.tamanho);
+  return t ? { key: p.id + '_' + t.label, p, t } : null;
+}
+function precoOficial(it) {
+  const c = chaveItem(it); if (!c) return null;
+  return pedidosPrecos[c.key] !== undefined ? pedidosPrecos[c.key] : c.t.preco;
+}
+function totaisOficiais(p) {
+  const c = pedidosClientes[p.clienteUid] || {};
+  const desconto = c.desconto != null ? c.desconto : (p.desconto || 0);
+  let subtotal = 0, desconhecido = false;
+  (p.itens || []).forEach(it => { const pr = precoOficial(it); if (pr == null) { desconhecido = true; subtotal += (it.preco || 0) * it.qty; } else subtotal += pr * it.qty; });
+  subtotal = Math.round(subtotal * 100) / 100;
+  const valorDesconto = Math.round(subtotal * desconto) / 100;
+  const total = Math.round((subtotal - valorDesconto) * 100) / 100;
+  return { subtotal, desconto, valorDesconto, total, iva: Math.round(total * 23) / 100, comIva: Math.round(total * 123) / 100, diferente: Math.abs(total - (p.total || 0)) > 0.01, desconhecido };
+}
+function carregarRefsPedidos() {
+  return Promise.all([db.collection('clientes_b2b').get(), db.collection('precos_b2b').get().catch(() => null)]).then(([cs, ps]) => {
+    pedidosClientes = {}; cs.forEach(d => { pedidosClientes[d.id] = d.data(); });
+    pedidosPrecos = {}; if (ps) ps.forEach(d => { pedidosPrecos[d.id] = d.data().preco; });
+  });
+}
+function exportarCSV(nome, linhas) {
+  const csv = '\ufeff' + linhas.map(l => l.map(v => { const s = String(v == null ? '' : v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(';')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = nome + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+const numPT = v => (Math.round((v || 0) * 100) / 100).toFixed(2).replace('.', ',');
+async function exportarClientes() {
+  try {
+    await carregarVendedores().catch(() => []);
+    const s = await db.collection('clientes_b2b').get();
+    const L = [['Nome comercial', 'Nome de faturação', 'NIF', 'Contacto', 'Telefone', 'E-mail', 'Morada de faturação', 'Morada de entrega', 'Localidade', 'Vendedor', 'Desconto %', 'Pagamentos', 'Ativo']];
+    s.forEach(d => { const c = d.data(); L.push([c.nomeComercial || c.empresa, c.nomeFaturacao, c.nif, c.contacto, c.telefone, c.email, c.moradaFaturacao || c.morada, c.moradaEntrega, c.localidade, c.vendedorId ? nomeVendedor(c.vendedorId) : '', numPT(c.desconto), (c.pagamentos || ['cheque30', 'pronto']).map(x => x === 'cheque30' ? 'Cheque 30 dias' : 'Pronto pagamento').join(', '), c.aprovado ? 'Sim' : 'Não']); });
+    exportarCSV('clientes-ibernop', L);
+  } catch (e) { alert('Não foi possível exportar: ' + e.message); }
+}
+async function exportarEncomendas() {
+  try {
+    await carregarVendedores().catch(() => []);
+    await carregarRefsPedidos();
+    const s = await db.collection('pedidos_b2b').orderBy('criadoEm', 'desc').get();
+    const L = [['Data', 'Ref.', 'Estado', 'Cliente', 'Nome de faturação', 'NIF', 'Vendedor', 'Pagamento', 'Código', 'EAN', 'Produto', 'Tamanho', 'Qtd', 'Preço s/ IVA', 'Total linha s/ IVA', 'Desconto %', 'Total encomenda s/ IVA', 'IVA 23%', 'Total encomenda c/ IVA']];
+    s.forEach(d => {
+      const p = { id: d.id, ...d.data() }, o = totaisOficiais(p);
+      const data = p.criadoEm && p.criadoEm.toDate ? p.criadoEm.toDate().toLocaleString('pt-PT') : '';
+      (p.itens || []).forEach(it => {
+        const c = chaveItem(it), pr = precoOficial(it); const preco = pr == null ? it.preco : pr;
+        L.push([data, p.id.slice(-6).toUpperCase(), p.estado, p.empresa, p.nomeFaturacao, p.nif, p.vendedorId ? nomeVendedor(p.vendedorId) : '', p.metodoPagamento === 'cheque30' ? 'Cheque 30 dias' : 'Pronto pagamento', c ? c.t.cod : '', c ? c.t.ean : '', it.nome, it.tamanho, it.qty, numPT(preco), numPT(preco * it.qty), numPT(o.desconto), numPT(o.total), numPT(o.iva), numPT(o.comIva)]);
+      });
+    });
+    exportarCSV('encomendas-ibernop', L);
+  } catch (e) { alert('Não foi possível exportar: ' + e.message); }
+}
+function mexerStock(p, sinal) {
+  const mapa = {};
+  (p.itens || []).forEach(it => { const c = chaveItem(it); if (c) mapa[c.key] = { qty: (mapa[c.key] ? mapa[c.key].qty : 0) + it.qty, inicial: c.t.stock || 0 }; });
+  const keys = Object.keys(mapa); if (!keys.length) return Promise.resolve();
+  return db.runTransaction(tx => {
+    const refs = keys.map(k => db.collection('estoque_b2b').doc(k));
+    return Promise.all(refs.map(r => tx.get(r))).then(snaps => {
+      snaps.forEach((snap, i) => {
+        const m = mapa[keys[i]]; const atual = snap.exists ? snap.data().qty : m.inicial;
+        tx.set(refs[i], { qty: Math.max(0, atual + sinal * m.qty) }, { merge: true });
+      });
+    });
+  });
+}
+
 function loadPedidos() {
   const el = document.getElementById('panelPedidos');
   el.innerHTML = '<div class="empty-state">A carregar...</div>';
-  db.collection('pedidos_b2b').orderBy('criadoEm', 'desc').get().then(snap => {
+  carregarRefsPedidos().then(() => db.collection('pedidos_b2b').orderBy('criadoEm', 'desc').get()).then(snap => {
     if (snap.empty) { el.innerHTML = '<div class="empty-state">Ainda não há encomendas.</div>'; return; }
     allPedidos = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     el.innerHTML = allPedidos.map(p => {
-      const itensHtml = (p.itens || []).map(it => `${it.qty}x ${it.nome} (${it.tamanho}) — ${(it.preco * it.qty).toFixed(2)}€`).join('<br>');
+      const itensHtml = (p.itens || []).map(it => { const pr = precoOficial(it); return `${it.qty}x ${esc(it.nome)} (${esc(it.tamanho)}) — ${((pr == null ? it.preco : pr) * it.qty).toFixed(2)}€`; }).join('<br>');
       const metodoLabel = p.metodoPagamento === 'cheque30' ? 'Cheque a 30 dias' : 'Pronto pagamento';
       let actions = '';
       if (p.estado === 'pendente') actions = `<button class="btn primary" onclick="setEstadoPedido('${p.id}','separado')">Marcar como separado</button>`;
@@ -455,7 +536,7 @@ function loadPedidos() {
               <div class="entry-title">${p.empresa}</div>
               <div class="entry-sub">${p.nomeFaturacao ? esc(p.nomeFaturacao) + ' · ' : ''}NIF: ${p.nif} · ${metodoLabel}${p.vendedorId ? ' · Vendedor: ' + esc(nomeVendedor(p.vendedorId)) : ''}</div>
               ${p.moradaEntrega ? `<div class="entry-sub">Entrega: ${esc(p.moradaEntrega)}</div>` : ''}
-              <div class="entry-sub">${p.subtotal ? `Subtotal: ${p.subtotal.toFixed(2)}€` : ''}${p.desconto ? ` · Desconto (${p.desconto}%): -${(p.valorDesconto || 0).toFixed(2)}€` : ''} · <strong>Total s/ IVA: ${(p.total || 0).toFixed(2)}€</strong> · IVA 23%: ${((p.total || 0) * 0.23).toFixed(2)}€ · <strong>c/ IVA: ${((p.total || 0) * 1.23).toFixed(2)}€</strong></div>
+              ${(() => { const o = totaisOficiais(p); return `<div class="entry-sub">Subtotal: ${o.subtotal.toFixed(2)}€${o.desconto ? ` · Desconto (${o.desconto}%): -${o.valorDesconto.toFixed(2)}€` : ''} · <strong>Total s/ IVA: ${o.total.toFixed(2)}€</strong> · IVA 23%: ${o.iva.toFixed(2)}€ · <strong>c/ IVA: ${o.comIva.toFixed(2)}€</strong></div>` + (o.diferente ? `<div class="entry-sub" style="color:var(--red);font-weight:700">Atenção: valores recalculados pela tabela atual e pelo desconto da ficha. O cliente enviou ${(p.total || 0).toFixed(2)}€ s/ IVA. Confirme antes de faturar.</div>` : '') + (o.desconhecido ? `<div class="entry-sub" style="color:var(--red)">Há produtos que já não estão na tabela; foi usado o preço enviado.</div>` : ''); })()}
             </div>
             <span class="badge ${p.estado}">${p.estado}</span>
           </div>
@@ -470,7 +551,13 @@ function loadPedidos() {
 }
 
 function setEstadoPedido(id, estado) {
-  db.collection('pedidos_b2b').doc(id).update({ estado }).then(loadPedidos);
+  // O stock desce quando a encomenda é marcada como separada (e repõe se voltar a pendente)
+  const p = allPedidos.find(x => x.id === id);
+  const sinal = p && p.estado === 'pendente' && estado === 'separado' ? -1 : (p && p.estado === 'separado' && estado === 'pendente' ? 1 : 0);
+  (sinal ? mexerStock(p, sinal) : Promise.resolve())
+    .then(() => db.collection('pedidos_b2b').doc(id).update({ estado }))
+    .then(loadPedidos)
+    .catch(e => alert('Não foi possível atualizar: ' + e.message));
 }
 
 // ---------- Stock ----------

@@ -265,6 +265,7 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
     <div class="cart-total" style="border-top:1px solid var(--border); padding-top:10px; font-size:0.95rem;"><span>Total sem IVA</span><span id="cartTotal">0,00€</span></div>
     <div class="cart-total" style="font-size:0.9rem; font-weight:600; color:var(--gray); margin:4px 0;"><span>IVA (23%)</span><span id="cartIva">0,00€</span></div>
     <div class="cart-total" style="border-top:2px solid var(--charcoal); padding-top:10px;"><span>Total com IVA</span><span id="cartTotalIva">0,00€</span></div>
+    <p style="font-size:.75rem; color:var(--gray); margin:-6px 0 12px;">Valores indicativos, confirmados na fatura.</p>
     <div class="payment-method-select">
       <label class="payment-opt"><input type="radio" name="payMethod" value="cheque30" checked> Cheque a 30 dias</label>
       <label class="payment-opt"><input type="radio" name="payMethod" value="pronto"> Pronto pagamento</label>
@@ -767,7 +768,7 @@ function submitPedido() {
     return;
   }
   const metodoPagamento = document.querySelector('input[name="payMethod"]:checked').value;
-  const itens = keys.map(k => cart[k]);
+  const itens = keys.map(k => ({ ...cart[k], key: k }));
   const subtotal = itens.reduce((s, it) => s + it.preco * it.qty, 0);
   const desconto = currentCliente.desconto || 0;
   const valorDesconto = subtotal * (desconto / 100);
@@ -776,7 +777,8 @@ function submitPedido() {
   msgEl.textContent = 'A processar...';
   msgEl.style.color = 'var(--gray)';
 
-  decrementarStock(keys).then(() => db.collection('pedidos_b2b').add({
+  // O stock passa a ser gerido só pela Ibernop (desce quando a encomenda é separada)
+  Promise.resolve().then(() => db.collection('pedidos_b2b').add({
     clienteUid: currentUser.uid,
     empresa: currentCliente.empresa,
     nomeFaturacao: currentCliente.nomeFaturacao || '',
