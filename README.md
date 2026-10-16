@@ -1,1 +1,1 @@
-# Fornecedor
+# Distribuidor
