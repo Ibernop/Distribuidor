@@ -110,6 +110,14 @@ footer a{color:#fff}
 .teste .ic{font-size:1.6rem}
 .teste h3{font-size:1rem}
 .teste p{font-size:.82rem;line-height:1.45}
+.teste{border:1px solid var(--line);border-top:4px solid #55e1bf;padding:0 0 16px;overflow:hidden;transition:transform .25s ease,box-shadow .25s ease}
+.teste:hover{transform:translateY(-5px);box-shadow:0 14px 30px rgba(24,99,170,.15)}
+.teste>div:last-child{padding:0 16px}
+.teste .tfoto{position:relative;height:150px;background:linear-gradient(135deg,#e9fbf6 0,#eaf3fd 100%);display:flex;align-items:center;justify-content:center;margin-bottom:22px}
+.teste .tfoto img{max-height:120px;max-width:80%;object-fit:contain;filter:drop-shadow(0 8px 12px rgba(0,0,0,.15));transition:transform .3s ease}
+.teste:hover .tfoto img{transform:scale(1.06)}
+.teste .tfoto .ic{position:absolute;left:16px;bottom:-20px;width:44px;height:44px;border-radius:50%;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;font-size:1.35rem}
+.teste .tt{color:#1863aa}
 @media(max-width:980px){.testes{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.testes{grid-template-columns:1fr}}
 .col h3 .ico{width:38px;height:38px;border-radius:50%;background:var(--navy);color:#fff;display:inline-flex;align-items:center;justify-content:center}
@@ -140,14 +148,14 @@ footer a{color:#fff}
 </div></section>
 
 <section class="s" id="vetdiagnostix"><div class="wrap vdx">
-  <div><div class="head" style="text-align:left;margin:0"><div class="eb">Distribuidor oficial</div><h2 style="margin:14px 0 12px;text-transform:none;font-family:Arial,Helvetica,sans-serif;font-weight:400;line-height:1;display:flex;align-items:flex-end;gap:6px;justify-content:inherit" aria-label="Vet Diagnostix"><span style="color:#55e1bf;font-size:clamp(46px,6vw,66px);letter-spacing:.02em">VET</span><span style="background:#1863aa;color:#fff;font-size:clamp(24px,3.2vw,34px);padding:5px 14px 6px;margin-bottom:4px">Diagnostix</span></h2></div>
+  <div><div class="head" style="text-align:left;margin:0"><div class="eb">Distribuidor oficial</div><h2 style="margin:14px 0 12px;text-transform:none;font-family:Arial,Helvetica,sans-serif;font-weight:400;line-height:1;display:flex;align-items:flex-end;gap:6px;justify-content:center" aria-label="Vet Diagnostix"><span style="color:#55e1bf;font-size:clamp(46px,6vw,66px);letter-spacing:.02em">VET</span><span style="background:#1863aa;color:#fff;font-size:clamp(24px,3.2vw,34px);padding:5px 14px 6px;margin-bottom:4px">Diagnostix</span></h2></div>
     <p>Testes rápidos para usar no próprio consultório: resultado em 5 a 10 minutos, durante a consulta, sem enviar amostras para laboratório.</p>
     <a class="btn" href="#contactos">Pedir informação</a></div>
   <div class="testes">
-    <div class="teste"><div class="ic">🦠</div><div><div class="tt">Teste rápido</div><h3>Parvovirose canina</h3><p>Deteta o parvovírus nas fezes do cão. Ajuda a confirmar logo na consulta um caso suspeito de gastroenterite por parvovírus.</p><div class="tags"><span>🐶 Cão</span><span>Amostra: fezes</span><span>5–10 min</span></div></div></div>
-    <div class="teste"><div class="ic">🩸</div><div><div class="tt">Teste rápido</div><h3>Leishmaniose</h3><p>Deteta anticorpos contra a Leishmania. Útil no rastreio antes da vacinação e na suspeita de leishmaniose.</p><div class="tags"><span>🐶 Cão</span><span>Amostra: sangue</span><span>5–10 min</span></div></div></div>
-    <div class="teste"><div class="ic">🫀</div><div><div class="tt">Teste rápido</div><h3>Dirofilariose</h3><p>Deteta o antigénio do parasita do coração (Dirofilaria immitis). Útil no rastreio anual e antes de iniciar a prevenção.</p><div class="tags"><span>🐶 Cão</span><span>Amostra: sangue</span><span>5–10 min</span></div></div></div>
-    <div class="teste"><div class="ic">🐱</div><div><div class="tt">Teste rápido</div><h3>FIV / FeLV felina</h3><p>Deteta num só teste a imunodeficiência felina (FIV) e a leucemia felina (FeLV). Indicado antes de vacinar, na adoção e em gatos com sinais compatíveis.</p><div class="tags"><span>🐱 Gato</span><span>Amostra: sangue</span><span>5–10 min</span></div></div></div>
+    <div class="teste"><div class="tfoto"><img src="img/teste-cao.webp" alt="" loading="lazy"><span class="ic">🦠</span></div><div><div class="tt">Teste rápido</div><h3>Parvovirose canina</h3><p>Deteta o parvovírus nas fezes do cão. Ajuda a confirmar logo na consulta um caso suspeito de gastroenterite por parvovírus.</p><div class="tags"><span>🐶 Cão</span><span>Amostra: fezes</span><span>5–10 min</span></div></div></div>
+    <div class="teste"><div class="tfoto"><img src="img/teste-cao.webp" alt="" loading="lazy"><span class="ic">🩸</span></div><div><div class="tt">Teste rápido</div><h3>Leishmaniose</h3><p>Deteta anticorpos contra a Leishmania. Útil no rastreio antes da vacinação e na suspeita de leishmaniose.</p><div class="tags"><span>🐶 Cão</span><span>Amostra: sangue</span><span>5–10 min</span></div></div></div>
+    <div class="teste"><div class="tfoto"><img src="img/teste-cao.webp" alt="" loading="lazy"><span class="ic">🫀</span></div><div><div class="tt">Teste rápido</div><h3>Dirofilariose</h3><p>Deteta o antigénio do parasita do coração (Dirofilaria immitis). Útil no rastreio anual e antes de iniciar a prevenção.</p><div class="tags"><span>🐶 Cão</span><span>Amostra: sangue</span><span>5–10 min</span></div></div></div>
+    <div class="teste"><div class="tfoto"><img src="img/teste-fiv-felv.webp" alt="" loading="lazy"><span class="ic">🐱</span></div><div><div class="tt">Teste rápido</div><h3>FIV / FeLV felina</h3><p>Deteta num só teste a imunodeficiência felina (FIV) e a leucemia felina (FeLV). Indicado antes de vacinar, na adoção e em gatos com sinais compatíveis.</p><div class="tags"><span>🐱 Gato</span><span>Amostra: sangue</span><span>5–10 min</span></div></div></div>
   </div>
 </div></section>
 
