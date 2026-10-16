@@ -268,8 +268,14 @@ function loadIncidencias() {
       <div class="entry-actions" style="align-items:center;flex-wrap:wrap;">
         <input type="text" id="resp-${i.id}" value="${esc(i.resposta || '')}" placeholder="Resposta ao cliente (ex.: nota de crédito, substituição)" style="flex:1;min-width:240px;">
         <button class="btn" onclick="guardarIncidencia('${i.id}', '${i.estado === 'resolvida' ? 'aberta' : 'resolvida'}')">${i.estado === 'resolvida' ? 'Reabrir' : 'Marcar como resolvida'}</button>
+        ${ehVendedor() ? '' : `<button class="btn" style="padding:8px 14px;background:#fff;color:var(--red);border-color:var(--red);" onclick="excluirIncidencia('${i.id}')">Excluir</button>`}
       </div></div>`).join('');
   }).catch(e => { el.innerHTML = '<div class="empty-state">Erro ao carregar incidências.</div>'; console.error(e); });
+}
+function excluirIncidencia(id) {
+  if (ehVendedor()) return;
+  if (!confirm('Excluir definitivamente esta incidência?')) return;
+  db.collection('incidencias_b2b').doc(id).delete().then(() => { loadIncidencias(); contarIncidencias(); }).catch(e => alert('Não foi possível excluir: ' + e.message));
 }
 function guardarIncidencia(id, estado) {
   const resposta = (document.getElementById('resp-' + id).value || '').trim();
@@ -815,10 +821,21 @@ function loadPedidos() {
           <div class="entry-actions">
             <button class="btn" style="background:var(--charcoal); color:#fff; border-color:var(--charcoal);" onclick="abrirListaSeparacao('${p.id}')">📋 Lista de separação</button>
             ${actions}
+            ${ehVendedor() ? '' : `<button class="btn" style="padding:8px 14px;background:#fff;color:var(--red);border-color:var(--red);margin-left:auto;" onclick="excluirPedido('${p.id}')">Excluir</button>`}
           </div>
         </div>`;
     }).join('');
   });
+}
+// Excluir encomenda (só administrador). Se já estava separada, o stock é reposto.
+function excluirPedido(id) {
+  if (ehVendedor()) return;
+  const p = allPedidos.find(x => x.id === id); if (!p) return;
+  if (!confirm('Excluir definitivamente a encomenda de ' + (p.empresa || '') + '? Esta ação não pode ser desfeita.')) return;
+  (p.estado === 'separado' ? mexerStock(p, 1) : Promise.resolve())
+    .then(() => db.collection('pedidos_b2b').doc(id).delete())
+    .then(loadPedidos)
+    .catch(e => alert('Não foi possível excluir: ' + e.message));
 }
 
 function setEstadoPedido(id, estado) {
