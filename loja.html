@@ -682,7 +682,7 @@ function enviarIncidencia() {
   msg.textContent = 'A enviar...'; msg.style.color = 'var(--gray)';
   db.collection('incidencias_b2b').add(inc).then(ref => {
     enviarEmail(EMAILJS.tplIncidencia, { referencia_incidencia: ref.id.slice(-6).toUpperCase(), tipo: inc.tipo, fatura: inc.fatura, data_fatura: inc.dataFatura.split('-').reverse().join('/'), gama: inc.gama, produto: inc.produto, referencia: inc.referencia, peso: inc.peso, quantidade: inc.quantidade, descricao: inc.descricao || '—' });
-    msg.textContent = 'Incidência enviada. O seu gestor de zona vai entrar em contacto.'; msg.style.color = 'var(--gold-dark)';
+    msg.textContent = 'Incidência enviada. Vamos resolver o mais brevemente possível e o seu gestor de zona entrará em contacto.'; msg.style.color = 'var(--gold-dark)';
     ['incFatura', 'incData', 'incDesc'].forEach(id => { document.getElementById(id).value = ''; }); document.getElementById('incQtd').value = 1;
     carregarIncidencias();
   }).catch(e => { msg.textContent = 'Erro ao enviar: ' + e.message; msg.style.color = 'var(--red)'; });
