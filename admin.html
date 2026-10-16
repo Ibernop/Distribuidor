@@ -589,12 +589,13 @@ function loadEquipa() {
           <input type="email" id="eqEmail" placeholder="E-mail de acesso">
           <select id="eqPapel" onchange="document.getElementById('eqVend').style.display = this.value === 'vendedor' ? '' : 'none'"><option value="vendedor">Vendedor</option><option value="admin">Administrador</option></select>
           <select id="eqVend">${opcoesVendedor('')}</select>
+          <input type="tel" id="eqTel" placeholder="Telemóvel do gestor (aparece no e-mail ao cliente)">
         </div>
         <div class="entry-actions"><button class="btn primary" id="eqBtn" onclick="criarMembro()">Criar acesso e enviar convite</button></div>
       </div>` + (membros.length ? membros.map(m => `
       <div class="entry-card">
         <div class="entry-top">
-          <div><div class="entry-title">${esc(m.nome)}</div><div class="entry-sub">${esc(m.email)} · ${m.papel === 'admin' ? 'Administrador' : 'Vendedor — ' + esc(nomeVendedor(m.vendedorId))}</div></div>
+          <div><div class="entry-title">${esc(m.nome)}</div><div class="entry-sub">${esc(m.email)} · ${m.papel === 'admin' ? 'Administrador' : 'Vendedor — ' + esc(nomeVendedor(m.vendedorId))}</div>${m.papel !== 'admin' && m.vendedorId ? `<div class="entry-sub" style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap"><input type="tel" id="teq-${m.id}" value="${esc((vendedores.find(x => x.id === m.vendedorId) || {}).telefone || '')}" placeholder="Telemóvel do gestor" style="width:180px"><button class="btn" style="padding:6px 12px" onclick="guardarTelEquipa('${m.id}','${m.vendedorId}')">Guardar telemóvel</button></div>` : ''}</div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn" onclick="reenviarConvite('${esc(m.email)}')">Reenviar e-mail</button><button class="btn" onclick="removerMembro('${m.id}')">Retirar acesso</button></div>
         </div>
       </div>`).join('') : '<div class="empty-state">Ainda não há outras pessoas com acesso. A conta ibernop@outlook.com é sempre administradora.</div>');
@@ -613,6 +614,8 @@ async function criarMembro() {
   try {
     const cred = await secAuth.createUserWithEmailAndPassword(dados.email, senhaAleatoria());
     await db.collection('equipa_b2b').doc(cred.user.uid).set({ ...dados, criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+    const tel = v('eqTel');
+    if (tel && dados.vendedorId) await db.collection('vendedores_b2b').doc(dados.vendedorId).update({ telefone: tel }).catch(() => {});
     await secAuth.sendPasswordResetEmail(dados.email);
     await secAuth.signOut();
     alert('Acesso criado. Foi enviado um e-mail para ' + dados.email + ' definir a palavra-passe.');
@@ -621,6 +624,11 @@ async function criarMembro() {
     erro.textContent = e.code === 'auth/email-already-in-use' ? 'Já existe uma conta com este e-mail (por exemplo, um cliente). Use outro e-mail para o acesso à Gestão.' : 'Não foi possível criar: ' + (e.message || e);
     erro.classList.add('show'); btn.disabled = false; btn.textContent = 'Criar acesso e enviar convite';
   }
+}
+
+function guardarTelEquipa(mid, vid) {
+  const telefone = (document.getElementById('teq-' + mid).value || '').trim();
+  db.collection('vendedores_b2b').doc(vid).update({ telefone }).then(() => { alert('Telemóvel guardado.'); loadEquipa(); }).catch(e => alert('Não foi possível guardar: ' + e.message));
 }
 
 function removerMembro(id) {
