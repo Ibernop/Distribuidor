@@ -309,12 +309,13 @@ function loadVendedores() {
           <input type="text" id="vNome" placeholder="Nome">
           <input type="text" id="vZona" list="zonasLista" placeholder="Zona (ex.: Lisboa Centro)"><datalist id="zonasLista">${[...new Set(vendedores.map(v => v.zona).filter(Boolean))].map(z => `<option value="${esc(z)}">`).join('')}</datalist>
           <input type="email" id="vEmail" placeholder="E-mail (recebe as encomendas)">
+          <input type="tel" id="vTel" placeholder="Telefone (aparece no e-mail ao cliente)">
         </div>
         <div class="entry-actions"><button class="btn primary" onclick="criarVendedor()">Adicionar vendedor</button></div>
       </div>` + (vendedores.length ? vendedores.map(v => `
       <div class="entry-card">
         <div class="entry-top">
-          <div><div class="entry-title">${esc(v.nome)}</div><div class="entry-sub">Zona ${esc(v.zona)} · ${esc(v.email)}</div></div>
+          <div><div class="entry-title">${esc(v.nome)}</div><div class="entry-sub">Zona ${esc(v.zona)} · ${esc(v.email)}</div><div class="entry-sub" style="display:flex;gap:6px;align-items:center;margin-top:6px"><input type="tel" id="tel-${v.id}" value="${esc(v.telefone || '')}" placeholder="Telefone" style="width:160px"><button class="btn" style="padding:6px 12px" onclick="guardarTelVendedor('${v.id}')">Guardar telefone</button></div></div>
           <button class="btn" onclick="apagarVendedor('${v.id}')">Remover</button>
         </div>
       </div>`).join('') : '<div class="empty-state">Ainda não há vendedores.</div>');
@@ -325,7 +326,12 @@ function criarVendedor() {
   const zona = document.getElementById('vZona').value.trim();
   const email = document.getElementById('vEmail').value.trim();
   if (!nome || !email || !zona) { alert('Preencha o nome, a zona e o e-mail do vendedor.'); return; }
-  db.collection('vendedores_b2b').add({ nome, zona, email }).then(loadVendedores);
+  const telefone = (document.getElementById('vTel').value || '').trim();
+  db.collection('vendedores_b2b').add({ nome, zona, email, telefone }).then(loadVendedores);
+}
+function guardarTelVendedor(id) {
+  const telefone = (document.getElementById('tel-' + id).value || '').trim();
+  db.collection('vendedores_b2b').doc(id).update({ telefone }).then(() => { alert('Telefone guardado.'); loadVendedores(); }).catch(e => alert('Não foi possível guardar: ' + e.message));
 }
 function apagarVendedor(id) {
   if (!confirm('Remover este vendedor? Os clientes dele ficam sem vendedor atribuído.')) return;
