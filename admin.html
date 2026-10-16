@@ -253,7 +253,7 @@ function loadVendedores() {
         <div class="entry-title" style="margin-bottom:10px;">Novo vendedor</div>
         <div class="form-grid">
           <input type="text" id="vNome" placeholder="Nome">
-          <select id="vZona"><option>Norte</option><option>Centro</option><option>Sul</option></select>
+          <input type="text" id="vZona" list="zonasLista" placeholder="Zona (ex.: Lisboa Centro)"><datalist id="zonasLista">${[...new Set(vendedores.map(v => v.zona).filter(Boolean))].map(z => `<option value="${esc(z)}">`).join('')}</datalist>
           <input type="email" id="vEmail" placeholder="E-mail (recebe as encomendas)">
         </div>
         <div class="entry-actions"><button class="btn primary" onclick="criarVendedor()">Adicionar vendedor</button></div>
@@ -268,9 +268,9 @@ function loadVendedores() {
 }
 function criarVendedor() {
   const nome = document.getElementById('vNome').value.trim();
-  const zona = document.getElementById('vZona').value;
+  const zona = document.getElementById('vZona').value.trim();
   const email = document.getElementById('vEmail').value.trim();
-  if (!nome || !email) { alert('Preencha o nome e o e-mail do vendedor.'); return; }
+  if (!nome || !email || !zona) { alert('Preencha o nome, a zona e o e-mail do vendedor.'); return; }
   db.collection('vendedores_b2b').add({ nome, zona, email }).then(loadVendedores);
 }
 function apagarVendedor(id) {
@@ -583,7 +583,7 @@ const COLS_CLI = ['Nome comercial', 'Nome de faturação', 'NIF', 'Contacto', 'T
 async function modeloClientes() {
   try {
     const X = await carregarXLSX();
-    const ws = X.utils.aoa_to_sheet([COLS_CLI, ['Centro Veterinário Exemplo', 'Exemplo, Lda', '500000000', 'Ana Silva', '912345678', 'loja@exemplo.pt', 'Rua Exemplo 1, 1000-000 Lisboa', '', 'Lisboa', 'Sul', '10', 'cheque, pronto']]);
+    const ws = X.utils.aoa_to_sheet([COLS_CLI, ['Centro Veterinário Exemplo', 'Exemplo, Lda', '500000000', 'Ana Silva', '912345678', 'loja@exemplo.pt', 'Rua Exemplo 1, 1000-000 Lisboa', '', 'Lisboa', 'Lisboa Centro', '10', 'cheque, pronto']]);
     const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, 'Clientes'); X.writeFile(wb, 'modelo-clientes-ibernop.xlsx');
   } catch (e) { alert(e.message); }
 }

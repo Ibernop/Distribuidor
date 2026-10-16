@@ -149,7 +149,7 @@ footer a{color:#fff}
 <section class="s cta" id="revenda"><div class="wrap">
   <div style="font-weight:700;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;opacity:.75;margin-bottom:8px">Para lojas e clínicas</div>
   <h2>Quer vender os nossos produtos?</h2>
-  <p>Temos um vendedor dedicado para cada zona do país: Norte, Centro e Sul. As lojas parceiras encomendam online, a qualquer hora.</p>
+  <p>Temos um vendedor dedicado para cada zona. As lojas parceiras encomendam online, a qualquer hora.</p>
   <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"><a class="btn white" href="#contactos">Quero ser parceiro</a><a class="btn line" href="loja.html">Já sou cliente: área de cliente</a></div>
 </div></section>
 
@@ -204,7 +204,8 @@ firebase.initializeApp({ apiKey: "AIzaSyBAlMWFnh8JM4sVuWjEJhde88AbmNhfv7k", auth
 firebase.firestore().collection('lojas_publicas').get().then(snap => {
   const lojas = snap.docs.map(d => d.data()).filter(l => l.foto);
   if (!lojas.length) return;
-  const zonas = ['Norte', 'Centro', 'Sul', 'Outras'].filter(z => lojas.some(l => l.zona === z));
+  lojas.forEach(l => { if (!l.zona) l.zona = 'Outras'; });
+  const zonas = [...new Set(lojas.map(l => l.zona))].sort((a, b) => (a === 'Outras') - (b === 'Outras') || a.localeCompare(b, 'pt'));
   const mostrar = z => {
     document.querySelectorAll('#zonas button').forEach(b => b.classList.toggle('on', b.dataset.z === z));
     document.getElementById('lista-lojas').innerHTML = lojas.filter(l => l.zona === z)
