@@ -416,6 +416,8 @@ function loadClientes() {
             <div style="flex:1; min-width:220px;">
               <div style="font-weight:600; margin-bottom:6px;">Montra no site (lojas parceiras)</div>
               <input type="text" id="loc-${id}" value="${esc(c.localidade || '')}" placeholder="Localidade" style="width:100%; margin-bottom:6px;">
+              <input type="text" id="mor-${id}" value="${esc((publicas[id] && publicas[id].morada) || c.moradaEntrega || c.moradaFaturacao || c.morada || '')}" placeholder="Morada da loja (para o Google Maps)" style="width:100%; margin-bottom:6px;">
+              <input type="text" id="site-${id}" value="${esc((publicas[id] && publicas[id].site) || '')}" placeholder="Site ou Instagram da loja (opcional)" style="width:100%; margin-bottom:6px;">
               <input type="file" id="foto-${id}" accept="image/*" style="margin-bottom:6px;">
               <label style="display:block; font-size:0.85rem; margin-bottom:6px;"><input type="checkbox" id="pub-${id}" ${publicas[id] ? 'checked' : ''}> Mostrar esta loja no site</label>
               <button class="btn primary" onclick="guardarMontra('${id}')">Guardar montra</button>
@@ -446,13 +448,16 @@ async function guardarMontra(id) {
     const doc = await db.collection('clientes_b2b').doc(id).get(); const c = doc.data();
     const localidade = document.getElementById('loc-' + id).value.trim();
     const mostrar = document.getElementById('pub-' + id).checked;
+    const morada = document.getElementById('mor-' + id).value.trim();
+    let site = document.getElementById('site-' + id).value.trim();
+    if (site && !/^https?:\/\//i.test(site)) site = 'https://' + site;
     const ficheiro = document.getElementById('foto-' + id).files[0];
     const foto = ficheiro ? await reduzirFoto(ficheiro) : (publicas[id] && publicas[id].foto) || '';
     await db.collection('clientes_b2b').doc(id).update({ localidade });
     if (mostrar) {
       if (!foto) { alert('Escolha uma foto da fachada antes de mostrar a loja no site.'); return; }
       const v = vendedores.find(x => x.id === c.vendedorId);
-      await db.collection('lojas_publicas').doc(id).set({ nome: c.nomeComercial || c.empresa, localidade, zona: v ? v.zona : 'Outras', foto });
+      await db.collection('lojas_publicas').doc(id).set({ nome: c.nomeComercial || c.empresa, localidade, morada, site, zona: v ? v.zona : 'Outras', foto });
     } else {
       await db.collection('lojas_publicas').doc(id).delete();
     }

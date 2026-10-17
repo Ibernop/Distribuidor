@@ -90,7 +90,8 @@ section.g{background:var(--grey)}
 .lojas{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
 .loja{border-radius:14px;overflow:hidden;background:#fff;border:1px solid var(--line)}
 .loja img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
-.loja div{padding:12px 14px}.loja b{display:block;font-size:.92rem}.loja span{font-size:.82rem;color:var(--muted)}
+.loja-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.loja-links a{font-size:.78rem;font-weight:600;text-decoration:none;padding:5px 10px;border-radius:999px;background:#eef5fc;color:#1863aa}.loja-links a:hover{background:#1863aa;color:#fff}
+.loja>div{padding:12px 14px}.loja b{display:block;font-size:.92rem}.loja span{font-size:.82rem;color:var(--muted)}
 .cta{background:var(--navy);color:#fff;text-align:center}
 .cta h2{text-transform:uppercase;font-size:clamp(1.6rem,3vw,2.2rem)}
 .cta p{opacity:.85;margin:10px auto 24px;max-width:620px}
@@ -237,7 +238,11 @@ firebase.firestore().collection('lojas_publicas').get().then(snap => {
     document.querySelectorAll('#zonas button').forEach(b => b.classList.toggle('on', b.dataset.z === z));
     document.getElementById('lista-lojas').innerHTML = lojas.filter(l => l.zona === z)
       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt'))
-      .map(l => '<div class="loja"><img loading="lazy" src="' + l.foto + '" alt="Fachada de ' + esc(l.nome) + '"><div><b>' + esc(l.nome) + '</b><span>' + esc(l.localidade || '') + '</span></div></div>').join('');
+      .map(l => {
+        const mapa = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([l.nome, l.morada || l.localidade].filter(Boolean).join(', '));
+        const site = /^https?:\/\//i.test(l.site || '') ? l.site : '';
+        return '<div class="loja"><a href="' + mapa + '" target="_blank" rel="noopener"><img loading="lazy" src="' + l.foto + '" alt="Fachada de ' + esc(l.nome) + '"></a><div><b>' + esc(l.nome) + '</b><span>' + esc(l.localidade || '') + '</span><div class="loja-links"><a href="' + mapa + '" target="_blank" rel="noopener">📍 Ver no mapa</a>' + (site ? '<a href="' + esc(site) + '" target="_blank" rel="noopener">🌐 Site</a>' : '') + '</div></div></div>';
+      }).join('');
   };
   document.getElementById('zonas').innerHTML = zonas.map(z => '<button type="button" data-z="' + z + '">' + z + '</button>').join('');
   document.querySelectorAll('#zonas button').forEach(b => b.onclick = () => mostrar(b.dataset.z));
