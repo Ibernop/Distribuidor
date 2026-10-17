@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ibernop</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#07202e"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Ibernop">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:32px 22px;background:radial-gradient(circle at 50% 0%,#0f3a52 0%,#07202e 60%);color:#fff;font-family:Montserrat,system-ui,sans-serif;text-align:center}
+.logo{width:150px;height:150px;border-radius:32px;background:url(icon-512.png) center/cover;box-shadow:0 18px 40px rgba(0,0,0,.35)}
+h1{font-size:1.5rem;font-weight:800;letter-spacing:.04em}
+p{opacity:.75;font-size:.95rem;margin-top:6px}
+.op{display:flex;flex-direction:column;gap:14px;width:100%;max-width:360px}
+a{display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:18px;text-decoration:none;color:#07202e;background:#fff;font-weight:700;font-size:1.05rem;text-align:left;box-shadow:0 10px 26px rgba(0,0,0,.25);transition:transform .15s}
+a:active{transform:scale(.98)}
+a small{display:block;font-weight:500;font-size:.8rem;color:#5a6a74;margin-top:2px}
+a.eq{background:#1b86f1;color:#fff}a.eq small{color:#dbeafe}
+.ic{flex:none;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:#eef5fc;font-size:1.4rem}
+a.eq .ic{background:rgba(255,255,255,.18)}
+</style>
+</head>
+<body>
+<div class="logo" role="img" aria-label="Ibernop"></div>
+<div><h1>IBERNOP</h1><p>Produtos para animais</p></div>
+<div class="op">
+  <a href="loja.html"><span class="ic">🛒</span><span>Área de Cliente<small>Fazer encomendas e incidências</small></span></a>
+  <a class="eq" href="admin.html"><span class="ic">💼</span><span>Gestão de equipa<small>Administração e gestores de zona</small></span></a>
+</div>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});</script>
+</body>
+</html>
