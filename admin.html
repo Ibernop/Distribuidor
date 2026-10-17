@@ -101,6 +101,7 @@ h1, h2, .entry-title { letter-spacing: .01em; }
 .badge-n { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #e5484d; color: #fff; font-size: 0.72rem; font-weight: 800; align-items: center; justify-content: center; margin-left: 6px; }
 .aviso-toast { position: fixed; right: 20px; bottom: 20px; z-index: 999; background: var(--charcoal); color: #fff; padding: 14px 18px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.25); font-weight: 700; cursor: pointer; max-width: 340px; }
 </style>
+<link rel="manifest" href="manifest-gestao.webmanifest"><meta name="theme-color" content="#07202e"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Gestão Ibernop">
 </head>
 <body>
 
@@ -938,6 +939,26 @@ function fecharListaSeparacao() {
   document.getElementById('separacaoBackdrop').classList.remove('open');
   document.getElementById('separacaoModal').classList.remove('open');
 }
+</script>
+<div id="appInst" hidden style="position:fixed;right:14px;bottom:14px;z-index:9999;max-width:290px;font-family:inherit"><div id="appDica" hidden style="background:#fff;color:#07202e;border-radius:14px;padding:12px 14px;margin-bottom:8px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:.85rem;line-height:1.4">No iPhone: toque em <b>Partilhar</b> (o quadrado com a seta) e depois em <b>Adicionar ao ecrã principal</b>.</div><button id="appBtn" type="button" style="display:flex;align-items:center;gap:8px;margin-left:auto;background:#07202e;color:#fff;border:0;border-radius:999px;padding:11px 18px;font-family:inherit;font-weight:600;font-size:.9rem;line-height:1;box-shadow:0 10px 30px rgba(0,0,0,.3);cursor:pointer">📲 Instalar app <span id="appX" style="opacity:.6;margin-left:4px">✕</span></button></div>
+<script>
+(function () {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  const box = document.getElementById('appInst'), btn = document.getElementById('appBtn'), dica = document.getElementById('appDica');
+  const instalada = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  let fechado = false; try { fechado = localStorage.getItem('appInstFechado') === '1'; } catch (e) {}
+  if (instalada || fechado) return;
+  let pedido = null;
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); pedido = e; box.hidden = false; });
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (ios) box.hidden = false;
+  btn.addEventListener('click', e => {
+    if (e.target.id === 'appX') { box.hidden = true; try { localStorage.setItem('appInstFechado', '1'); } catch (x) {} return; }
+    if (pedido) { pedido.prompt(); pedido.userChoice.then(() => { box.hidden = true; pedido = null; }); }
+    else if (ios) dica.hidden = !dica.hidden;
+  });
+  addEventListener('appinstalled', () => { box.hidden = true; });
+})();
 </script>
 </body>
 </html>
