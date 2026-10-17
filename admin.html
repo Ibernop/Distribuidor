@@ -266,8 +266,8 @@ function loadIncidencias() {
         <div class="entry-sub">Comunicada em ${i.criadoEm && i.criadoEm.toDate ? i.criadoEm.toDate().toLocaleString('pt-PT') : ''}</div>
       </div><span class="badge ${i.estado === 'resolvida' ? 'aprovado' : 'pendente'}">${i.estado === 'resolvida' ? 'Resolvida' : 'Aberta'}</span></div>
       <div class="entry-actions" style="align-items:center;flex-wrap:wrap;">
-        <input type="text" id="resp-${i.id}" value="${esc(i.resposta || '')}" placeholder="Resposta ao cliente (ex.: nota de crédito, substituição)" style="flex:1;min-width:240px;">
-        <button class="btn" onclick="guardarIncidencia('${i.id}', '${i.estado === 'resolvida' ? 'aberta' : 'resolvida'}')">${i.estado === 'resolvida' ? 'Reabrir' : 'Marcar como resolvida'}</button>
+        ${ehVendedor() ? (i.resposta ? `<div class="entry-sub">Resposta: ${esc(i.resposta)}</div>` : '') : `<input type="text" id="resp-${i.id}" value="${esc(i.resposta || '')}" placeholder="Resposta ao cliente (ex.: nota de crédito, substituição)" style="flex:1;min-width:240px;">
+        <button class="btn" onclick="guardarIncidencia('${i.id}', '${i.estado === 'resolvida' ? 'aberta' : 'resolvida'}')">${i.estado === 'resolvida' ? 'Reabrir' : 'Marcar como resolvida'}</button>`}
         ${ehVendedor() ? '' : `<button class="btn" style="padding:8px 14px;background:#fff;color:var(--red);border-color:var(--red);" onclick="excluirIncidencia('${i.id}')">Excluir</button>`}
       </div></div>`).join('');
   }).catch(e => { el.innerHTML = '<div class="empty-state">Erro ao carregar incidências.</div>'; console.error(e); });
@@ -339,7 +339,11 @@ function apagarVendedor(id) {
 }
 
 // ---------- Clientes ----------
-const PAGAMENTOS = { cheque30: 'Cheque a 30 dias', pronto: 'Pronto pagamento' };
+const PAGS = { pre: 'Pré-pagamento', d7: '7 dias', d15: '15 dias', d30: '30 dias' };
+const pagNorm = k => ({ cheque30: 'd30', pronto: 'pre' })[k] || k;
+const pagLabel = k => PAGS[pagNorm(k)] || k;
+const pagLista = c => [...new Set(((c && c.pagamentos) || Object.keys(PAGS)).map(pagNorm))];
+const PAGAMENTOS = PAGS;
 
 function formNovoCliente() {
   return `
@@ -360,8 +364,7 @@ function formNovoCliente() {
         <span style="display:flex; align-items:center; gap:6px;"><label style="font-size:0.85rem; color:var(--gray);">Desconto fixo:</label><input type="number" id="ncDesconto" value="0" min="0" max="100" style="width:70px;"> %</span>
       </div>
       <div style="display:flex; gap:16px; margin:10px 0; font-size:0.9rem;">
-        <label><input type="checkbox" id="ncPagCheque" checked> Cheque a 30 dias</label>
-        <label><input type="checkbox" id="ncPagPronto" checked> Pronto pagamento</label>
+        ${Object.entries(PAGS).map(([k, l]) => `<label><input type="checkbox" id="ncPag-${k}" checked> ${l}</label>`).join('')}
       </div>
       <div class="entry-actions"><button class="btn primary" id="ncBtn" onclick="criarCliente()">Criar cliente e enviar convite</button></div>
       <p style="font-size:0.8rem; color:var(--gray); margin-top:8px;">O cliente recebe um e-mail para definir a própria palavra-passe.</p>
@@ -382,9 +385,9 @@ function loadClientes() {
           <div class="entry-sub">${esc(c.contacto)} · <a href="tel:${esc(c.telefone)}">${esc(c.telefone)}</a> · <a href="mailto:${esc(c.email)}">${esc(c.email)}</a></div>
           <div class="entry-sub">Faturação: ${esc(c.moradaFaturacao || c.morada)}</div>
           <div class="entry-sub">Entrega: ${esc(c.moradaEntrega || c.moradaFaturacao || c.morada)}</div>
-          <div class="entry-sub">Desconto: ${c.desconto || 0}% · Pagamento: ${(c.pagamentos || ['cheque30', 'pronto']).map(x => x === 'cheque30' ? 'Cheque 30 dias' : 'Pronto pagamento').join(', ')}</div>
+          <div class="entry-sub">Desconto: ${c.desconto || 0}% · Pagamento: ${pagLista(c).map(pagLabel).join(', ')}</div>
         </div>`;
-      const pags = c.pagamentos || ['cheque30', 'pronto'];
+      const pags = pagLista(c);
       return `
         <div class="entry-card">
           <div class="entry-top">
@@ -400,8 +403,7 @@ function loadClientes() {
           <div class="entry-actions" style="align-items:center; flex-wrap:wrap;">
             <select id="vend-${id}">${opcoesVendedor(c.vendedorId || '')}</select>
             <span style="display:flex; align-items:center; gap:6px;"><label style="font-size:0.85rem; color:var(--gray);">Desconto:</label><input type="number" id="desc-${id}" value="${c.desconto || 0}" min="0" max="100" style="width:64px;"> %</span>
-            <label style="font-size:0.85rem;"><input type="checkbox" id="pc-${id}" ${pags.includes('cheque30') ? 'checked' : ''}> Cheque 30 dias</label>
-            <label style="font-size:0.85rem;"><input type="checkbox" id="pp-${id}" ${pags.includes('pronto') ? 'checked' : ''}> Pronto pagamento</label>
+            ${Object.entries(PAGS).map(([k, l]) => `<label style="font-size:0.85rem;"><input type="checkbox" id="pg-${k}-${id}" ${pags.includes(k) ? 'checked' : ''}> ${l}</label>`).join('')}
             <button class="btn primary" onclick="guardarCliente('${id}')">Guardar</button>
           </div>
           <div class="entry-actions">
@@ -466,11 +468,8 @@ async function guardarMontra(id) {
   } catch (e) { alert('Não foi possível guardar: ' + (e.message || e)); }
 }
 
-function lerPagamentos(chequeId, prontoId) {
-  const p = [];
-  if (document.getElementById(chequeId).checked) p.push('cheque30');
-  if (document.getElementById(prontoId).checked) p.push('pronto');
-  return p;
+function lerPagamentos(idDe) {
+  return Object.keys(PAGS).filter(k => { const e = document.getElementById(idDe(k)); return e && e.checked; });
 }
 
 function senhaAleatoria() {
@@ -486,7 +485,7 @@ async function criarCliente() {
     contacto: v('ncContacto'), telefone: v('ncTelefone'), email: v('ncEmail').toLowerCase(),
     localidade: v('ncLocalidade'), moradaFaturacao: v('ncMoradaFat'), moradaEntrega: v('ncMoradaEnt') || v('ncMoradaFat'),
     vendedorId: v('ncVendedor'), desconto: parseFloat(v('ncDesconto') || '0') || 0,
-    pagamentos: lerPagamentos('ncPagCheque', 'ncPagPronto')
+    pagamentos: lerPagamentos(k => 'ncPag-' + k)
   };
   const falta = !dados.nomeFaturacao || !dados.nomeComercial || !dados.nif || !dados.email || !dados.moradaFaturacao;
   if (falta) { erro.textContent = 'Preencha pelo menos nome de faturação, nome comercial, NIF, e-mail e morada de faturação.'; erro.classList.add('show'); return; }
@@ -513,7 +512,7 @@ async function criarCliente() {
 }
 
 function guardarCliente(id) {
-  const pagamentos = lerPagamentos('pc-' + id, 'pp-' + id);
+  const pagamentos = lerPagamentos(k => 'pg-' + k + '-' + id);
   if (!pagamentos.length) { alert('Escolha pelo menos uma forma de pagamento.'); return; }
   db.collection('clientes_b2b').doc(id).update({
     vendedorId: document.getElementById('vend-' + id).value,
@@ -587,7 +586,7 @@ function loadEquipa() {
     el.innerHTML = `
       <div class="entry-card">
         <div class="entry-title" style="margin-bottom:6px;">Novo acesso à Gestão</div>
-        <p style="font-size:0.82rem; color:var(--gray); margin:0 0 10px;">Cada pessoa entra com o seu e-mail. O <strong>administrador</strong> vê tudo; o <strong>vendedor</strong> só vê as encomendas da sua zona e pode marcá-las como separadas/enviadas.</p>
+        <p style="font-size:0.82rem; color:var(--gray); margin:0 0 10px;">Cada pessoa entra com o seu e-mail. O <strong>administrador</strong> vê tudo; o <strong>vendedor</strong> só consulta os clientes, as encomendas e as incidências da sua zona, sem poder alterar nada.</p>
         <div class="auth-error" id="eqErro"></div>
         <div class="form-grid">
           <input type="text" id="eqNome" placeholder="Nome">
@@ -653,11 +652,11 @@ function campo(row, ...nomes) {
   for (const n of nomes) { const k = ks.find(k => k.toLowerCase().trim().startsWith(n.toLowerCase())); if (k && String(row[k]).trim()) return String(row[k]).trim(); }
   return '';
 }
-const COLS_CLI = ['Nome comercial', 'Nome de faturação', 'NIF', 'Contacto', 'Telefone', 'E-mail', 'Morada de faturação', 'Morada de entrega', 'Localidade', 'Vendedor (nome ou zona)', 'Desconto %', 'Pagamentos (cheque e/ou pronto)'];
+const COLS_CLI = ['Nome comercial', 'Nome de faturação', 'NIF', 'Contacto', 'Telefone', 'E-mail', 'Morada de faturação', 'Morada de entrega', 'Localidade', 'Vendedor (nome ou zona)', 'Desconto %', 'Pagamentos (pré, 7, 15 e/ou 30 dias)'];
 async function modeloClientes() {
   try {
     const X = await carregarXLSX();
-    const ws = X.utils.aoa_to_sheet([COLS_CLI, ['Centro Veterinário Exemplo', 'Exemplo, Lda', '500000000', 'Ana Silva', '912345678', 'loja@exemplo.pt', 'Rua Exemplo 1, 1000-000 Lisboa', '', 'Lisboa', 'Lisboa Centro', '10', 'cheque, pronto']]);
+    const ws = X.utils.aoa_to_sheet([COLS_CLI, ['Centro Veterinário Exemplo', 'Exemplo, Lda', '500000000', 'Ana Silva', '912345678', 'loja@exemplo.pt', 'Rua Exemplo 1, 1000-000 Lisboa', '', 'Lisboa', 'Margem Sul e Litoral Alentejano', '10', 'pré, 30']]);
     const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, 'Clientes'); X.writeFile(wb, 'modelo-clientes-ibernop.xlsx');
   } catch (e) { alert(e.message); }
 }
@@ -679,7 +678,7 @@ async function importarClientes() {
     el.innerHTML = '<div class="empty-state">A importar ' + (i + 1) + ' de ' + validos.length + '… não feche esta página.</div>';
     const vv = (c.vend || '').toLowerCase();
     const v = vendedores.find(x => (x.nome || '').toLowerCase() === vv) || vendedores.find(x => (x.zona || '').toLowerCase() === vv);
-    const pags = []; if (!c.pag || c.pag.includes('cheque')) pags.push('cheque30'); if (!c.pag || c.pag.includes('pronto')) pags.push('pronto');
+    const pg = (c.pag || '').toLowerCase(); const pags = !pg ? Object.keys(PAGS) : Object.keys(PAGS).filter(k => k === 'pre' ? /pr[ée]|pronto/.test(pg) : k === 'd30' ? /30|cheque/.test(pg) : pg.includes(k.slice(1)));
     const dados = { nomeFaturacao: c.nomeFaturacao || c.nomeComercial, nomeComercial: c.nomeComercial, nif: c.nif, contacto: c.contacto, telefone: c.telefone, email: c.email, localidade: c.localidade, moradaFaturacao: c.moradaFaturacao, moradaEntrega: c.moradaEntrega || c.moradaFaturacao, vendedorId: v ? v.id : '', desconto: parseFloat(String(c.desc).replace(',', '.')) || 0, pagamentos: pags };
     try {
       const cred = await secAuth.createUserWithEmailAndPassword(dados.email, senhaAleatoria());
@@ -776,7 +775,7 @@ async function exportarClientes() {
     await carregarVendedores().catch(() => []);
     const s = await db.collection('clientes_b2b').get();
     const L = [['Nome comercial', 'Nome de faturação', 'NIF', 'Contacto', 'Telefone', 'E-mail', 'Morada de faturação', 'Morada de entrega', 'Localidade', 'Vendedor', 'Desconto %', 'Pagamentos', 'Ativo']];
-    s.forEach(d => { const c = d.data(); L.push([c.nomeComercial || c.empresa, c.nomeFaturacao, c.nif, c.contacto, c.telefone, c.email, c.moradaFaturacao || c.morada, c.moradaEntrega, c.localidade, c.vendedorId ? nomeVendedor(c.vendedorId) : '', numPT(c.desconto), (c.pagamentos || ['cheque30', 'pronto']).map(x => x === 'cheque30' ? 'Cheque 30 dias' : 'Pronto pagamento').join(', '), c.aprovado ? 'Sim' : 'Não']); });
+    s.forEach(d => { const c = d.data(); L.push([c.nomeComercial || c.empresa, c.nomeFaturacao, c.nif, c.contacto, c.telefone, c.email, c.moradaFaturacao || c.morada, c.moradaEntrega, c.localidade, c.vendedorId ? nomeVendedor(c.vendedorId) : '', numPT(c.desconto), pagLista(c).map(pagLabel).join(', '), c.aprovado ? 'Sim' : 'Não']); });
     exportarCSV('clientes-ibernop', L);
   } catch (e) { alert('Não foi possível exportar: ' + e.message); }
 }
@@ -791,7 +790,7 @@ async function exportarEncomendas() {
       const data = p.criadoEm && p.criadoEm.toDate ? p.criadoEm.toDate().toLocaleString('pt-PT') : '';
       (p.itens || []).forEach(it => {
         const c = chaveItem(it), pr = precoOficial(it); const preco = pr == null ? it.preco : pr;
-        L.push([data, p.id.slice(-6).toUpperCase(), p.estado, p.empresa, p.nomeFaturacao, p.nif, p.vendedorId ? nomeVendedor(p.vendedorId) : '', p.metodoPagamento === 'cheque30' ? 'Cheque 30 dias' : 'Pronto pagamento', c ? c.t.cod : '', c ? c.t.ean : '', it.nome, it.tamanho, it.qty, numPT(preco), numPT(preco * it.qty), numPT(o.desconto), numPT(o.total), numPT(o.iva), numPT(o.comIva)]);
+        L.push([data, p.id.slice(-6).toUpperCase(), p.estado, p.empresa, p.nomeFaturacao, p.nif, p.vendedorId ? nomeVendedor(p.vendedorId) : '', pagLabel(p.metodoPagamento), c ? c.t.cod : '', c ? c.t.ean : '', it.nome, it.tamanho, it.qty, numPT(preco), numPT(preco * it.qty), numPT(o.desconto), numPT(o.total), numPT(o.iva), numPT(o.comIva)]);
       });
     });
     exportarCSV('encomendas-ibernop', L);
@@ -820,7 +819,7 @@ function loadPedidos() {
     allPedidos = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     el.innerHTML = allPedidos.map(p => {
       const itensHtml = (p.itens || []).map(it => { const pr = precoOficial(it); return `${it.qty}x ${esc(it.nome)} (${esc(it.tamanho)}) — ${((pr == null ? it.preco : pr) * it.qty).toFixed(2)}€`; }).join('<br>');
-      const metodoLabel = p.metodoPagamento === 'cheque30' ? 'Cheque a 30 dias' : 'Pronto pagamento';
+      const metodoLabel = pagLabel(p.metodoPagamento);
       let actions = '';
       if (p.estado === 'pendente') actions = `<button class="btn primary" onclick="setEstadoPedido('${p.id}','separado')">Marcar como separado</button>`;
       else if (p.estado === 'separado') actions = `<button class="btn primary" onclick="setEstadoPedido('${p.id}','enviado')">Marcar como enviado</button> <button class="btn" onclick="setEstadoPedido('${p.id}','pendente')">Voltar a pendente</button>`;
@@ -839,7 +838,7 @@ function loadPedidos() {
           <div class="itens-list">${itensHtml}</div>
           <div class="entry-actions">
             <button class="btn" style="background:var(--charcoal); color:#fff; border-color:var(--charcoal);" onclick="abrirListaSeparacao('${p.id}')">📋 Lista de separação</button>
-            ${actions}
+            ${ehVendedor() ? '' : actions}
             ${ehVendedor() ? '' : `<button class="btn" style="padding:8px 14px;background:#fff;color:var(--red);border-color:var(--red);margin-left:auto;" onclick="excluirPedido('${p.id}')">Excluir</button>`}
           </div>
         </div>`;

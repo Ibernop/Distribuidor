@@ -314,8 +314,10 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
     <div class="cart-total" style="border-top:2px solid var(--charcoal); padding-top:10px;"><span>Total com IVA</span><span id="cartTotalIva">0,00€</span></div>
     <p style="font-size:.75rem; color:var(--gray); margin:-6px 0 12px;">Valores indicativos, confirmados na fatura.</p>
     <div class="payment-method-select">
-      <label class="payment-opt"><input type="radio" name="payMethod" value="cheque30" checked> Cheque a 30 dias</label>
-      <label class="payment-opt"><input type="radio" name="payMethod" value="pronto"> Pronto pagamento</label>
+      <label class="payment-opt"><input type="radio" name="payMethod" value="pre" checked> Pré-pagamento</label>
+      <label class="payment-opt"><input type="radio" name="payMethod" value="d7"> 7 dias</label>
+      <label class="payment-opt"><input type="radio" name="payMethod" value="d15"> 15 dias</label>
+      <label class="payment-opt"><input type="radio" name="payMethod" value="d30"> 30 dias</label>
     </div>
     <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="submitPedido()">Confirmar encomenda</button>
     <div id="checkoutMsg" style="margin-top:10px; font-size:0.85rem; font-weight:600;"></div>
@@ -459,8 +461,12 @@ function resetSenha() {
   });
 }
 
+const PAGS = { pre: 'Pré-pagamento', d7: '7 dias', d15: '15 dias', d30: '30 dias' };
+const pagNorm = k => ({ cheque30: 'd30', pronto: 'pre' })[k] || k;
+const pagLabel = k => PAGS[pagNorm(k)] || k;
+const pagLista = c => [...new Set(((c && c.pagamentos) || Object.keys(PAGS)).map(pagNorm))];
 function aplicarPagamentos() {
-  const permitidos = (currentCliente && currentCliente.pagamentos) || ['cheque30', 'pronto'];
+  const permitidos = pagLista(currentCliente);
   let primeiro = null;
   document.querySelectorAll('input[name="payMethod"]').forEach(r => {
     const ok = permitidos.includes(r.value);
@@ -581,7 +587,7 @@ function carregarHistorico() {
     el.innerHTML = minhasEncomendas.map(p => {
       const total = p.total || 0;
       return `<div class="hist-card">
-        <div class="hist-top"><div><strong>Encomenda ${p.id.slice(-6).toUpperCase()}</strong><span>${dataPT(p.criadoEm)} · ${p.metodoPagamento === 'cheque30' ? 'Cheque a 30 dias' : 'Pronto pagamento'}</span></div>
+        <div class="hist-top"><div><strong>Encomenda ${p.id.slice(-6).toUpperCase()}</strong><span>${dataPT(p.criadoEm)} · ${pagLabel(p.metodoPagamento)}</span></div>
         <div class="hist-total">${eur(total * 1.23)}<small>c/ IVA · ${eur(total)} s/ IVA</small></div></div>
         <ul>${(p.itens || []).map(it => `<li>${it.qty}× ${escH(it.nome)} <em>(${escH(it.tamanho)})</em></li>`).join('')}</ul>
         <div class="hist-acoes">
@@ -616,7 +622,7 @@ function imprimirEncomenda(id) {
   const w = window.open('', '_blank');
   w.document.write(`<html><head><title>Encomenda ${p.id.slice(-6).toUpperCase()}</title><style>body{font-family:Arial,sans-serif;color:#1c262d;padding:30px}h1{font-size:20px;margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px}td,th{border-bottom:1px solid #ddd;padding:6px;text-align:left}.t td{border:0}</style></head><body>
     <h1>IBERNOP · Encomenda ${p.id.slice(-6).toUpperCase()}</h1><div>${dataPT(p.criadoEm)}</div>
-    <p><strong>${escH(c.nomeComercial || p.empresa)}</strong><br>${escH(c.nomeFaturacao || '')} · NIF ${escH(p.nif || c.nif || '')}<br>Entrega: ${escH(p.moradaEntrega || c.moradaEntrega || '')}<br>Pagamento: ${p.metodoPagamento === 'cheque30' ? 'Cheque a 30 dias' : 'Pronto pagamento'}</p>
+    <p><strong>${escH(c.nomeComercial || p.empresa)}</strong><br>${escH(c.nomeFaturacao || '')} · NIF ${escH(p.nif || c.nif || '')}<br>Entrega: ${escH(p.moradaEntrega || c.moradaEntrega || '')}<br>Pagamento: ${pagLabel(p.metodoPagamento)}</p>
     <table><tr><th>Qtd</th><th>Produto</th><th>Tamanho</th><th style="text-align:right">Preço</th><th style="text-align:right">Total</th></tr>${linhas}</table>
     <table class="t" style="width:280px;margin-left:auto"><tr><td>Subtotal</td><td style="text-align:right">${eur(p.subtotal)}</td></tr><tr><td>Desconto (${p.desconto || 0}%)</td><td style="text-align:right">-${eur(p.valorDesconto)}</td></tr><tr><td>Total sem IVA</td><td style="text-align:right">${eur(total)}</td></tr><tr><td>IVA (23%)</td><td style="text-align:right">${eur(total * 0.23)}</td></tr><tr><td><strong>Total com IVA</strong></td><td style="text-align:right"><strong>${eur(total * 1.23)}</strong></td></tr></table>
     <script>window.onload=function(){window.print()}<\/script></body></html>`);
@@ -625,7 +631,7 @@ function imprimirEncomenda(id) {
 
 function mostrarConta() {
   const c = currentCliente || {}; const el = document.getElementById('contaDados');
-  const pags = (c.pagamentos || ['cheque30', 'pronto']).map(x => x === 'cheque30' ? 'Cheque a 30 dias' : 'Pronto pagamento').join(' · ');
+  const pags = pagLista(c).map(pagLabel).join(' · ');
   const linha = (k, v) => v ? `<div class="conta-linha"><span>${k}</span><strong>${escH(v)}</strong></div>` : '';
   el.innerHTML = '<div class="conta-card">' + linha('Nome comercial', c.nomeComercial || c.empresa) + linha('Nome de faturação', c.nomeFaturacao) + linha('NIF', c.nif)
     + linha('Morada de faturação', c.moradaFaturacao || c.morada) + linha('Morada de entrega', c.moradaEntrega) + linha('Contacto', c.contacto) + linha('Telefone', c.telefone) + linha('E-mail', c.email)
@@ -918,7 +924,7 @@ function submitPedido() {
     estado: 'pendente', // pendente -> separado -> enviado
     criadoEm: firebase.firestore.FieldValue.serverTimestamp()
   })).then(ref => {
-    enviarEmail(EMAILJS.tplEncomenda, { referencia: ref.id.slice(-6).toUpperCase(), data: new Date().toLocaleString('pt-PT'), nome_faturacao: currentCliente.nomeFaturacao || '', morada_entrega: currentCliente.moradaEntrega || currentCliente.morada || '', pagamento: metodoPagamento === 'cheque30' ? 'Cheque a 30 dias' : 'Pronto pagamento', itens_html: '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:4px 0 14px"><tr style="background:#07202e;color:#fff"><th align="center" style="padding:7px 5px;width:30px">Qtd</th><th align="left" style="padding:7px 5px">Produto</th><th align="right" style="padding:7px 5px">Preço un.</th><th align="right" style="padding:7px 5px">Total</th></tr>' + itens.map(it => `<tr><td align="center" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;font-weight:bold">${it.qty}</td><td style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top">${escH(it.nome)}<br><span style="color:#6b7780;font-size:12px">${escH(it.tamanho)}</span></td><td align="right" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;white-space:nowrap">${eur(it.preco)}</td><td align="right" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;white-space:nowrap;font-weight:bold">${eur(it.preco * it.qty)}</td></tr>`).join('') + '</table>', subtotal: eur(subtotal), desconto: desconto + '% (-' + eur(valorDesconto) + ')', total_sem_iva: eur(total), iva: eur(total * 0.23), total_com_iva: eur(total * 1.23) });
+    enviarEmail(EMAILJS.tplEncomenda, { referencia: ref.id.slice(-6).toUpperCase(), data: new Date().toLocaleString('pt-PT'), nome_faturacao: currentCliente.nomeFaturacao || '', morada_entrega: currentCliente.moradaEntrega || currentCliente.morada || '', pagamento: pagLabel(metodoPagamento), itens_html: '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:4px 0 14px"><tr style="background:#07202e;color:#fff"><th align="center" style="padding:7px 5px;width:30px">Qtd</th><th align="left" style="padding:7px 5px">Produto</th><th align="right" style="padding:7px 5px">Preço un.</th><th align="right" style="padding:7px 5px">Total</th></tr>' + itens.map(it => `<tr><td align="center" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;font-weight:bold">${it.qty}</td><td style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top">${escH(it.nome)}<br><span style="color:#6b7780;font-size:12px">${escH(it.tamanho)}</span></td><td align="right" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;white-space:nowrap">${eur(it.preco)}</td><td align="right" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;white-space:nowrap;font-weight:bold">${eur(it.preco * it.qty)}</td></tr>`).join('') + '</table>', subtotal: eur(subtotal), desconto: desconto + '% (-' + eur(valorDesconto) + ')', total_sem_iva: eur(total), iva: eur(total * 0.23), total_com_iva: eur(total * 1.23) });
     msgEl.textContent = 'Encomenda enviada! Vamos preparar e avisamos quando for enviada.';
     msgEl.style.color = 'var(--gold-dark)';
     cart = {};
