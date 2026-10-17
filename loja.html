@@ -633,13 +633,19 @@ let minhasEncomendas = [];
 let destTimer = null;
 function carregarDestaques() {
   db.collection('config_b2b').doc('destaques').get().then(d => {
-    const itens = ((d.exists && d.data().itens) || []).map(x => ({ ...x, p: produtos.find(p => String(p.id) === String(x.pid)) })).filter(x => x.p);
+    const hoje = new Date().toISOString().slice(0, 10);
+    const norm = x => { const et = String(x.etiqueta || '').trim(); const pc = Number(x.desc) || (/^-?\d+([.,]\d+)?\s*%?$/.test(et) ? Math.abs(parseFloat(et.replace(',', '.'))) : 0); let fim = x.fim || ''; const m = !fim && String(x.nota || '').trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/); if (m) fim = (m[3] ? (m[3].length === 2 ? '20' + m[3] : m[3]) : String(new Date().getFullYear())) + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0'); return { ...x, pc, fim, texto: pc ? '' : et, notaTxt: m ? '' : String(x.nota || '') }; };
+    const itens = ((d.exists && d.data().itens) || []).map(norm).filter(x => !x.fim || x.fim >= hoje).map(x => ({ ...x, p: produtos.find(p => String(p.id) === String(x.pid)) })).filter(x => x.p);
+    produtos.forEach(p => p.tamanhos.forEach(t => { if (t.precoOrig != null) { t.preco = t.precoOrig; delete t.promo; } }));
+    itens.forEach(x => { if (!x.pc) return; (x.tam ? x.p.tamanhos.filter(t => t.label === x.tam) : x.p.tamanhos).forEach(t => { if (t.precoOrig == null) t.precoOrig = t.preco; t.preco = Math.round(t.precoOrig * (1 - x.pc / 100) * 100) / 100; t.promo = x.pc; }); });
+    renderCatalog();
     const box = document.getElementById('destaques');
     if (!itens.length) { box.style.display = 'none'; return; }
     const desc = (currentCliente && currentCliente.desconto) || 0;
     document.getElementById('destTrack').innerHTML = itens.map(x => {
       const ti = x.tam ? Math.max(0, x.p.tamanhos.findIndex(t => t.label === x.tam)) : 0; const t = x.p.tamanhos[ti]; const preco = t && t.preco > 0 ? (t.preco * (1 - desc / 100)) : 0;
-      return `<div class="dest-card">${x.etiqueta ? `<span class="et">${escH(x.etiqueta)}</span>` : ''}<img src="${x.p.imagem || ''}" alt="" loading="lazy"><div><h3>${escH(x.p.nome)}${x.tam ? ` <span style="opacity:.8;font-weight:600">· ${escH(x.tam)}</span>` : ''}</h3>${x.nota ? `<div class="nota">${escH(x.nota)}</div>` : ''}${preco ? `<div class="pr">${x.tam ? '' : 'desde '}${preco.toFixed(2)}€ <small style="font-weight:500;opacity:.75">s/ IVA</small></div>` : ''}<button type="button" onclick="verProduto(${x.p.id}, ${ti})">Ver e encomendar</button></div></div>`;
+      const antes = t && t.promo && t.precoOrig ? t.precoOrig * (1 - desc / 100) : 0; const ddmm = x.fim ? x.fim.split('-').reverse().slice(0, 2).join('/') : '';
+      return `<div class="dest-card">${x.pc ? `<span class="et">-${x.pc}%</span>` : (x.texto ? `<span class="et">${escH(x.texto)}</span>` : '')}<img src="${x.p.imagem || ''}" alt="" loading="lazy"><div><h3>${escH(x.p.nome)}${x.tam ? ` <span style="opacity:.8;font-weight:600">· ${escH(x.tam)}</span>` : ''}</h3>${(ddmm || x.notaTxt) ? `<div class="nota">${ddmm ? 'Promoção até ' + ddmm : ''}${ddmm && x.notaTxt ? ' · ' : ''}${escH(x.notaTxt)}</div>` : ''}${preco ? `<div class="pr">${antes ? `<s style="opacity:.6;font-weight:500;margin-right:6px">${antes.toFixed(2)}€</s>` : ''}${x.tam ? '' : 'desde '}${preco.toFixed(2)}€ <small style="font-weight:500;opacity:.75">s/ IVA</small></div>` : ''}<button type="button" onclick="verProduto(${x.p.id}, ${ti})">Ver e encomendar</button></div></div>`;
     }).join('');
     document.getElementById('destDots').innerHTML = itens.map((_, i) => `<i onclick="irDestaque(${i})"></i>`).join('');
     box.style.display = '';
@@ -913,7 +919,7 @@ function renderCatalog() {
         <div class="product-thumb">
           ${p.imagem ? `<img src="${p.imagem}" alt="${p.nome}" loading="lazy">` : `<span class="placeholder-icon">${p.especie === 'gato' ? '🐱' : '🐶'}</span>`}
         </div>
-        <span class="gama-tag">${p.gama}</span>
+        <span class="gama-tag">${p.gama}</span>${p.tamanhos.some(t => t.promo) ? `<span class="gama-tag" style="background:#e63946;color:#fff;margin-left:6px">Promoção -${Math.max(...p.tamanhos.map(t => t.promo || 0))}%</span>` : ''}
         <h3>${p.nome}</h3>
         <div class="size-select" id="sizes-${p.id}">${sizesHtml}</div>
         <div class="qty-row">
