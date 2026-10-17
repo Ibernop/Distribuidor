@@ -155,6 +155,51 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
 .conta-linha:last-child { border-bottom: 0; }
 .conta-linha span { color: var(--gray); }
 .conta-linha strong { text-align: right; }
+
+/* ---------- Destaques, vantagens, revisão e financeiro ---------- */
+.vantagens{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 18px}
+.vantagens div{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px 14px;font-size:.85rem;line-height:1.25}
+.vantagens b{display:block;font-size:.9rem;color:var(--charcoal)}
+.vantagens span.i{font-size:1.5rem}
+@media(max-width:900px){.vantagens{grid-template-columns:repeat(2,1fr)}}
+.dest-wrap{position:relative;margin:0 0 22px}
+.dest-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px}
+.dest-head h2{font-size:1.15rem;margin:0}
+.dest-nav button{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:1.1rem;margin-left:6px}
+.dest-track{display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 32px)/3);gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding:4px 2px 10px;scrollbar-width:none}
+.dest-track::-webkit-scrollbar{display:none}
+@media(max-width:900px){.dest-track{grid-auto-columns:calc((100% - 16px)/2)}}
+@media(max-width:600px){.dest-track{grid-auto-columns:86%}}
+.dest-card{scroll-snap-align:start;position:relative;display:grid;grid-template-columns:42% 1fr;gap:12px;align-items:center;background:linear-gradient(135deg,#07202e,#0f3a52);color:#fff;border-radius:18px;padding:16px;min-height:170px;overflow:hidden}
+.dest-card img{width:100%;height:140px;object-fit:contain;background:#fff;border-radius:12px;padding:6px}
+.dest-card .et{position:absolute;top:12px;left:12px;background:#e63946;color:#fff;font-weight:800;font-size:.78rem;padding:5px 10px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.dest-card h3{font-size:.95rem;margin:0 0 6px;line-height:1.25}
+.dest-card .nota{font-size:.78rem;opacity:.8;margin-bottom:8px}
+.dest-card .pr{font-weight:800;font-size:1.05rem;margin-bottom:10px}
+.dest-card button{background:#1b86f1;color:#fff;border:0;border-radius:999px;padding:9px 14px;font:inherit;font-weight:700;font-size:.82rem;cursor:pointer}
+.dest-dots{display:flex;justify-content:center;gap:6px}
+.dest-dots i{width:8px;height:8px;border-radius:50%;background:#cfd6dc;cursor:pointer}
+.dest-dots i.on{background:var(--charcoal);width:20px;border-radius:5px}
+.product-card.realce{outline:3px solid #1b86f1;outline-offset:3px;transition:outline .3s}
+#minimoMsg{font-size:.8rem;font-weight:600;margin:0 0 10px;padding:8px 10px;border-radius:10px;background:#fff6e5;color:#8a5a00;display:none}
+.rev-back{position:fixed;inset:0;background:rgba(7,32,46,.55);z-index:1200;display:none;align-items:center;justify-content:center;padding:16px}
+.rev-box{background:#fff;border-radius:20px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:22px}
+.rev-box h3{margin:0 0 12px}
+.rev-box table{width:100%;border-collapse:collapse;font-size:.88rem}
+.rev-box td{padding:7px 4px;border-bottom:1px solid var(--border);vertical-align:top}
+.rev-box .tot td{border:0;padding:4px}
+.fin-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 18px}
+.fin-cards div{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px}
+.fin-cards span{display:block;font-size:.8rem;color:var(--gray)}
+.fin-cards b{font-size:1.35rem}
+.fin-cards .venc b{color:var(--red)}
+@media(max-width:700px){.fin-cards{grid-template-columns:1fr}}
+.fin-tab{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;font-size:.86rem}
+.fin-tab th{background:var(--charcoal);color:#fff;text-align:left;padding:10px;font-weight:600}
+.fin-tab td{padding:10px;border-bottom:1px solid var(--border)}
+.fin-tab .st{font-weight:700;font-size:.78rem;padding:3px 8px;border-radius:999px}
+.st.vencido{background:#fde8e8;color:var(--red)}.st.aberto{background:#e8f1fd;color:#0f5fb0}.st.pago{background:#e7f6ec;color:#1d7a3e}
+.fin-scroll{overflow-x:auto}
 </style>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#07202e"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Ibernop">
 </head>
@@ -245,6 +290,7 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
     <button data-v="catalog" onclick="irPara('catalog')">Catálogo</button>
     <button data-v="historico" onclick="irPara('historico')">As minhas encomendas</button>
     <button data-v="incidencias" onclick="irPara('incidencias')">Incidências</button>
+    <button data-v="financeiro" onclick="irPara('financeiro')">Financeiro</button>
     <button data-v="conta" onclick="irPara('conta')">A minha conta</button>
   </div>
 </nav>
@@ -270,10 +316,22 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
   <div id="incLista"></div>
 </div></section>
 <section id="contaView" style="display:none;"><div class="wrap"><h2>A minha conta</h2><div id="contaDados"></div></div></section>
+<section id="financeiroView" style="display:none;"><div class="wrap"><h2>Financeiro</h2><div id="finDados"></div></div></section>
 
 <!-- ---------- Vista: aprovado, catálogo ---------- -->
 <section id="catalogView" style="display:none;">
   <div class="wrap">
+    <div class="vantagens">
+      <div><span class="i">🚚</span><span><b>Entrega rápida</b>24 a 48 horas úteis</span></div>
+      <div><span class="i">🧾</span><span><b>Pedido mínimo 120€</b>sem IVA</span></div>
+      <div><span class="i">💳</span><span><b>Pagamento flexível</b>Pré-pagamento, 7, 15 ou 30 dias</span></div>
+      <div><span class="i">🤝</span><span><b>Gestor de zona</b>Acompanhamento próximo</span></div>
+    </div>
+    <div class="dest-wrap" id="destaques" style="display:none">
+      <div class="dest-head"><h2>⭐ Destaques e promoções</h2><div class="dest-nav"><button type="button" onclick="moverDestaques(-1)" aria-label="Anterior">‹</button><button type="button" onclick="moverDestaques(1)" aria-label="Seguinte">›</button></div></div>
+      <div class="dest-track" id="destTrack"></div>
+      <div class="dest-dots" id="destDots"></div>
+    </div>
     <input type="search" id="pesquisaProduto" placeholder="Pesquisar por nome, código ou EAN…" oninput="renderCatalog()" style="width:100%; padding:12px 16px; border:1px solid var(--border); border-radius:32px; font:inherit; margin:0 0 14px;">
     <div class="catalog-filters" id="catalogFilters">
       <button class="active" data-f="todos" onclick="setCatalogFilter('todos', this)">Todos</button>
@@ -314,16 +372,19 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
     <div class="cart-total" style="font-size:0.9rem; font-weight:600; color:var(--gray); margin:4px 0;"><span>IVA (23%)</span><span id="cartIva">0,00€</span></div>
     <div class="cart-total" style="border-top:2px solid var(--charcoal); padding-top:10px;"><span>Total com IVA</span><span id="cartTotalIva">0,00€</span></div>
     <p style="font-size:.75rem; color:var(--gray); margin:-6px 0 12px;">Valores indicativos, confirmados na fatura.</p>
+    <div id="minimoMsg"></div>
     <div class="payment-method-select">
       <label class="payment-opt"><input type="radio" name="payMethod" value="pre" checked> Pré-pagamento</label>
       <label class="payment-opt"><input type="radio" name="payMethod" value="d7"> 7 dias</label>
       <label class="payment-opt"><input type="radio" name="payMethod" value="d15"> 15 dias</label>
       <label class="payment-opt"><input type="radio" name="payMethod" value="d30"> 30 dias</label>
     </div>
-    <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="submitPedido()">Confirmar encomenda</button>
+    <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="abrirRevisao()">Rever encomenda</button>
     <div id="checkoutMsg" style="margin-top:10px; font-size:0.85rem; font-weight:600;"></div>
   </div>
 </div>
+
+<div class="rev-back" id="revBack" onclick="if(event.target===this)fecharRevisao()"><div class="rev-box"><h3>Confirme a sua encomenda</h3><div id="revConteudo"></div><div style="display:flex;gap:10px;margin-top:16px"><button class="btn btn-outline" style="flex:1;justify-content:center" onclick="fecharRevisao()">Voltar</button><button class="btn btn-gold" style="flex:1;justify-content:center" onclick="confirmarEnvio()">Confirmar e enviar</button></div></div></div>
 
 <footer class="site">
   <div class="wrap">
@@ -372,6 +433,7 @@ function loadStock() {
     liveStock = {};
     snap.forEach(doc => { liveStock[doc.id] = doc.data().qty; });
     renderCatalog();
+    carregarDestaques();
   }).catch(err => console.error('Não foi possível carregar o stock:', err));
 }
 
@@ -552,7 +614,8 @@ function showView(view) {
   document.getElementById('pendingView').style.display = view === 'pending' ? 'block' : 'none';
   document.getElementById('catalogView').style.display = view === 'catalog' ? 'block' : 'none';
   document.getElementById('cartFab').style.display = view === 'catalog' ? 'flex' : 'none';
-  const cliente = ['catalog', 'historico', 'incidencias', 'conta'].includes(view);
+  const cliente = ['catalog', 'historico', 'incidencias', 'conta', 'financeiro'].includes(view);
+  document.getElementById('financeiroView').style.display = view === 'financeiro' ? 'block' : 'none';
   document.getElementById('incidenciasView').style.display = view === 'incidencias' ? 'block' : 'none';
   document.getElementById('clienteNav').style.display = cliente ? 'block' : 'none';
   document.getElementById('historicoView').style.display = view === 'historico' ? 'block' : 'none';
@@ -565,11 +628,109 @@ const eur = v => (Number(v) || 0).toFixed(2).replace('.', ',') + ' €';
 const escH = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 let minhasEncomendas = [];
 
+
+// ---------- Destaques (definidos na Gestão → Stock e preços) ----------
+let destTimer = null;
+function carregarDestaques() {
+  db.collection('config_b2b').doc('destaques').get().then(d => {
+    const itens = ((d.exists && d.data().itens) || []).map(x => ({ ...x, p: produtos.find(p => String(p.id) === String(x.pid)) })).filter(x => x.p);
+    const box = document.getElementById('destaques');
+    if (!itens.length) { box.style.display = 'none'; return; }
+    const desc = (currentCliente && currentCliente.desconto) || 0;
+    document.getElementById('destTrack').innerHTML = itens.map(x => {
+      const t = x.p.tamanhos[0]; const preco = t && t.preco > 0 ? (t.preco * (1 - desc / 100)) : 0;
+      return `<div class="dest-card">${x.etiqueta ? `<span class="et">${escH(x.etiqueta)}</span>` : ''}<img src="${x.p.imagem || ''}" alt="" loading="lazy"><div><h3>${escH(x.p.nome)}</h3>${x.nota ? `<div class="nota">${escH(x.nota)}</div>` : ''}${preco ? `<div class="pr">desde ${preco.toFixed(2)}€ <small style="font-weight:500;opacity:.75">s/ IVA</small></div>` : ''}<button type="button" onclick="verProduto(${x.p.id})">Ver e encomendar</button></div></div>`;
+    }).join('');
+    document.getElementById('destDots').innerHTML = itens.map((_, i) => `<i onclick="irDestaque(${i})"></i>`).join('');
+    box.style.display = '';
+    const tr = document.getElementById('destTrack');
+    tr.onscroll = () => { const w = tr.firstElementChild ? tr.firstElementChild.offsetWidth + 16 : 1; const i = Math.round(tr.scrollLeft / w); document.querySelectorAll('#destDots i').forEach((e, j) => e.classList.toggle('on', j === i)); };
+    tr.onscroll();
+    clearInterval(destTimer);
+    destTimer = setInterval(() => { if (document.getElementById('catalogView').style.display !== 'none') moverDestaques(1, true); }, 5000);
+    tr.onmouseenter = () => clearInterval(destTimer);
+  }).catch(() => {});
+}
+function moverDestaques(dir, auto) {
+  const tr = document.getElementById('destTrack'); if (!tr.firstElementChild) return;
+  const w = tr.firstElementChild.offsetWidth + 16;
+  if (auto && tr.scrollLeft + tr.clientWidth >= tr.scrollWidth - 5) tr.scrollTo({ left: 0 }); else tr.scrollBy({ left: dir * w });
+}
+function irDestaque(i) { const tr = document.getElementById('destTrack'); const w = tr.firstElementChild.offsetWidth + 16; tr.scrollTo({ left: i * w }); }
+function verProduto(id) {
+  catalogFilter = 'todos'; gamaFilter = 'todas';
+  document.querySelectorAll('#catalogFilters button').forEach(b => b.classList.toggle('active', b.dataset.f === 'todos'));
+  document.querySelectorAll('#gamaFilters button').forEach(b => b.classList.toggle('active', b.dataset.g === 'todas'));
+  const ps = document.getElementById('pesquisaProduto'); if (ps) ps.value = '';
+  renderCatalog();
+  const c = document.getElementById('pcard-' + id); if (!c) return;
+  c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.add('realce'); setTimeout(() => c.classList.remove('realce'), 2500);
+}
+
+// ---------- Pedido mínimo e revisão antes de enviar ----------
+const PEDIDO_MINIMO = 120;
+function totaisCarrinho() {
+  const itens = Object.keys(cart).map(k => ({ ...cart[k], key: k }));
+  const subtotal = itens.reduce((s, it) => s + it.preco * it.qty, 0);
+  const desconto = (currentCliente && currentCliente.desconto) || 0;
+  const valorDesconto = subtotal * desconto / 100;
+  return { itens, subtotal, desconto, valorDesconto, total: subtotal - valorDesconto };
+}
+function atualizarMinimo() {
+  const el = document.getElementById('minimoMsg'); if (!el) return;
+  const t = totaisCarrinho().total;
+  if (t > 0 && t < PEDIDO_MINIMO) { el.style.display = 'block'; el.textContent = 'Pedido mínimo de ' + PEDIDO_MINIMO + '€ (sem IVA). Faltam ' + (PEDIDO_MINIMO - t).toFixed(2) + '€.'; }
+  else el.style.display = 'none';
+}
+function abrirRevisao() {
+  const msgEl = document.getElementById('checkoutMsg');
+  const o = totaisCarrinho();
+  if (!o.itens.length) { msgEl.textContent = 'O carrinho está vazio.'; msgEl.style.color = 'var(--red)'; return; }
+  if (o.total < PEDIDO_MINIMO) { msgEl.textContent = 'O pedido mínimo é de ' + PEDIDO_MINIMO + '€ sem IVA. Faltam ' + (PEDIDO_MINIMO - o.total).toFixed(2) + '€.'; msgEl.style.color = 'var(--red)'; return; }
+  msgEl.textContent = '';
+  const pag = document.querySelector('input[name="payMethod"]:checked');
+  const c = currentCliente || {};
+  document.getElementById('revConteudo').innerHTML = `
+    <table>${o.itens.map(it => `<tr><td>${it.qty}×</td><td>${escH(it.nome)}<br><small style="color:var(--gray)">${escH(it.tamanho)}</small></td><td style="text-align:right;white-space:nowrap">${(it.preco * it.qty).toFixed(2)}€</td></tr>`).join('')}</table>
+    <table class="tot" style="margin-top:8px">
+      <tr><td>Subtotal</td><td style="text-align:right">${o.subtotal.toFixed(2)}€</td></tr>
+      ${o.desconto ? `<tr><td>Desconto (${o.desconto}%)</td><td style="text-align:right">-${o.valorDesconto.toFixed(2)}€</td></tr>` : ''}
+      <tr><td><b>Total sem IVA</b></td><td style="text-align:right"><b>${o.total.toFixed(2)}€</b></td></tr>
+      <tr><td>IVA (23%)</td><td style="text-align:right">${(o.total * 0.23).toFixed(2)}€</td></tr>
+      <tr><td><b>Total com IVA</b></td><td style="text-align:right"><b>${(o.total * 1.23).toFixed(2)}€</b></td></tr>
+    </table>
+    <p style="font-size:.85rem;margin:12px 0 0"><b>Pagamento:</b> ${pag ? pagLabel(pag.value) : ''}<br><b>Entrega:</b> ${escH(c.moradaEntrega || c.moradaFaturacao || c.morada || '')}</p>`;
+  document.getElementById('revBack').style.display = 'flex';
+}
+function fecharRevisao() { document.getElementById('revBack').style.display = 'none'; }
+function confirmarEnvio() { fecharRevisao(); submitPedido(); }
+
+// ---------- Financeiro (faturas e saldos, importados na Gestão) ----------
+function abrirFinanceiro() {
+  const el = document.getElementById('finDados');
+  el.innerHTML = '<div class="empty-state">A carregar...</div>';
+  db.collection('financeiro_b2b').doc(currentUser.uid).get().then(d => {
+    const docs = (d.exists && d.data().docs) || [];
+    const hoje = new Date().toISOString().slice(0, 10);
+    const abertos = docs.filter(x => x.estado !== 'pago');
+    const vencido = abertos.filter(x => x.venc && x.venc < hoje).reduce((s, x) => s + (x.valor || 0), 0);
+    const aVencer = abertos.filter(x => !x.venc || x.venc >= hoje).reduce((s, x) => s + (x.valor || 0), 0);
+    const dt = s => s ? s.split('-').reverse().join('/') : '';
+    const atual = d.exists && d.data().atualizado && d.data().atualizado.toDate ? d.data().atualizado.toDate().toLocaleDateString('pt-PT') : '';
+    el.innerHTML = `
+      <div class="fin-cards"><div><span>Saldo em aberto</span><b>${(vencido + aVencer).toFixed(2)}€</b></div><div><span>A vencer</span><b>${aVencer.toFixed(2)}€</b></div><div class="venc"><span>Vencido</span><b>${vencido.toFixed(2)}€</b></div></div>
+      ${docs.length ? `<div class="fin-scroll"><table class="fin-tab"><tr><th>Tipo</th><th>Número</th><th>Data</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Estado</th></tr>
+      ${docs.slice().sort((a, b) => String(b.data || '').localeCompare(String(a.data || ''))).map(x => { const st = x.estado === 'pago' ? 'pago' : (x.venc && x.venc < hoje ? 'vencido' : 'aberto'); return `<tr><td>${escH(x.tipo || 'Fatura')}</td><td>${escH(x.numero || '')}</td><td>${dt(x.data)}</td><td>${dt(x.venc)}</td><td style="text-align:right;white-space:nowrap">${(x.valor || 0).toFixed(2)}€</td><td><span class="st ${st}">${st === 'pago' ? 'Pago' : st === 'vencido' ? 'Vencido' : 'A vencer'}</span></td></tr>`; }).join('')}</table></div>` : '<div class="empty-state">Ainda não há documentos financeiros disponíveis.</div>'}
+      <p style="font-size:.78rem;color:var(--gray);margin-top:10px">${atual ? 'Atualizado a ' + atual + '. ' : ''}Valores com IVA. Em caso de dúvida, fale com o seu gestor de zona.</p>`;
+  }).catch(() => { el.innerHTML = '<div class="empty-state">Não foi possível carregar os dados financeiros.</div>'; });
+}
+
 function irPara(view) {
   showView(view);
   if (view === 'historico') carregarHistorico();
   if (view === 'conta') mostrarConta();
   if (view === 'incidencias') abrirIncidencias();
+  if (view === 'financeiro') abrirFinanceiro();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -820,6 +981,7 @@ function renderCart() {
   countEl.textContent = keys.reduce((s, k) => s + cart[k].qty, 0);
   if (keys.length === 0) {
     itemsEl.innerHTML = '<div class="empty-state">O carrinho está vazio.</div>';
+    atualizarMinimo();
     subtotalEl.textContent = '0,00€';
     descontoRowEl.style.display = 'none';
     totalEl.textContent = '0,00€';
@@ -853,6 +1015,7 @@ function renderCart() {
   totalEl.textContent = total.toFixed(2) + '€';
   document.getElementById('cartIva').textContent = (total * 0.23).toFixed(2) + '€';
   document.getElementById('cartTotalIva').textContent = (total * 1.23).toFixed(2) + '€';
+  atualizarMinimo();
 }
 
 function removeFromCart(key) {

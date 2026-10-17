@@ -134,13 +134,14 @@ h1, h2, .entry-title { letter-spacing: .01em; }
       <button id="tabIncidencias" onclick="setTab('incidencias')">Incidências <span id="contaInc" class="badge-n" style="display:none;"></span></button>
     </div>
 
-    <div class="entry-actions" style="margin:0 0 16px;"><button class="btn" id="btnExpClientes" onclick="exportarClientes()">Exportar clientes (Excel)</button><button class="btn" onclick="exportarEncomendas()">Exportar encomendas (Excel)</button><button class="btn" id="btnImpClientes" onclick="importarClientes()">Importar clientes (Excel)</button><button class="btn" id="btnModeloClientes" onclick="modeloClientes()">Modelo de importação</button></div>
+    <div class="entry-actions" style="margin:0 0 16px;"><button class="btn" id="btnExpClientes" onclick="exportarClientes()">Exportar clientes (Excel)</button><button class="btn" onclick="exportarEncomendas()">Exportar encomendas (Excel)</button><button class="btn" id="btnImpClientes" onclick="importarClientes()">Importar clientes (Excel)</button><button class="btn" id="btnModeloClientes" onclick="modeloClientes()">Modelo de importação</button><button class="btn" id="btnImpFin" onclick="importarFinanceiro()">Importar financeiro (Excel)</button><button class="btn" id="btnModeloFin" onclick="modeloFinanceiro()">Modelo financeiro</button></div>
     <div id="panelClientes"></div>
     <div id="panelPedidos" style="display:none;"></div>
     <div id="panelVendedores" style="display:none;"></div>
     <div id="panelEquipa" style="display:none;"></div>
     <div id="panelIncidencias" style="display:none;"></div>
     <div id="panelStock" style="display:none;">
+      <div id="destaquesBox"></div>
       <div class="entry-actions" style="margin:0 0 12px;"><button class="btn" onclick="exportarTabelaPrecos()">Descarregar tabela de preços (Excel)</button><button class="btn primary" onclick="importarTabelaPrecos()">Importar nova tabela de preços</button></div>
       <p style="font-size:0.8rem; color:var(--gray); margin:0 0 12px;">Para atualizar preços em massa: descarregue a tabela, altere a coluna "Preço s/ IVA" (ou use uma lista com colunas Código/EAN e Preço) e importe. Os produtos são reconhecidos pelo EAN ou pelo código.</p>
       <input type="text" id="stockSearch" placeholder="Pesquisar produto..." oninput="renderStockList()" style="width:100%; margin-bottom:16px;">
@@ -543,7 +544,7 @@ const ehVendedor = () => papel === 'vendedor';
 
 function aplicarPapel(user) {
   const v = ehVendedor();
-  ['tabStock', 'tabVendedores', 'tabEquipa', 'btnExpClientes', 'btnImpClientes', 'btnModeloClientes'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = v ? 'none' : ''; });
+  ['tabStock', 'tabVendedores', 'tabEquipa', 'btnExpClientes', 'btnImpClientes', 'btnModeloClientes', 'btnImpFin', 'btnModeloFin'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = v ? 'none' : ''; });
   document.getElementById('papelInfo').textContent = (meuNome || user.email) + ' · ' + (v ? 'Vendedor' : 'Administrador');
   iniciarAvisos();
   contarIncidencias();
@@ -894,8 +895,67 @@ function setEstadoPedido(id, estado) {
 let liveStockAdmin = {}; // vindo do Firestore
 let precosAdmin = {}; // preços alterados na Gestão (sem IVA)
 
+
+// ---------- Destaques da área de cliente ----------
+let destaquesAdmin = [];
+function loadDestaquesAdmin() {
+  db.collection('config_b2b').doc('destaques').get().then(d => { destaquesAdmin = (d.exists && d.data().itens) || []; renderDestaquesAdmin(); }).catch(e => { document.getElementById('destaquesBox').innerHTML = '<div class="empty-state">Erro ao carregar destaques.</div>'; console.error(e); });
+}
+function renderDestaquesAdmin() {
+  const el = document.getElementById('destaquesBox');
+  const opts = produtos.map(p => `<option value="${p.id}">${esc(p.nome)}</option>`).join('');
+  el.innerHTML = `<div class="entry-card"><div class="entry-title" style="margin-bottom:6px;">⭐ Destaques na área de cliente</div>
+    <p style="font-size:0.82rem;color:var(--gray);margin:0 0 10px;">Produtos que quer vender mais depressa (promoção, validade curta, escoamento). Aparecem num carrossel no topo do catálogo dos clientes.</p>
+    <div class="form-grid"><select id="dsProd">${opts}</select><input type="text" id="dsEt" placeholder="Etiqueta (ex.: -15%, Validade curta, Promoção)"><input type="text" id="dsNota" placeholder="Nota (opcional, ex.: Validade 12/2026)"></div>
+    <div class="entry-actions"><button class="btn primary" onclick="addDestaque()">Adicionar destaque</button></div>
+    ${destaquesAdmin.length ? destaquesAdmin.map((x, i) => { const p = produtos.find(p => String(p.id) === String(x.pid)); return `<div class="entry-sub" style="display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px 10px;background:#f6f8fa;border-radius:10px"><span style="flex:1"><strong>${esc(p ? p.nome : 'Produto removido')}</strong>${x.etiqueta ? ' · <span style="color:#e63946;font-weight:700">' + esc(x.etiqueta) + '</span>' : ''}${x.nota ? ' · ' + esc(x.nota) : ''}</span><button class="btn" style="padding:6px 10px" onclick="moverDestaque(${i},-1)">↑</button><button class="btn" style="padding:6px 10px" onclick="moverDestaque(${i},1)">↓</button><button class="btn" style="padding:6px 12px;color:var(--red);border-color:var(--red)" onclick="removerDestaque(${i})">Remover</button></div>`; }).join('') : '<div class="entry-sub" style="margin-top:8px">Ainda não há destaques.</div>'}
+  </div>`;
+}
+function guardarDestaques() { return db.collection('config_b2b').doc('destaques').set({ itens: destaquesAdmin, atualizado: firebase.firestore.FieldValue.serverTimestamp() }).then(renderDestaquesAdmin).catch(e => alert('Não foi possível guardar: ' + e.message)); }
+function addDestaque() {
+  const pid = document.getElementById('dsProd').value;
+  if (destaquesAdmin.some(x => String(x.pid) === String(pid))) { alert('Este produto já está nos destaques.'); return; }
+  destaquesAdmin.push({ pid: Number(pid), etiqueta: document.getElementById('dsEt').value.trim(), nota: document.getElementById('dsNota').value.trim() });
+  guardarDestaques();
+}
+function removerDestaque(i) { destaquesAdmin.splice(i, 1); guardarDestaques(); }
+function moverDestaque(i, d) { const j = i + d; if (j < 0 || j >= destaquesAdmin.length) return; [destaquesAdmin[i], destaquesAdmin[j]] = [destaquesAdmin[j], destaquesAdmin[i]]; guardarDestaques(); }
+
+// ---------- Financeiro: importar faturas/saldos em aberto (Excel exportado do Odoo) ----------
+const COLS_FIN = ['NIF', 'Tipo', 'Número', 'Data', 'Vencimento', 'Valor', 'Estado'];
+async function modeloFinanceiro() {
+  try {
+    const X = await carregarXLSX();
+    const ws = X.utils.aoa_to_sheet([COLS_FIN, ['500000000', 'Fatura', 'FT 2026/123', '31/08/2026', '30/09/2026', '615,71', 'Em aberto']]);
+    const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, 'Financeiro'); X.writeFile(wb, 'modelo-financeiro-ibernop.xlsx');
+  } catch (e) { alert('Não foi possível criar o modelo: ' + e.message); }
+}
+function dataISO(v) {
+  if (v === '' || v == null) return '';
+  if (typeof v === 'number') { const d = new Date(Math.round((v - 25569) * 86400000)); return d.toISOString().slice(0, 10); }
+  const s = String(v).trim(); let m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/); if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[0] : '';
+}
+function valorNum(v) { if (typeof v === 'number') return v; const s = String(v || '').replace(/[€\s]/g, ''); return parseFloat(s.includes(',') ? s.replace(/\./g, '').replace(',', '.') : s) || 0; }
+async function importarFinanceiro() {
+  const f = await escolherFicheiro('.xlsx,.xls,.csv'); if (!f) return;
+  try {
+    const rows = await lerFolha(f);
+    const col = (r, re, nao) => r[Object.keys(r).find(k => re.test(k.trim()) && !(nao && nao.test(k)))];
+    const linhas = rows.map(r => ({ nif: campo(r, 'NIF', 'Contribuinte').replace(/\D/g, ''), tipo: campo(r, 'Tipo') || 'Fatura', numero: campo(r, 'Número', 'Numero', 'Documento'), data: dataISO(col(r, /^data/i, /venc/i) ?? ''), venc: dataISO(col(r, /venc/i) ?? ''), valor: valorNum(col(r, /^(valor|montante|total|saldo)/i) ?? 0), estado: /pago|liquidad/i.test(campo(r, 'Estado')) ? 'pago' : 'aberto' })).filter(x => x.nif && (x.numero || x.valor));
+    if (!linhas.length) { alert('Não encontrei linhas válidas. Use as colunas: ' + COLS_FIN.join(', ') + '.'); return; }
+    const cs = await db.collection('clientes_b2b').get();
+    const porNif = {}; cs.forEach(d => { const n = String(d.data().nif || '').replace(/\D/g, ''); if (n) porNif[n] = { id: d.id, vend: d.data().vendedorId || '' }; });
+    const grupos = {}; linhas.forEach(l => { (grupos[l.nif] = grupos[l.nif] || []).push({ tipo: l.tipo, numero: l.numero, data: l.data, venc: l.venc, valor: Math.round(l.valor * 100) / 100, estado: l.estado }); });
+    let ok = 0; const semCliente = [];
+    for (const nif in grupos) { const c = porNif[nif]; if (!c) { semCliente.push(nif); continue; } await db.collection('financeiro_b2b').doc(c.id).set({ docs: grupos[nif], vendedorId: c.vend, atualizado: firebase.firestore.FieldValue.serverTimestamp() }); ok++; }
+    alert('Financeiro atualizado para ' + ok + ' cliente(s).' + (semCliente.length ? '\nNIF sem cliente no portal: ' + semCliente.join(', ') : ''));
+  } catch (e) { alert('Não foi possível importar: ' + (e.message || e)); }
+}
+
 function loadStockAdmin() {
   document.getElementById('stockList').innerHTML = '<div class="empty-state">A carregar...</div>';
+  loadDestaquesAdmin();
   db.collection('precos_b2b').get().then(ps => { precosAdmin = {}; ps.forEach(d => { precosAdmin[d.id] = d.data().preco; }); }).catch(() => {}).then(() => db.collection('estoque_b2b').get()).then(snap => {
     liveStockAdmin = {};
     snap.forEach(doc => { liveStockAdmin[doc.id] = doc.data().qty; });
