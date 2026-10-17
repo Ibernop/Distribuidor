@@ -266,8 +266,8 @@ function loadIncidencias() {
         <div class="entry-sub">Comunicada em ${i.criadoEm && i.criadoEm.toDate ? i.criadoEm.toDate().toLocaleString('pt-PT') : ''}</div>
       </div><span class="badge ${i.estado === 'resolvida' ? 'aprovado' : 'pendente'}">${i.estado === 'resolvida' ? 'Resolvida' : 'Aberta'}</span></div>
       <div class="entry-actions" style="align-items:center;flex-wrap:wrap;">
-        ${ehVendedor() ? (i.resposta ? `<div class="entry-sub">Resposta: ${esc(i.resposta)}</div>` : '') : `<input type="text" id="resp-${i.id}" value="${esc(i.resposta || '')}" placeholder="Resposta ao cliente (ex.: nota de crédito, substituição)" style="flex:1;min-width:240px;">
-        <button class="btn" onclick="guardarIncidencia('${i.id}', '${i.estado === 'resolvida' ? 'aberta' : 'resolvida'}')">${i.estado === 'resolvida' ? 'Reabrir' : 'Marcar como resolvida'}</button>`}
+        <input type="text" id="resp-${i.id}" value="${esc(i.resposta || '')}" placeholder="Resposta ao cliente (ex.: nota de crédito, substituição)" style="flex:1;min-width:240px;">
+        <button class="btn" onclick="guardarIncidencia('${i.id}', '${i.estado === 'resolvida' ? 'aberta' : 'resolvida'}')">${i.estado === 'resolvida' ? 'Reabrir' : 'Marcar como resolvida'}</button>
         ${ehVendedor() ? '' : `<button class="btn" style="padding:8px 14px;background:#fff;color:var(--red);border-color:var(--red);" onclick="excluirIncidencia('${i.id}')">Excluir</button>`}
       </div></div>`).join('');
   }).catch(e => { el.innerHTML = '<div class="empty-state">Erro ao carregar incidências.</div>'; console.error(e); });
@@ -586,7 +586,7 @@ function loadEquipa() {
     el.innerHTML = `
       <div class="entry-card">
         <div class="entry-title" style="margin-bottom:6px;">Novo acesso à Gestão</div>
-        <p style="font-size:0.82rem; color:var(--gray); margin:0 0 10px;">Cada pessoa entra com o seu e-mail. O <strong>administrador</strong> vê tudo; o <strong>vendedor</strong> só consulta os clientes, as encomendas e as incidências da sua zona, sem poder alterar nada.</p>
+        <p style="font-size:0.82rem; color:var(--gray); margin:0 0 10px;">Cada pessoa entra com o seu e-mail. O <strong>administrador</strong> vê tudo; o <strong>vendedor</strong> vê os clientes, as encomendas e as incidências da sua zona; pode mudar o estado das encomendas e resolver incidências, mas não altera dados dos clientes, preços nem stock.</p>
         <div class="auth-error" id="eqErro"></div>
         <div class="form-grid">
           <input type="text" id="eqNome" placeholder="Nome">
@@ -838,7 +838,7 @@ function loadPedidos() {
           <div class="itens-list">${itensHtml}</div>
           <div class="entry-actions">
             <button class="btn" style="background:var(--charcoal); color:#fff; border-color:var(--charcoal);" onclick="abrirListaSeparacao('${p.id}')">📋 Lista de separação</button>
-            ${ehVendedor() ? '' : actions}
+            ${actions}
             ${ehVendedor() ? '' : `<button class="btn" style="padding:8px 14px;background:#fff;color:var(--red);border-color:var(--red);margin-left:auto;" onclick="excluirPedido('${p.id}')">Excluir</button>`}
           </div>
         </div>`;
