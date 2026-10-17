@@ -1,8 +1,8 @@
 {
- "id": "gestao",
- "name": "Ibernop · Gestão",
- "short_name": "Gestão Ibernop",
- "start_url": "admin.html",
+ "id": "ibernop",
+ "name": "Ibernop",
+ "short_name": "Ibernop",
+ "start_url": "app.html",
  "scope": "./",
  "display": "standalone",
  "background_color": "#07202e",
