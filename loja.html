@@ -938,6 +938,8 @@ function submitPedido() {
   });
 }
 </script>
+<a id="appVoltar" href="app.html" hidden style="position:fixed;left:14px;bottom:14px;z-index:9999;background:#07202e;color:#fff;border-radius:999px;padding:11px 16px;font-family:inherit;font-weight:600;font-size:.88rem;text-decoration:none;box-shadow:0 10px 30px rgba(0,0,0,.3)">← Início</a>
+<script>if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) document.getElementById('appVoltar').hidden = false;</script>
 <div id="appInst" hidden style="position:fixed;right:14px;bottom:14px;z-index:9999;max-width:290px;font-family:inherit"><div id="appDica" hidden style="background:#fff;color:#07202e;border-radius:14px;padding:12px 14px;margin-bottom:8px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:.85rem;line-height:1.4">No iPhone: toque em <b>Partilhar</b> (o quadrado com a seta) e depois em <b>Adicionar ao ecrã principal</b>.</div><button id="appBtn" type="button" style="display:flex;align-items:center;gap:8px;margin-left:auto;background:#07202e;color:#fff;border:0;border-radius:999px;padding:11px 18px;font-family:inherit;font-weight:600;font-size:.9rem;line-height:1;box-shadow:0 10px 30px rgba(0,0,0,.3);cursor:pointer">📲 Instalar app <span id="appX" style="opacity:.6;margin-left:4px">✕</span></button></div>
 <script>
 (function () {

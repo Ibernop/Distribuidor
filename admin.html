@@ -123,7 +123,7 @@ h1, h2, .entry-title { letter-spacing: .01em; }
   <div class="wrap">
     <div class="topbar">
       <h1 style="display:flex;align-items:center;gap:14px"><span style="background:var(--charcoal);border-radius:12px;padding:6px 10px;display:inline-flex"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="" style="height:38px"></span>GESTÃO IBERNOP</h1>
-      <div style="display:flex; align-items:center; gap:12px;"><span id="papelInfo" style="font-size:0.82rem; color:var(--gray);"></span><button class="btn" onclick="doLogout()">Sair</button></div>
+      <div style="display:flex; align-items:center; gap:12px;"><span id="papelInfo" style="font-size:0.82rem; color:var(--gray);"></span><button class="btn" id="btnNotif" style="display:none" onclick="ativarNotificacoes(true)">🔔 Ativar notificações</button><button class="btn" onclick="doLogout()">Sair</button></div>
     </div>
     <div class="tabs">
       <button id="tabClientes" class="active" onclick="setTab('clientes')">Clientes</button>
@@ -170,6 +170,7 @@ h1, h2, .entry-title { letter-spacing: .01em; }
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script>
 // ATENÇÃO: mesmo projeto Firebase do loja.html deste projeto Ownat B2B —
 // mas continua a ter de ser DIFERENTE do projeto do Centro Veterinário.
@@ -546,7 +547,29 @@ function aplicarPapel(user) {
   document.getElementById('papelInfo').textContent = (meuNome || user.email) + ' · ' + (v ? 'Vendedor' : 'Administrador');
   iniciarAvisos();
   contarIncidencias();
+  ativarNotificacoes(false);
   if (v) setTab('pedidos'); else loadClientes();
+}
+
+// Notificações no telemóvel/computador (encomendas e incidências novas)
+const VAPID = 'BFMOBKDzFhdaBg2OpTHHzYKqjGrQey7K9IwVYMSrcW3CSPgeCPi-BuI8zHh_toxmc1wNsz25z8j4nCoB3or6m6A';
+async function ativarNotificacoes(pedir) {
+  const btn = document.getElementById('btnNotif');
+  try {
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !firebase.messaging.isSupported()) { btn.style.display = 'none'; return; }
+    if (Notification.permission === 'denied') { btn.style.display = 'none'; if (pedir) alert('As notificações estão bloqueadas neste navegador. Ative-as nas definições do site.'); return; }
+    if (Notification.permission !== 'granted') {
+      if (!pedir) { btn.style.display = ''; return; }
+      if (await Notification.requestPermission() !== 'granted') return;
+    }
+    const reg = await navigator.serviceWorker.register('sw.js');
+    await navigator.serviceWorker.ready;
+    const token = await appGestao.messaging().getToken({ vapidKey: VAPID, serviceWorkerRegistration: reg });
+    const u = auth.currentUser;
+    if (token && u) await db.collection('notif_b2b').doc(u.uid).set({ email: u.email, tokens: firebase.firestore.FieldValue.arrayUnion(token), atualizado: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    btn.style.display = 'none';
+    if (pedir) alert('Notificações ativadas neste aparelho. Vai receber um aviso quando houver encomendas ou incidências novas.');
+  } catch (e) { console.error(e); if (pedir) alert('Não foi possível ativar as notificações: ' + (e.message || e)); }
 }
 
 function iniciarAvisos() {
@@ -940,6 +963,8 @@ function fecharListaSeparacao() {
   document.getElementById('separacaoModal').classList.remove('open');
 }
 </script>
+<a id="appVoltar" href="app.html" hidden style="position:fixed;left:14px;bottom:14px;z-index:9999;background:#07202e;color:#fff;border-radius:999px;padding:11px 16px;font-family:inherit;font-weight:600;font-size:.88rem;text-decoration:none;box-shadow:0 10px 30px rgba(0,0,0,.3)">← Início</a>
+<script>if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) document.getElementById('appVoltar').hidden = false;</script>
 <div id="appInst" hidden style="position:fixed;right:14px;bottom:14px;z-index:9999;max-width:290px;font-family:inherit"><div id="appDica" hidden style="background:#fff;color:#07202e;border-radius:14px;padding:12px 14px;margin-bottom:8px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:.85rem;line-height:1.4">No iPhone: toque em <b>Partilhar</b> (o quadrado com a seta) e depois em <b>Adicionar ao ecrã principal</b>.</div><button id="appBtn" type="button" style="display:flex;align-items:center;gap:8px;margin-left:auto;background:#07202e;color:#fff;border:0;border-radius:999px;padding:11px 18px;font-family:inherit;font-weight:600;font-size:.9rem;line-height:1;box-shadow:0 10px 30px rgba(0,0,0,.3);cursor:pointer">📲 Instalar app <span id="appX" style="opacity:.6;margin-left:4px">✕</span></button></div>
 <script>
 (function () {
