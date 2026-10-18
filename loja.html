@@ -200,6 +200,8 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
 .fin-tab .st{font-weight:700;font-size:.78rem;padding:3px 8px;border-radius:999px}
 .st.vencido{background:#fde8e8;color:var(--red)}.st.aberto{background:#e8f1fd;color:#0f5fb0}.st.pago{background:#e7f6ec;color:#1d7a3e}
 .fin-scroll{overflow-x:auto}
+.esc-info{font-size:.78rem;color:#1d7a3e;background:#e7f6ec;border-radius:10px;padding:7px 10px;margin:8px 0 0;line-height:1.4}
+.esc-info:empty{display:none}
 </style>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#07202e"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Ibernop">
 </head>
@@ -373,7 +375,7 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
     <div class="cart-total" style="border-top:2px solid var(--charcoal); padding-top:10px;"><span>Total com IVA</span><span id="cartTotalIva">0,00€</span></div>
     <p style="font-size:.75rem; color:var(--gray); margin:-6px 0 12px;">Valores indicativos, confirmados na fatura.</p>
     <div id="minimoMsg"></div>
-    <div class="payment-method-select">
+    <div class="payment-method-select" onchange="renderCart()">
       <label class="payment-opt"><input type="radio" name="payMethod" value="pre" checked> Pré-pagamento</label>
       <label class="payment-opt"><input type="radio" name="payMethod" value="d7"> 7 dias</label>
       <label class="payment-opt"><input type="radio" name="payMethod" value="d15"> 15 dias</label>
@@ -394,6 +396,7 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
 </footer>
 
 <script src="produtos-data.js"></script>
+<script src="escaloes-data.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -677,11 +680,14 @@ function verProduto(id, idx) {
 // ---------- Pedido mínimo e revisão antes de enviar ----------
 const PEDIDO_MINIMO = 120;
 function totaisCarrinho() {
+  aplicarEscaloes();
   const itens = Object.keys(cart).map(k => ({ ...cart[k], key: k }));
-  const subtotal = itens.reduce((s, it) => s + it.preco * it.qty, 0);
-  const desconto = (currentCliente && currentCliente.desconto) || 0;
-  const valorDesconto = subtotal * desconto / 100;
-  return { itens, subtotal, desconto, valorDesconto, total: subtotal - valorDesconto };
+  const subtotalLista = r2(itens.reduce((s, it) => s + (it.precoLista != null ? it.precoLista : it.preco) * it.qty, 0));
+  const subtotal = r2(itens.reduce((s, it) => s + it.preco * it.qty, 0));
+  const pag = document.querySelector('input[name="payMethod"]:checked');
+  const pp = pag && pag.value === 'pre' ? PP_DESCONTO : 0;
+  const valorPP = r2(subtotal * pp / 100);
+  return { itens, subtotalLista, subtotal, descontoLinhas: r2(subtotalLista - subtotal), pp, valorPP, desconto: pp, valorDesconto: valorPP, total: r2(subtotal - valorPP) };
 }
 function atualizarMinimo() {
   const el = document.getElementById('minimoMsg'); if (!el) return;
@@ -698,10 +704,11 @@ function abrirRevisao() {
   const pag = document.querySelector('input[name="payMethod"]:checked');
   const c = currentCliente || {};
   document.getElementById('revConteudo').innerHTML = `
-    <table>${o.itens.map(it => `<tr><td>${it.qty}×</td><td>${escH(it.nome)}<br><small style="color:var(--gray)">${escH(it.tamanho)}</small></td><td style="text-align:right;white-space:nowrap">${(it.preco * it.qty).toFixed(2)}€</td></tr>`).join('')}</table>
+    <table>${o.itens.map(it => `<tr><td>${it.qty}×</td><td>${escH(it.nome)}<br><small style="color:var(--gray)">${escH(it.tamanho)} · ${it.preco.toFixed(2)}€/un.${it.tier ? ' · escalão ' + it.tier + '+' : ''}</small></td><td style="text-align:right;white-space:nowrap">${(it.preco * it.qty).toFixed(2)}€</td></tr>`).join('')}</table>
     <table class="tot" style="margin-top:8px">
-      <tr><td>Subtotal</td><td style="text-align:right">${o.subtotal.toFixed(2)}€</td></tr>
-      ${o.desconto ? `<tr><td>Desconto (${o.desconto}%)</td><td style="text-align:right">-${o.valorDesconto.toFixed(2)}€</td></tr>` : ''}
+      <tr><td>Subtotal (preço de tabela)</td><td style="text-align:right">${o.subtotalLista.toFixed(2)}€</td></tr>
+      ${o.descontoLinhas > 0.004 ? `<tr><td>Descontos (cliente, promoções, escalões)</td><td style="text-align:right">-${o.descontoLinhas.toFixed(2)}€</td></tr>` : ''}
+      ${o.pp ? `<tr><td>Pré-pagamento (${o.pp}%)</td><td style="text-align:right">-${o.valorPP.toFixed(2)}€</td></tr>` : ''}
       <tr><td><b>Total sem IVA</b></td><td style="text-align:right"><b>${o.total.toFixed(2)}€</b></td></tr>
       <tr><td>IVA (23%)</td><td style="text-align:right">${(o.total * 0.23).toFixed(2)}€</td></tr>
       <tr><td><b>Total com IVA</b></td><td style="text-align:right"><b>${(o.total * 1.23).toFixed(2)}€</b></td></tr>
@@ -730,6 +737,37 @@ function abrirFinanceiro() {
       ${docs.slice().sort((a, b) => String(b.data || '').localeCompare(String(a.data || ''))).map(x => { const st = x.estado === 'pago' ? 'pago' : (x.venc && x.venc < hoje ? 'vencido' : 'aberto'); return `<tr><td>${escH(x.tipo || 'Fatura')}</td><td>${escH(x.numero || '')}</td><td>${dt(x.data)}</td><td>${dt(x.venc)}</td><td style="text-align:right;white-space:nowrap">${(x.valor || 0).toFixed(2)}€</td><td><span class="st ${st}">${st === 'pago' ? 'Pago' : st === 'vencido' ? 'Vencido' : 'A vencer'}</span></td></tr>`; }).join('')}</table></div>` : '<div class="empty-state">Ainda não há documentos financeiros disponíveis.</div>'}
       <p style="font-size:.78rem;color:var(--gray);margin-top:10px">${atual ? 'Atualizado a ' + atual + '. ' : ''}Valores com IVA. Em caso de dúvida, fale com o seu gestor de zona.</p>`;
   }).catch(() => { el.innerHTML = '<div class="empty-state">Não foi possível carregar os dados financeiros.</div>'; });
+}
+
+
+// ---------- Escalões de quantidade (por gama e peso, tabela Ownat) e descontos ----------
+// Regra: os sacos da mesma gama e do mesmo peso somam para o escalão (pode misturar sabores).
+// Os descontos não se acumulam (fica o melhor entre desconto do cliente, promoção e escalão), exceto 2% de pré-pagamento.
+const PP_DESCONTO = 2;
+const r2 = v => Math.round(v * 100) / 100;
+function produtoDaChave(k) { const pid = k.split('_')[0]; return produtos.find(x => String(x.id) === pid); }
+function tamanhoDaChave(k) { const [pid, ...l] = k.split('_'); const p = produtos.find(x => String(x.id) === pid); return p && p.tamanhos.find(t => t.label === l.join('_')); }
+function escaloesDe(t) {
+  const e = typeof ESCALOES !== 'undefined' && t && t.ean && ESCALOES[t.ean]; if (!e || !e[0]) return [];
+  const base = t.precoOrig != null ? t.precoOrig : t.preco;
+  return ESCALOES_QTD.map((q, i) => ({ q, preco: r2(e[i + 1] * base / e[0]) })).filter(x => x.preco < base);
+}
+function grupoQtd(p, t) { let n = 0; Object.keys(cart).forEach(k => { const pp = produtoDaChave(k), tt = tamanhoDaChave(k); if (pp && tt && pp.gama === p.gama && tt.label === t.label) n += cart[k].qty; }); return n; }
+function aplicarEscaloes() {
+  const d = (currentCliente && currentCliente.desconto) || 0;
+  Object.keys(cart).forEach(k => {
+    const p = produtoDaChave(k), t = tamanhoDaChave(k); if (!p || !t) return;
+    const n = grupoQtd(p, t), es = escaloesDe(t), lista = t.preco;
+    let final = r2(lista * (1 - d / 100)), tier = 0;
+    const esc = es.filter(e => n >= e.q).pop(); if (esc && esc.preco < final) { final = esc.preco; tier = esc.q; }
+    const prox = es.find(e => e.q > n && e.preco < final);
+    Object.assign(cart[k], { precoLista: lista, preco: final, tier, gama: p.gama, prox: prox ? { q: prox.q, preco: prox.preco, faltam: prox.q - n } : null });
+  });
+}
+function htmlEscaloes(t, p) {
+  const d = (currentCliente && currentCliente.desconto) || 0, ref = t ? t.preco * (1 - d / 100) : 0;
+  const es = escaloesDe(t).filter(e => e.preco < ref - 0.004); if (!es.length) return '';
+  return '💰 Compre mais, pague menos: ' + es.map(e => `<b>${e.q}+</b> ${e.preco.toFixed(2)}€`).join(' · ') + ' /un.<br><small>Somam todos os sabores ' + escH(p ? p.gama : '') + ' de ' + escH(t.label) + '.</small>';
 }
 
 function irPara(view) {
@@ -922,6 +960,7 @@ function renderCatalog() {
         <span class="gama-tag">${p.gama}</span>${p.tamanhos.some(t => t.promo) ? `<span class="gama-tag" style="background:#e63946;color:#fff;margin-left:6px">Promoção -${Math.max(...p.tamanhos.map(t => t.promo || 0))}%</span>` : ''}
         <h3>${p.nome}</h3>
         <div class="size-select" id="sizes-${p.id}">${sizesHtml}</div>
+        <div class="esc-info" id="esc-${p.id}">${htmlEscaloes(p.tamanhos[idxInicial], p)}</div>
         <div class="qty-row">
           <button onclick="changeQty(${p.id}, -1)">−</button>
           <input type="number" id="qty-${p.id}" value="1" min="1">
@@ -934,6 +973,7 @@ function renderCatalog() {
 
 function selectSize(produtoId, idx) {
   document.querySelectorAll(`#sizes-${produtoId} .size-opt`).forEach((el, i) => el.classList.toggle('selected', i === idx));
+  const pe = produtos.find(x => x.id === produtoId), ee = document.getElementById('esc-' + produtoId); if (pe && ee) ee.innerHTML = htmlEscaloes(pe.tamanhos[idx], pe);
 }
 
 function changeQty(produtoId, delta) {
@@ -977,6 +1017,7 @@ function avisoCarrinho(txt) {
 function renderCart() {
   // Guarda o carrinho neste dispositivo, para não se perder se o cliente sair
   try { if (currentUser) localStorage.setItem('carrinho_' + currentUser.uid, JSON.stringify(cart)); } catch (e) {}
+  aplicarEscaloes();
   const keys = Object.keys(cart);
   const countEl = document.getElementById('cartCount');
   const itemsEl = document.getElementById('cartItems');
@@ -1003,22 +1044,17 @@ function renderCart() {
     subtotal += itemSubtotal;
     return `
       <div class="cart-item">
-        <div>${it.nome}<br><span style="color:var(--gray-light);">${it.tamanho} × ${it.qty}</span></div>
+        <div>${it.nome}<br><span style="color:var(--gray-light);">${it.tamanho} × ${it.qty} · ${it.precoLista != null && it.preco < it.precoLista - 0.004 ? `<s>${it.precoLista.toFixed(2)}€</s> ` : ''}${it.preco.toFixed(2)}€/un.</span>${it.tier ? `<br><span style="color:#1d7a3e;font-size:.78rem;font-weight:700">✓ Preço de ${it.tier}+ sacos aplicado</span>` : ''}${it.prox ? `<br><span style="color:#0f5fb0;font-size:.78rem">Junte mais ${it.prox.faltam} saco(s) ${escH(it.gama || '')} de ${escH(it.tamanho)} e passa a ${it.prox.preco.toFixed(2)}€/un. (poupa ${((it.preco - it.prox.preco) * it.qty).toFixed(2)}€ só nesta linha)</span>` : ''}</div>
         <div style="text-align:right;">
           ${itemSubtotal.toFixed(2)}€<br>
           <a href="#" onclick="removeFromCart('${k}'); return false;" style="color:var(--red); font-size:0.8rem;">remover</a>
         </div>
       </div>`;
   }).join('');
-  const valorDesconto = subtotal * (desconto / 100);
-  const total = subtotal - valorDesconto;
-  subtotalEl.textContent = subtotal.toFixed(2) + '€';
-  if (desconto > 0) {
-    descontoRowEl.style.display = 'flex';
-    descontoValorEl.textContent = `-${valorDesconto.toFixed(2)}€ (${desconto}%)`;
-  } else {
-    descontoRowEl.style.display = 'none';
-  }
+  const o = totaisCarrinho(); const total = o.total;
+  subtotalEl.textContent = o.subtotalLista.toFixed(2) + '€';
+  const dTot = o.descontoLinhas + o.valorPP;
+  if (dTot > 0.004) { descontoRowEl.style.display = 'flex'; descontoValorEl.textContent = '-' + dTot.toFixed(2) + '€' + (o.pp ? ' (inclui ' + o.pp + '% pré-pag.)' : ''); } else descontoRowEl.style.display = 'none';
   totalEl.textContent = total.toFixed(2) + '€';
   document.getElementById('cartIva').textContent = (total * 0.23).toFixed(2) + '€';
   document.getElementById('cartTotalIva').textContent = (total * 1.23).toFixed(2) + '€';
@@ -1071,11 +1107,12 @@ function submitPedido() {
     return;
   }
   const metodoPagamento = document.querySelector('input[name="payMethod"]:checked').value;
-  const itens = keys.map(k => ({ ...cart[k], key: k }));
-  const subtotal = itens.reduce((s, it) => s + it.preco * it.qty, 0);
-  const desconto = currentCliente.desconto || 0;
-  const valorDesconto = subtotal * (desconto / 100);
-  const total = subtotal - valorDesconto;
+  const o = totaisCarrinho();
+  const itens = o.itens.map(it => { const x = { ...it }; delete x.prox; return x; });
+  const subtotal = o.subtotal;
+  const desconto = o.pp;
+  const valorDesconto = o.valorPP;
+  const total = o.total;
 
   msgEl.textContent = 'A processar...';
   msgEl.style.color = 'var(--gray)';
@@ -1088,14 +1125,14 @@ function submitPedido() {
     nif: currentCliente.nif,
     moradaEntrega: currentCliente.moradaEntrega || currentCliente.morada || '',
     vendedorId: currentCliente.vendedorId || '',
-    desconto, subtotal, valorDesconto,
+    desconto, subtotal, valorDesconto, subtotalLista: o.subtotalLista, precosLiquidos: true,
     itens, total, metodoPagamento,
     iva: Math.round(total * 0.23 * 100) / 100,
     totalComIva: Math.round(total * 1.23 * 100) / 100,
     estado: 'pendente', // pendente -> separado -> enviado
     criadoEm: firebase.firestore.FieldValue.serverTimestamp()
   })).then(ref => {
-    enviarEmail(EMAILJS.tplEncomenda, { referencia: ref.id.slice(-6).toUpperCase(), data: new Date().toLocaleString('pt-PT'), nome_faturacao: currentCliente.nomeFaturacao || '', morada_entrega: currentCliente.moradaEntrega || currentCliente.morada || '', pagamento: pagLabel(metodoPagamento), itens_html: '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:4px 0 14px"><tr style="background:#07202e;color:#fff"><th align="center" style="padding:7px 5px;width:30px">Qtd</th><th align="left" style="padding:7px 5px">Produto</th><th align="right" style="padding:7px 5px">Preço un.</th><th align="right" style="padding:7px 5px">Total</th></tr>' + itens.map(it => `<tr><td align="center" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;font-weight:bold">${it.qty}</td><td style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top">${escH(it.nome)}<br><span style="color:#6b7780;font-size:12px">${escH(it.tamanho)}</span></td><td align="right" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;white-space:nowrap">${eur(it.preco)}</td><td align="right" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;white-space:nowrap;font-weight:bold">${eur(it.preco * it.qty)}</td></tr>`).join('') + '</table>', subtotal: eur(subtotal), desconto: desconto + '% (-' + eur(valorDesconto) + ')', total_sem_iva: eur(total), iva: eur(total * 0.23), total_com_iva: eur(total * 1.23) });
+    enviarEmail(EMAILJS.tplEncomenda, { referencia: ref.id.slice(-6).toUpperCase(), data: new Date().toLocaleString('pt-PT'), nome_faturacao: currentCliente.nomeFaturacao || '', morada_entrega: currentCliente.moradaEntrega || currentCliente.morada || '', pagamento: pagLabel(metodoPagamento), itens_html: '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:4px 0 14px"><tr style="background:#07202e;color:#fff"><th align="center" style="padding:7px 5px;width:30px">Qtd</th><th align="left" style="padding:7px 5px">Produto</th><th align="right" style="padding:7px 5px">Preço un.</th><th align="right" style="padding:7px 5px">Total</th></tr>' + itens.map(it => `<tr><td align="center" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;font-weight:bold">${it.qty}</td><td style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top">${escH(it.nome)}<br><span style="color:#6b7780;font-size:12px">${escH(it.tamanho)}</span></td><td align="right" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;white-space:nowrap">${eur(it.preco)}</td><td align="right" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;white-space:nowrap;font-weight:bold">${eur(it.preco * it.qty)}</td></tr>`).join('') + '</table>', subtotal: eur(subtotal), desconto: desconto ? desconto + '% pré-pagamento (-' + eur(valorDesconto) + ')' : 'Incluído nos preços', total_sem_iva: eur(total), iva: eur(total * 0.23), total_com_iva: eur(total * 1.23) });
     msgEl.textContent = 'Encomenda enviada! Vamos preparar e avisamos quando for enviada.';
     msgEl.style.color = 'var(--gold-dark)';
     cart = {};

@@ -771,6 +771,7 @@ function precoOficial(it) {
   return pedidosPrecos[c.key] !== undefined ? pedidosPrecos[c.key] : c.t.preco;
 }
 function totaisOficiais(p) {
+  if (p.precosLiquidos) { const t = p.total || 0; return { subtotal: p.subtotal || 0, desconto: p.desconto || 0, valorDesconto: p.valorDesconto || 0, total: t, iva: Math.round(t * 23) / 100, comIva: Math.round(t * 123) / 100, diferente: false, desconhecido: false }; }
   const c = pedidosClientes[p.clienteUid] || {};
   const desconto = c.desconto != null ? c.desconto : (p.desconto || 0);
   let subtotal = 0, desconhecido = false;
