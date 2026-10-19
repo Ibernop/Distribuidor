@@ -996,8 +996,8 @@ const DESC_GAMA = { 'Wetline': 'Alimentos húmidos', 'Salmon Oil': 'Suplemento',
 function daEspecie(p, e) { return p.especie === e || (p.especie === 'caogato' && (e === 'cao' || e === 'gato')); }
 function seccoes() {
   return [
-    { id: 'cao', nome: 'Ração Cão', img: 'https://www.ownat.com/cdnassets/banners/dog-header.png', n: produtos.filter(p => RACAO(p) && daEspecie(p, 'cao')).length },
-    { id: 'gato', nome: 'Ração Gato', img: 'https://www.ownat.com/cdnassets/banners/cat-header.png', n: produtos.filter(p => RACAO(p) && daEspecie(p, 'gato')).length },
+    { id: 'cao', nome: 'Alimentação Cão', img: 'https://www.ownat.com/cdnassets/banners/dog-header.png', n: produtos.filter(p => RACAO(p) && daEspecie(p, 'cao')).length },
+    { id: 'gato', nome: 'Alimentação Gato', img: 'https://www.ownat.com/cdnassets/banners/cat-header.png', n: produtos.filter(p => RACAO(p) && daEspecie(p, 'gato')).length },
     { id: 'testes', nome: 'Testes rápidos', img: 'img/teste-cao.webp', n: produtos.filter(p => p.gama === 'Testes rápidos').length },
     { id: 'equip', nome: 'Equipamentos', ico: '🔬', img: (produtos.find(p => p.gama === 'Equipamentos') || {}).imagem, n: produtos.filter(p => p.gama === 'Equipamentos').length }
   ].filter(x => x.n);
