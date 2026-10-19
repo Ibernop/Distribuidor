@@ -134,7 +134,7 @@ h1, h2, .entry-title { letter-spacing: .01em; }
       <button id="tabIncidencias" onclick="setTab('incidencias')">Incidências <span id="contaInc" class="badge-n" style="display:none;"></span></button>
     </div>
 
-    <div class="entry-actions" style="margin:0 0 16px;"><button class="btn" id="btnExpClientes" onclick="exportarClientes()">Exportar clientes (Excel)</button><button class="btn" onclick="exportarEncomendas()">Exportar encomendas (Excel)</button><button class="btn" id="btnImpClientes" onclick="importarClientes()">Importar clientes (Excel)</button><button class="btn" id="btnModeloClientes" onclick="modeloClientes()">Modelo de importação</button><button class="btn" id="btnImpFin" onclick="importarFinanceiro()">Importar financeiro (Excel)</button><button class="btn" id="btnModeloFin" onclick="modeloFinanceiro()">Modelo financeiro</button></div>
+    <div class="entry-actions" style="margin:0 0 16px;"><button class="btn" id="btnExpClientes" onclick="exportarClientes()">Exportar clientes (Excel)</button><button class="btn" onclick="exportarEncomendas()">Exportar encomendas (Excel)</button><button class="btn" id="btnCopia" onclick="copiaSeguranca()" title="Guarde este ficheiro uma vez por semana">💾 Cópia de segurança completa</button><button class="btn" id="btnImpClientes" onclick="importarClientes()">Importar clientes (Excel)</button><button class="btn" id="btnModeloClientes" onclick="modeloClientes()">Modelo de importação</button><button class="btn" id="btnImpFin" onclick="importarFinanceiro()">Importar financeiro (Excel)</button><button class="btn" id="btnModeloFin" onclick="modeloFinanceiro()">Modelo financeiro</button></div>
     <div id="panelClientes"></div>
     <div id="panelPedidos" style="display:none;"></div>
     <div id="panelVendedores" style="display:none;"></div>
@@ -168,6 +168,7 @@ h1, h2, .entry-title { letter-spacing: .01em; }
 </div>
 
 <script src="produtos-data.js"></script>
+<script src="escaloes-data.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -389,7 +390,7 @@ function loadClientes() {
           <div class="entry-sub">Faturação: ${esc(c.moradaFaturacao || c.morada)}</div>
           <div class="entry-sub">Entrega: ${esc(c.moradaEntrega || c.moradaFaturacao || c.morada)}</div>
           <div class="entry-sub">Desconto: ${c.desconto || 0}% · Pagamento: ${pagLista(c).map(pagLabel).join(', ')}</div>
-          <div class="entry-sub">${c.consentimento ? `🛡️ RGPD aceite a ${new Date(c.consentimento.data).toLocaleDateString('pt-PT')} · Promoções por e-mail: ${c.consentimento.marketing ? '<b style="color:#1d7a3e">sim</b>' : 'não'}` : '🛡️ RGPD: <span style="color:#b26b00">ainda não aceitou (é pedido no 1.º login)</span>'}</div>
+          <div class="entry-sub">${c.consentimento ? `🛡️ RGPD aceite a ${new Date(c.consentimento.data).toLocaleDateString('pt-PT')} · Promoções por e-mail: ${c.consentimento.marketing ? '<b style="color:#1d7a3e">sim</b>' : 'não'}` : '🛡️ RGPD: <span style="color:#b26b00">ainda não aceitou (é pedido no 1.º login)</span>'}</div>${c.vendedorId ? '' : '<div class="entry-sub" style="color:#b23b3b;font-weight:700">⚠️ Sem vendedor atribuído — o gestor de zona não recebe as encomendas deste cliente</div>'}
         </div>`;
       const pags = pagLista(c);
       return `
@@ -722,7 +723,7 @@ async function importarClientes() {
 async function exportarTabelaPrecos() {
   try {
     const X = await carregarXLSX();
-    const ps = await db.collection('precos_b2b').get(); const pr = {}; ps.forEach(d => { pr[d.id] = d.data().preco; });
+    await carregarPrivado(); const pr = precosMapa;
     const L = [['Código', 'EAN', 'Produto', 'Tamanho', 'Preço s/ IVA']];
     produtos.forEach(p => p.tamanhos.forEach(t => { const k = p.id + '_' + t.label; L.push([t.cod || '', t.ean || '', p.nome, t.label, pr[k] !== undefined ? pr[k] : t.preco]); }));
     const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet(L), 'Preços'); X.writeFile(wb, 'tabela-precos-ibernop.xlsx');
@@ -731,7 +732,7 @@ async function exportarTabelaPrecos() {
 async function importarTabelaPrecos() {
   const f = await escolherFicheiro('.xlsx,.xls,.csv'); if (!f) return;
   let rows; try { rows = await lerFolha(f); } catch (e) { alert('Não foi possível ler o ficheiro: ' + e.message); return; }
-  const ps = await db.collection('precos_b2b').get(); const atual = {}; ps.forEach(d => { atual[d.id] = d.data().preco; });
+  await carregarPrivado(); const atual = { ...precosMapa };
   const porEan = {}, porCod = {};
   produtos.forEach(p => p.tamanhos.forEach(t => { const k = p.id + '_' + t.label; const info = { k, p, t }; if (t.ean) porEan[String(t.ean)] = info; if (t.cod) porCod[String(t.cod).padStart(6, '0')] = info; }));
   const mudancas = []; let semMatch = 0;
@@ -748,9 +749,7 @@ async function importarTabelaPrecos() {
   const amostra = mudancas.slice(0, 15).map(m => m.nome + ': ' + m.antes.toFixed(2) + ' → ' + m.preco.toFixed(2) + ' €').join('\n');
   if (!confirm(mudancas.length + ' preços vão ser atualizados' + (semMatch ? ' (' + semMatch + ' linhas sem produto correspondente foram ignoradas)' : '') + ':\n\n' + amostra + (mudancas.length > 15 ? '\n…' : '') + '\n\nConfirmar?')) return;
   try {
-    for (let i = 0; i < mudancas.length; i += 400) {
-      const b = db.batch(); mudancas.slice(i, i + 400).forEach(m => b.set(db.collection('precos_b2b').doc(m.k), { preco: m.preco })); await b.commit();
-    }
+    const novo = {}; mudancas.forEach(m => { novo[m.k] = m.preco; }); await gravarPrecos(novo);
     alert(mudancas.length + ' preços atualizados. A área de cliente já usa os novos valores.');
     loadStockAdmin();
   } catch (e) { alert('Não foi possível guardar: ' + e.message); }
@@ -784,9 +783,9 @@ function totaisOficiais(p) {
 }
 function carregarRefsPedidos() {
   const qc = ehVendedor() ? db.collection('clientes_b2b').where('vendedorId', '==', meuVendedorId) : db.collection('clientes_b2b');
-  return Promise.all([qc.get(), db.collection('precos_b2b').get().catch(() => null)]).then(([cs, ps]) => {
+  return Promise.all([qc.get(), carregarPrivado().catch(() => null)]).then(([cs]) => {
     pedidosClientes = {}; cs.forEach(d => { pedidosClientes[d.id] = d.data(); });
-    pedidosPrecos = {}; if (ps) ps.forEach(d => { pedidosPrecos[d.id] = d.data().preco; });
+    pedidosPrecos = { ...precosMapa };
   });
 }
 function exportarCSV(nome, linhas) {
@@ -797,6 +796,24 @@ function exportarCSV(nome, linhas) {
   document.body.appendChild(a); a.click(); a.remove();
 }
 const numPT = v => (Math.round((v || 0) * 100) / 100).toFixed(2).replace('.', ',');
+// Cópia de segurança de toda a base de dados num ficheiro (guardar 1x por semana, fora do computador)
+async function copiaSeguranca() {
+  const b = document.getElementById('btnCopia'); const txt = b ? b.textContent : ''; if (b) { b.disabled = true; b.textContent = 'A preparar…'; }
+  try {
+    const cols = ['clientes_b2b', 'pedidos_b2b', 'incidencias_b2b', 'vendedores_b2b', 'equipa_b2b', 'financeiro_b2b', 'config_b2b', 'privado_b2b', 'precos_b2b', 'estoque_b2b', 'lojas_publicas'];
+    const out = { geradoEm: new Date().toISOString(), projeto: 'ibernop', colecoes: {} }; const falhas = [];
+    for (const c of cols) {
+      try { const snap = await db.collection(c).get(); out.colecoes[c] = {}; snap.forEach(d => { out.colecoes[c][d.id] = d.data(); }); }
+      catch (e) { falhas.push(c); }
+    }
+    const txtJson = JSON.stringify(out, (k, v) => (v && typeof v.toDate === 'function') ? v.toDate().toISOString() : v, 1);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txtJson], { type: 'application/json' }));
+    a.download = 'copia-seguranca-ibernop-' + new Date().toISOString().slice(0, 10) + '.json'; document.body.appendChild(a); a.click(); a.remove();
+    const n = Object.values(out.colecoes).reduce((s, c) => s + Object.keys(c).length, 0);
+    alert('Cópia de segurança descarregada (' + n + ' registos).' + (falhas.length ? '\nSem acesso a: ' + falhas.join(', ') : '') + '\n\nGuarde o ficheiro num local seguro (ex.: Google Drive ou pen).');
+  } catch (e) { alert('Não foi possível criar a cópia: ' + e.message); }
+  if (b) { b.disabled = false; b.textContent = txt; }
+}
 async function exportarClientes() {
   try {
     await carregarVendedores().catch(() => []);
@@ -827,6 +844,11 @@ function mexerStock(p, sinal) {
   const mapa = {};
   (p.itens || []).forEach(it => { const c = chaveItem(it); if (c) mapa[c.key] = { qty: (mapa[c.key] ? mapa[c.key].qty : 0) + it.qty, inicial: c.t.stock || 0 }; });
   const keys = Object.keys(mapa); if (!keys.length) return Promise.resolve();
+  if (privadoAtivo) return db.runTransaction(tx => tx.get(PRIV_S).then(snap => {
+    const q = (snap.exists && snap.data().q) || {}; const upd = {};
+    keys.forEach(k => { const atual = typeof q[k] === 'number' ? q[k] : mapa[k].inicial; upd[k] = Math.max(0, atual + sinal * mapa[k].qty); });
+    tx.set(PRIV_S, { q: upd }, { merge: true });
+  }));
   return db.runTransaction(tx => {
     const refs = keys.map(k => db.collection('estoque_b2b').doc(k));
     return Promise.all(refs.map(r => tx.get(r))).then(snaps => {
@@ -895,6 +917,42 @@ function setEstadoPedido(id, estado) {
 
 // ---------- Stock ----------
 let liveStockAdmin = {}; // vindo do Firestore
+// Registos protegidos: privado_b2b/precos { p: {chave: preço}, esc, escQtd } e privado_b2b/stock { q: {chave: qtd} }
+const PRIV_P = db.collection('privado_b2b').doc('precos'), PRIV_S = db.collection('privado_b2b').doc('stock');
+let precosMapa = {}, stockMapa = {}, privadoAtivo = false;
+async function carregarPrivado() {
+  const [dp, ds] = await Promise.all([PRIV_P.get().catch(() => null), PRIV_S.get().catch(() => null)]);
+  const acessivel = dp !== null && ds !== null; // null = regras ainda não permitem
+  let pm = dp && dp.exists ? (dp.data().p || null) : null, sm = ds && ds.exists ? (ds.data().q || null) : null;
+  if (!pm || !sm) {
+    // Modelo antigo: monta os mapas a partir da lista + alterações gravadas
+    const [ps, es] = await Promise.all([db.collection('precos_b2b').get().catch(() => null), db.collection('estoque_b2b').get().catch(() => null)]);
+    if (!pm) { pm = {}; produtos.forEach(p => p.tamanhos.forEach(t => { if (t.preco > 0) pm[p.id + '_' + t.label] = t.preco; })); if (ps) ps.forEach(d => { if (typeof d.data().preco === 'number') pm[d.id] = d.data().preco; }); }
+    if (!sm) { sm = {}; produtos.forEach(p => p.tamanhos.forEach(t => { sm[p.id + '_' + t.label] = t.stock || 0; })); if (es) es.forEach(d => { if (typeof d.data().qty === 'number') sm[d.id] = d.data().qty; }); }
+    // Migração automática (só um administrador consegue gravar)
+    if (acessivel && !ehVendedor()) {
+      try {
+        if (!(dp && dp.exists)) await PRIV_P.set({ p: pm, esc: typeof ESCALOES !== 'undefined' ? ESCALOES : {}, escQtd: typeof ESCALOES_QTD !== 'undefined' ? ESCALOES_QTD : [10, 23, 31], migradoEm: new Date().toISOString() });
+        if (!(ds && ds.exists)) await PRIV_S.set({ q: sm, migradoEm: new Date().toISOString() });
+      } catch (e) { console.warn('Migração para registos protegidos ainda não possível:', e.message); }
+    }
+  }
+  const [dp2, ds2] = acessivel ? await Promise.all([PRIV_P.get().catch(() => null), PRIV_S.get().catch(() => null)]) : [null, null];
+  privadoAtivo = !!(dp2 && dp2.exists && ds2 && ds2.exists);
+  precosMapa = pm; stockMapa = sm;
+  produtos.forEach(p => p.tamanhos.forEach(t => { const k = p.id + '_' + t.label; if (typeof pm[k] === 'number') t.preco = pm[k]; if (typeof sm[k] === 'number') t.stock = sm[k]; }));
+}
+// Gravações: registo protegido se já existir; senão o modelo antigo
+function gravarPrecos(mapa) {
+  if (privadoAtivo) return PRIV_P.set({ p: mapa }, { merge: true });
+  const ks = Object.keys(mapa); const lotes = [];
+  for (let i = 0; i < ks.length; i += 400) { const b = db.batch(); ks.slice(i, i + 400).forEach(k => b.set(db.collection('precos_b2b').doc(k), { preco: mapa[k] })); lotes.push(b.commit()); }
+  return Promise.all(lotes);
+}
+function gravarStock(mapa) {
+  if (privadoAtivo) return PRIV_S.set({ q: mapa }, { merge: true });
+  return Promise.all(Object.keys(mapa).map(k => db.collection('estoque_b2b').doc(k).set({ qty: mapa[k] }, { merge: true })));
+}
 let precosAdmin = {}; // preços alterados na Gestão (sem IVA)
 
 
@@ -958,9 +1016,8 @@ async function importarFinanceiro() {
 function loadStockAdmin() {
   document.getElementById('stockList').innerHTML = '<div class="empty-state">A carregar...</div>';
   loadDestaquesAdmin();
-  db.collection('precos_b2b').get().then(ps => { precosAdmin = {}; ps.forEach(d => { precosAdmin[d.id] = d.data().preco; }); }).catch(() => {}).then(() => db.collection('estoque_b2b').get()).then(snap => {
-    liveStockAdmin = {};
-    snap.forEach(doc => { liveStockAdmin[doc.id] = doc.data().qty; });
+  carregarPrivado().then(() => {
+    precosAdmin = { ...precosMapa }; liveStockAdmin = { ...stockMapa };
     renderStockList();
   }).catch(err => {
     document.getElementById('stockList').innerHTML = '<div class="empty-state">Erro ao carregar stock.</div>';
@@ -978,7 +1035,7 @@ function renderStockList() {
       const key = `${p.id}_${t.label}`;
       const qty = liveStockAdmin[key] !== undefined ? liveStockAdmin[key] : t.stock;
       const preco = precosAdmin[key] !== undefined ? precosAdmin[key] : t.preco;
-      linhas.push({ key, nome: p.nome, tamanho: t.label, qty, preco, alterado: precosAdmin[key] !== undefined });
+      linhas.push({ key, nome: p.nome, tamanho: t.label, qty, preco, alterado: false });
     });
   });
   if (linhas.length === 0) { el.innerHTML = '<div class="empty-state">Sem resultados.</div>'; return; }
@@ -999,8 +1056,8 @@ function guardarStock(key) {
   const val = parseInt(document.getElementById(`stock-${key}`).value || '0', 10);
   const preco = Math.round(parseFloat(document.getElementById(`preco-${key}`).value || '0') * 100) / 100;
   Promise.all([
-    db.collection('estoque_b2b').doc(key).set({ qty: val }, { merge: true }),
-    db.collection('precos_b2b').doc(key).set({ preco })
+    gravarStock({ [key]: val }),
+    ehVendedor() ? Promise.resolve() : gravarPrecos({ [key]: preco })
   ]).then(() => { liveStockAdmin[key] = val; precosAdmin[key] = preco; alert('Guardado: ' + preco.toFixed(2) + '€ s/ IVA · stock ' + val); })
     .catch(e => alert('Não foi possível guardar: ' + e.message));
 }

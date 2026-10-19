@@ -480,9 +480,24 @@ let gamaFilter = 'todas';
 let liveStock = {}; // { "produtoId_tamanhoLabel": qty } — vindo do Firestore, substitui o número fixo do catálogo
 const LIMITE_STOCK_BAIXO = 5; // a partir daqui mostra o aviso "restam apenas X" — muda aqui se quiseres outro valor
 
+// Preços, escalões e stock vivem em 2 registos protegidos (privado_b2b/precos e privado_b2b/stock):
+// 2 leituras por visita em vez de ~350, e os preços deixam de estar num ficheiro público.
+let ESC_PRIV = null, ESC_QTD_PRIV = null;
 function loadStock() {
+  const P = db.collection('privado_b2b');
+  Promise.all([P.doc('precos').get().catch(() => null), P.doc('stock').get().catch(() => null)]).then(([dp, ds]) => {
+    if (!(dp && dp.exists) || !(ds && ds.exists)) return loadStockAntigo();
+    const pm = dp.data().p || {}, sm = ds.data().q || {};
+    if (dp.data().esc) { ESC_PRIV = dp.data().esc; ESC_QTD_PRIV = dp.data().escQtd || [10, 23, 31]; }
+    produtos.forEach(p => p.tamanhos.forEach(t => { const k = p.id + '_' + t.label; if (typeof pm[k] === 'number') t.preco = pm[k]; }));
+    liveStock = { ...sm };
+    renderCatalog();
+    carregarDestaques();
+  }).catch(err => console.error('Não foi possível carregar o stock:', err));
+}
+function loadStockAntigo() {
   // Preços alterados na Gestão sobrepõem-se aos da lista
-  db.collection('precos_b2b').get().then(ps => {
+  return db.collection('precos_b2b').get().then(ps => {
     ps.forEach(d => { const [pid, ...lab] = d.id.split('_'); const p = produtos.find(x => String(x.id) === pid); const t = p && p.tamanhos.find(x => x.label === lab.join('_')); if (t && typeof d.data().preco === 'number') t.preco = d.data().preco; });
   }).catch(() => {}).then(() => db.collection('estoque_b2b').get()).then(snap => {
     liveStock = {};
@@ -821,9 +836,10 @@ const r2 = v => Math.round(v * 100) / 100;
 function produtoDaChave(k) { const pid = k.split('_')[0]; return produtos.find(x => String(x.id) === pid); }
 function tamanhoDaChave(k) { const [pid, ...l] = k.split('_'); const p = produtos.find(x => String(x.id) === pid); return p && p.tamanhos.find(t => t.label === l.join('_')); }
 function escaloesDe(t) {
-  const e = typeof ESCALOES !== 'undefined' && t && t.ean && ESCALOES[t.ean]; if (!e || !e[0]) return [];
+  const TAB = ESC_PRIV || (typeof ESCALOES !== 'undefined' ? ESCALOES : {}), QTD = ESC_QTD_PRIV || (typeof ESCALOES_QTD !== 'undefined' ? ESCALOES_QTD : []);
+  const e = t && t.ean && TAB[t.ean]; if (!e || !e[0]) return [];
   const base = t.precoOrig != null ? t.precoOrig : t.preco;
-  return ESCALOES_QTD.map((q, i) => ({ q, preco: r2(e[i + 1] * base / e[0]) })).filter(x => x.preco < base);
+  return QTD.map((q, i) => ({ q, preco: r2(e[i + 1] * base / e[0]) })).filter(x => x.preco < base);
 }
 function grupoQtd(p, t) { let n = 0; Object.keys(cart).forEach(k => { const pp = produtoDaChave(k), tt = tamanhoDaChave(k); if (pp && tt && pp.gama === p.gama && tt.label === t.label) n += cart[k].qty; }); return n; }
 function aplicarEscaloes() {
@@ -1263,8 +1279,10 @@ function decrementarStock(cartKeys) {
   });
 }
 
+let enviandoPedido = false;
 function submitPedido() {
   const msgEl = document.getElementById('checkoutMsg');
+  if (enviandoPedido) return;
   const keys = Object.keys(cart);
   if (keys.length === 0) {
     msgEl.textContent = 'O carrinho está vazio.';
@@ -1279,6 +1297,7 @@ function submitPedido() {
   const valorDesconto = o.valorPP;
   const total = o.total;
 
+  enviandoPedido = true;
   msgEl.textContent = 'A processar...';
   msgEl.style.color = 'var(--gray)';
 
@@ -1303,8 +1322,9 @@ function submitPedido() {
     cart = {};
     renderCart();
     loadStock();
-    setTimeout(closeCart, 2500);
+    setTimeout(() => { closeCart(); enviandoPedido = false; }, 2500);
   }).catch(err => {
+    enviandoPedido = false;
     msgEl.textContent = 'Erro ao enviar: ' + err.message;
     msgEl.style.color = 'var(--red)';
   });
