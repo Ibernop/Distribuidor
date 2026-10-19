@@ -144,6 +144,7 @@ section { padding: 48px 0; }
 
 footer.site { background: var(--charcoal); color: rgba(255,255,255,0.7); padding: 30px 0; margin-top: 40px; font-size: 0.85rem; text-align: center; }
 footer.site strong { color: #fff; }
+.consent{display:flex;gap:10px;align-items:flex-start;font-size:.82rem;line-height:1.45;color:var(--gray);margin:4px 0 12px;cursor:pointer;text-align:left}.consent input{margin-top:3px;width:18px;height:18px;flex:none;accent-color:var(--gold)}.consent a{color:var(--gold-dark)}
 footer.site{text-align:left!important;padding:44px 0 22px!important}
 footer.site a{color:#fff;text-decoration:none}footer.site a:hover{text-decoration:underline}
 .ft-cols{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:28px;line-height:1.7}
@@ -323,6 +324,8 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
         <input type="email" id="regEmail" placeholder="o.seu@email.com">
         <label>Palavra-passe</label>
         <input type="password" id="regPassword" placeholder="Mínimo 8 caracteres">
+        <label class="consent"><input type="checkbox" id="regTermos"> <span>Li e aceito os <a href="termos.html" target="_blank" rel="noopener">Termos e a Política de Privacidade</a> e autorizo o tratamento dos dados para gestão da conta e das encomendas. *</span></label>
+        <label class="consent"><input type="checkbox" id="regMarketing"> <span>Aceito receber por e-mail promoções e novidades da Ibernop (opcional — pode cancelar a qualquer momento).</span></label>
         <button class="btn btn-gold" onclick="doRegister()">Criar conta</button>
         <p class="auth-note">Depois de criar a conta, fica sujeita a aprovação antes de poder encomendar.</p>
       </div>
@@ -543,18 +546,22 @@ function doRegister() {
     errEl.classList.add('show');
     return;
   }
+  if (!document.getElementById('regTermos').checked) {
+    errEl.textContent = 'Para criar conta, tem de aceitar os Termos e a Política de Privacidade.';
+    errEl.classList.add('show');
+    return;
+  }
   if (password.length < 8) {
     errEl.textContent = 'A palavra-passe precisa de pelo menos 8 caracteres.';
     errEl.classList.add('show');
     return;
   }
 
+  const consentimento = { termos: true, marketing: document.getElementById('regMarketing').checked, data: new Date().toISOString(), versaoTermos: '2026-10' };
   auth.createUserWithEmailAndPassword(email, password).then(cred => {
-    return db.collection('clientes_b2b').doc(cred.user.uid).set({
-      empresa, nif, morada, contacto, telefone, email,
-      aprovado: false,
-      criadoEm: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    const base = { empresa, nif, morada, contacto, telefone, email, aprovado: false, criadoEm: firebase.firestore.FieldValue.serverTimestamp() };
+    const ref = db.collection('clientes_b2b').doc(cred.user.uid);
+    return ref.set({ ...base, consentimento }).catch(() => ref.set(base));
   }).catch(err => {
     const msgs = {
       'auth/email-already-in-use': 'Já existe uma conta com este e-mail.',
