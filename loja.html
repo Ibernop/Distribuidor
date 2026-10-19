@@ -144,6 +144,7 @@ section { padding: 48px 0; }
 
 footer.site { background: var(--charcoal); color: rgba(255,255,255,0.7); padding: 30px 0; margin-top: 40px; font-size: 0.85rem; text-align: center; }
 footer.site strong { color: #fff; }
+.rgpd-back{position:fixed;inset:0;background:rgba(7,32,46,.6);z-index:2000;display:none;align-items:center;justify-content:center;padding:16px}.rgpd-box{background:#fff;border-radius:18px;max-width:480px;width:100%;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.3)}.rgpd-box h3{margin:0 0 8px;color:var(--charcoal)}.rgpd-box>p{font-size:.88rem;color:var(--gray);margin:0 0 14px}.rgpd-erro{color:var(--red);font-size:.82rem;min-height:1em;margin:0 0 8px!important}.rgpd-sair{display:block;margin:10px auto 0;background:none;border:0;color:var(--gray);text-decoration:underline;cursor:pointer;font:inherit;font-size:.85rem}
 .consent{display:flex;gap:10px;align-items:flex-start;font-size:.82rem;line-height:1.45;color:var(--gray);margin:4px 0 12px;cursor:pointer;text-align:left}.consent input{margin-top:3px;width:18px;height:18px;flex:none;accent-color:var(--gold)}.consent a{color:var(--gold-dark)}
 footer.site{text-align:left!important;padding:44px 0 22px!important}
 footer.site a{color:#fff;text-decoration:none}footer.site a:hover{text-decoration:underline}
@@ -324,8 +325,6 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
         <input type="email" id="regEmail" placeholder="o.seu@email.com">
         <label>Palavra-passe</label>
         <input type="password" id="regPassword" placeholder="Mínimo 8 caracteres">
-        <label class="consent"><input type="checkbox" id="regTermos"> <span>Li e aceito os <a href="termos.html" target="_blank" rel="noopener">Termos e a Política de Privacidade</a> e autorizo o tratamento dos dados para gestão da conta e das encomendas. *</span></label>
-        <label class="consent"><input type="checkbox" id="regMarketing"> <span>Aceito receber por e-mail promoções e novidades da Ibernop (opcional — pode cancelar a qualquer momento).</span></label>
         <button class="btn btn-gold" onclick="doRegister()">Criar conta</button>
         <p class="auth-note">Depois de criar a conta, fica sujeita a aprovação antes de poder encomendar.</p>
       </div>
@@ -546,22 +545,16 @@ function doRegister() {
     errEl.classList.add('show');
     return;
   }
-  if (!document.getElementById('regTermos').checked) {
-    errEl.textContent = 'Para criar conta, tem de aceitar os Termos e a Política de Privacidade.';
-    errEl.classList.add('show');
-    return;
-  }
   if (password.length < 8) {
     errEl.textContent = 'A palavra-passe precisa de pelo menos 8 caracteres.';
     errEl.classList.add('show');
     return;
   }
 
-  const consentimento = { termos: true, marketing: document.getElementById('regMarketing').checked, data: new Date().toISOString(), versaoTermos: '2026-10' };
-  auth.createUserWithEmailAndPassword(email, password).then(cred => {
+    auth.createUserWithEmailAndPassword(email, password).then(cred => {
     const base = { empresa, nif, morada, contacto, telefone, email, aprovado: false, criadoEm: firebase.firestore.FieldValue.serverTimestamp() };
     const ref = db.collection('clientes_b2b').doc(cred.user.uid);
-    return ref.set({ ...base, consentimento }).catch(() => ref.set(base));
+    return ref.set(base);
   }).catch(err => {
     const msgs = {
       'auth/email-already-in-use': 'Já existe uma conta com este e-mail.',
@@ -654,6 +647,7 @@ auth.onAuthStateChanged(user => {
       renderCatalog();
       try { cart = JSON.parse(localStorage.getItem('carrinho_' + user.uid) || '{}') || {}; } catch (e) { cart = {}; }
       renderCart();
+      verificarConsentimento(user);
     } else {
       // Equipa (administradores e vendedores): entra na loja em modo de pré-visualização, sem poder enviar encomendas
       const verLoja = () => {
@@ -1343,5 +1337,30 @@ function submitPedido() {
   const ir=i=>{ k=(i+sl.length)%sl.length; sl.forEach((s,n)=>s.classList.toggle('on',n===k)); d.querySelectorAll('i').forEach((x,n)=>x.classList.toggle('on',n===k)); };
   d.querySelectorAll('i').forEach(x=>x.onclick=()=>{ ir(+x.dataset.i); clearInterval(t); t=setInterval(()=>ir(k+1),5000); });
   ir(0); t=setInterval(()=>ir(k+1),5000); })();</script>
+<div class="rgpd-back" id="rgpdBack"><div class="rgpd-box">
+  <h3>Proteção de dados (RGPD)</h3>
+  <p>Bem-vindo à Área de Cliente Ibernop. Antes de continuar, confirme como podemos tratar os dados da sua empresa.</p>
+  <label class="consent"><input type="checkbox" id="rgpdTermos"> <span>Li e aceito os <a href="termos.html" target="_blank" rel="noopener">Termos e a Política de Privacidade</a> e autorizo o tratamento dos dados para gestão da conta, das encomendas e da faturação. *</span></label>
+  <label class="consent"><input type="checkbox" id="rgpdMarketing"> <span>Aceito receber por e-mail promoções e novidades da Ibernop (opcional — pode cancelar a qualquer momento).</span></label>
+  <p class="rgpd-erro" id="rgpdErro"></p>
+  <button class="btn btn-gold" style="width:100%;justify-content:center" onclick="aceitarConsentimento()">Aceitar e continuar</button>
+  <button type="button" class="rgpd-sair" onclick="doLogout()">Sair</button>
+</div></div>
+<script>
+function verificarConsentimento(user) {
+  if (!currentCliente || currentCliente.preview || currentCliente.consentimento) return;
+  if (localStorage.getItem('rgpd_' + user.uid)) return;
+  document.getElementById('rgpdBack').style.display = 'flex';
+}
+function aceitarConsentimento() {
+  const err = document.getElementById('rgpdErro');
+  if (!document.getElementById('rgpdTermos').checked) { err.textContent = 'Para usar a Área de Cliente tem de aceitar os Termos e a Política de Privacidade.'; return; }
+  const c = { termos: true, marketing: document.getElementById('rgpdMarketing').checked, data: new Date().toISOString(), versaoTermos: '2026-10', email: currentUser.email };
+  const fechar = () => { try { localStorage.setItem('rgpd_' + currentUser.uid, '1'); } catch (e) {} currentCliente.consentimento = c; document.getElementById('rgpdBack').style.display = 'none'; };
+  db.collection('clientes_b2b').doc(currentUser.uid).update({ consentimento: c })
+    .catch(() => db.collection('notif_b2b').doc(currentUser.uid).set({ email: currentUser.email, consentimento: c }, { merge: true }))
+    .then(fechar).catch(fechar);
+}
+</script>
 </body>
 </html>
