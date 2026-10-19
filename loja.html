@@ -90,6 +90,25 @@ section { padding: 48px 0; }
 .catalog-filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
 .catalog-filters button { padding: 9px 18px; border-radius: var(--radius-pill); border: 1px solid var(--border); background: #fff; font-weight: 600; font-size: 0.85rem; cursor: pointer; color: var(--gray); }
 .catalog-filters button.active { background: var(--charcoal); color: #fff; border-color: var(--charcoal); }
+.pesq-fixa{position:sticky;top:0;z-index:15;background:var(--bg-alt);padding:8px 0 10px;margin:0 0 6px}
+.pesq-fixa input{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:32px;font:inherit;background:#fff;box-shadow:0 2px 8px rgba(7,32,46,.05)}
+.cat-nav{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0 0 14px;font-size:.9rem;font-weight:600;color:var(--gray)}
+.cat-nav:empty{display:none}
+.cat-nav button{background:none;border:0;padding:4px 2px;font:inherit;color:var(--gold-dark);cursor:pointer;text-decoration:underline}
+.cat-nav .voltar{background:#fff;border:1px solid var(--border);border-radius:30px;padding:6px 14px;text-decoration:none;color:var(--charcoal);margin-right:6px}
+.cat-nav b{color:var(--charcoal)}
+.tiles{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.tile{background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px;cursor:pointer;text-align:left;font:inherit;display:flex;flex-direction:column;gap:6px;transition:transform .15s,box-shadow .15s}
+.tile:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(7,32,46,.1)}
+.tile .ti{height:110px;display:flex;align-items:center;justify-content:center;background:var(--green-soft);border-radius:12px;font-size:3rem;overflow:hidden}
+.tile .ti img{max-height:100%;max-width:100%;object-fit:contain}
+.tile strong{font-size:1.02rem;color:var(--charcoal);line-height:1.2}
+.tile small{color:var(--gray);font-weight:600;font-size:.78rem}
+.tiles-tit{grid-column:1/-1;margin:6px 0 0;font-size:1.05rem;color:var(--charcoal)}
+.repetir{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--charcoal);color:#fff;border-radius:16px;padding:14px 18px}
+.repetir span{font-size:.9rem}.repetir b{display:block;font-size:1rem}
+#catalogView[data-nivel="dentro"] #banners,#catalogView[data-nivel="dentro"] #destaques{display:none!important}
+@media(max-width:600px){.tiles{grid-template-columns:repeat(2,1fr);gap:10px}.tile .ti{height:84px;font-size:2.4rem}.tile{padding:10px}}
 .product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 @media (max-width: 900px) { .product-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 600px) { .product-grid { grid-template-columns: 1fr; } }
@@ -364,32 +383,8 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
       <div class="dest-track" id="destTrack"></div>
       <div class="dest-dots" id="destDots"></div>
     </div>
-    <input type="search" id="pesquisaProduto" placeholder="Pesquisar por nome, código ou EAN…" oninput="renderCatalog()" style="width:100%; padding:12px 16px; border:1px solid var(--border); border-radius:32px; font:inherit; margin:0 0 14px;">
-    <div class="catalog-filters" id="catalogFilters">
-      <button class="active" data-f="todos" onclick="setCatalogFilter('todos', this)">Todos</button>
-      <button data-f="cao" onclick="setCatalogFilter('cao', this)">Cão</button>
-      <button data-f="gato" onclick="setCatalogFilter('gato', this)">Gato</button>
-      <button data-f="aves" onclick="setCatalogFilter('aves', this)">Aves</button>
-      <button data-f="coelhos" onclick="setCatalogFilter('coelhos', this)">Coelhos</button>
-      <button data-f="repteis" onclick="setCatalogFilter('repteis', this)">Répteis</button>
-      <button data-f="equinos" onclick="setCatalogFilter('equinos', this)">Equinos</button>
-      <button data-f="bovinos" onclick="setCatalogFilter('bovinos', this)">Bovinos</button>
-      <button data-f="ovinos" onclick="setCatalogFilter('ovinos', this)">Ovinos</button>
-      <button data-f="suinos" onclick="setCatalogFilter('suinos', this)">Suínos</button>
-    </div>
-    <div class="catalog-filters" id="gamaFilters">
-      <button class="active" data-g="todas" onclick="setGamaFilter('todas', this)">Todas as gamas</button>
-      <button data-g="Prime" onclick="setGamaFilter('Prime', this)">Prime</button>
-      <button data-g="Just" onclick="setGamaFilter('Just', this)">Just</button>
-      <button data-g="Author" onclick="setGamaFilter('Author', this)">Author</button>
-      <button data-g="Ultra" onclick="setGamaFilter('Ultra', this)">Ultra</button>
-      <button data-g="Care" onclick="setGamaFilter('Care', this)">Care</button>
-      <button data-g="Classic" onclick="setGamaFilter('Classic', this)">Classic</button>
-      <button data-g="Wetline" onclick="setGamaFilter('Wetline', this)">Wetline (húmidos)</button>
-      <button data-g="Salmon Oil" onclick="setGamaFilter('Salmon Oil', this)">Salmon Oil</button>
-      <button data-g="Testes rápidos" onclick="setGamaFilter('Testes rápidos', this)">Testes rápidos</button>
-      <button data-g="Equipamentos" onclick="setGamaFilter('Equipamentos', this)">🔬 Equipamentos</button>
-    </div>
+    <div class="pesq-fixa" id="pesqFixa"><input type="search" id="pesquisaProduto" placeholder="🔍 Pesquisar por nome, código ou EAN…" oninput="renderCatalog()"></div>
+    <div class="cat-nav" id="catNav"></div>
     <div class="product-grid" id="productGrid"></div>
     <div class="vantagens vant-rodape">
       <div><span class="i">🚚</span><span><b>Entrega rápida</b>24 a 48 horas úteis</span></div>
@@ -616,7 +611,7 @@ setInterval(() => {
 }, 60 * 1000);
 
 auth.onAuthStateChanged(user => {
-  currentUser = user;
+  currentUser = user; meusPedidos = false; meusIds = null; ultimaEnc = null; navSec = null; navSub = null;
   if (!user && /[?&]demo\b/.test(location.search)) return entrarDemo();
   if (!user) {
     try { localStorage.removeItem(CHAVE_ULTIMA_ATIVIDADE); } catch (e) {}
@@ -733,11 +728,9 @@ function moverDestaques(dir, auto) {
 }
 function irDestaque(i) { const tr = document.getElementById('destTrack'); const w = tr.firstElementChild.offsetWidth + 16; tr.scrollTo({ left: i * w }); }
 function verProduto(id, idx) {
-  catalogFilter = 'todos'; gamaFilter = 'todas';
-  document.querySelectorAll('#catalogFilters button').forEach(b => b.classList.toggle('active', b.dataset.f === 'todos'));
-  document.querySelectorAll('#gamaFilters button').forEach(b => b.classList.toggle('active', b.dataset.g === 'todas'));
-  const ps = document.getElementById('pesquisaProduto'); if (ps) ps.value = '';
-  renderCatalog();
+  const pv = produtos.find(x => x.id === id || String(x.id) === String(id));
+  if (pv) { if (pv.gama === 'Testes rápidos') irNav('testes', pv.especie === 'caogato' ? 'cao' : pv.especie); else if (pv.gama === 'Equipamentos') irNav('equip'); else irNav(pv.especie === 'gato' ? 'gato' : 'cao', pv.gama); }
+  else irNav(null);
   const c = document.getElementById('pcard-' + id); if (!c) return;
   if (idx != null) { const el = document.querySelectorAll(`#sizes-${id} .size-opt`)[idx]; if (el && !el.classList.contains('esgotado')) selectSize(id, idx); }
   c.scrollIntoView({ behavior: 'smooth', block: 'center' }); c.classList.add('realce'); setTimeout(() => c.classList.remove('realce'), 2500);
@@ -995,10 +988,86 @@ function setCatalogFilter(f, btn) {
   renderCatalog();
 }
 
+// ---------- Navegação do catálogo: secção → gama/espécie → produtos ----------
+let navSec = null, navSub = null, meusIds = null, ultimaEnc = null, meusPedidos = false;
+const RACAO = p => p.gama !== 'Testes rápidos' && p.gama !== 'Equipamentos';
+const ESP_TESTES = [['cao','Cão','🐶'],['gato','Gato','🐱'],['aves','Aves','🐦'],['coelhos','Coelhos','🐰'],['repteis','Répteis','🦎'],['equinos','Equinos','🐴'],['bovinos','Bovinos','🐄'],['ovinos','Ovinos','🐑'],['suinos','Suínos','🐖']];
+const DESC_GAMA = { 'Wetline': 'Alimentos húmidos', 'Salmon Oil': 'Suplemento', 'Care': 'Cuidados específicos' };
+function daEspecie(p, e) { return p.especie === e || (p.especie === 'caogato' && (e === 'cao' || e === 'gato')); }
+function seccoes() {
+  return [
+    { id: 'cao', nome: 'Ração Cão', img: 'https://www.ownat.com/cdnassets/banners/dog-header.png', n: produtos.filter(p => RACAO(p) && daEspecie(p, 'cao')).length },
+    { id: 'gato', nome: 'Ração Gato', img: 'https://www.ownat.com/cdnassets/banners/cat-header.png', n: produtos.filter(p => RACAO(p) && daEspecie(p, 'gato')).length },
+    { id: 'testes', nome: 'Testes rápidos', img: 'img/teste-cao.webp', n: produtos.filter(p => p.gama === 'Testes rápidos').length },
+    { id: 'equip', nome: 'Equipamentos', ico: '🔬', img: (produtos.find(p => p.gama === 'Equipamentos') || {}).imagem, n: produtos.filter(p => p.gama === 'Equipamentos').length }
+  ].filter(x => x.n);
+}
+function nomeSec(id) { return id === 'meus' ? '⭐ Os meus produtos' : ((seccoes().find(x => x.id === id) || {}).nome || ''); }
+function nomeSub(sec, sub) { return sec === 'testes' ? ((ESP_TESTES.find(e => e[0] === sub) || [])[1] || sub) : sub; }
+function irNav(sec, sub, semHist) {
+  navSec = sec || null; navSub = sub || null;
+  const ps = document.getElementById('pesquisaProduto'); if (ps) ps.value = '';
+  if (!semHist) try { history.pushState({ cat: 1, sec: navSec, sub: navSub }, ''); } catch (e) {}
+  renderCatalog();
+  const cv = document.getElementById('catalogView'); if (cv && window.scrollY > cv.offsetTop) window.scrollTo({ top: cv.offsetTop, behavior: 'smooth' });
+}
+window.addEventListener('popstate', ev => { const st = ev.state; if (document.getElementById('catalogView').style.display === 'none') return; irNav(st && st.cat ? st.sec : null, st && st.cat ? st.sub : null, true); });
+function tile(onclick, nome, n, img, ico, extra) {
+  return `<button type="button" class="tile" onclick="${onclick}"><div class="ti">${img ? `<img src="${img}" alt="" loading="lazy">` : (ico || '📦')}</div><strong>${escH(nome)}</strong><small>${extra ? escH(extra) + ' · ' : ''}${n} produto${n === 1 ? '' : 's'}</small></button>`;
+}
+function carregarMeus() {
+  if (meusPedidos || !currentUser) return; meusPedidos = true;
+  db.collection('pedidos_b2b').where('clienteUid', '==', currentUser.uid).get().then(snap => {
+    const ped = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => ((b.criadoEm && b.criadoEm.seconds) || 0) - ((a.criadoEm && a.criadoEm.seconds) || 0));
+    if (!ped.length) return;
+    if (typeof minhasEncomendas !== 'undefined' && !minhasEncomendas.length) minhasEncomendas = ped;
+    ultimaEnc = ped[0];
+    const conta = {}; ped.forEach(o => (o.itens || []).forEach(it => { const pr = produtos.find(x => x.nome === it.nome); if (pr) conta[pr.id] = (conta[pr.id] || 0) + (it.qty || 1); }));
+    meusIds = Object.keys(conta).sort((a, b) => conta[b] - conta[a]).map(Number);
+    if (!navSec) renderCatalog();
+  }).catch(() => { meusPedidos = false; });
+}
+function repetirUltima() { if (!ultimaEnc) return; if (typeof minhasEncomendas !== 'undefined' && !minhasEncomendas.find(x => x.id === ultimaEnc.id)) minhasEncomendas.push(ultimaEnc); repetirEncomenda(ultimaEnc.id); }
+
 function renderCatalog() {
   const grid = document.getElementById('productGrid');
-  let lista = catalogFilter === 'todos' ? produtos : produtos.filter(p => p.especie === catalogFilter || p.especie === 'todas' || (p.especie === 'caogato' && (catalogFilter === 'cao' || catalogFilter === 'gato')));
-  if (gamaFilter !== 'todas') lista = lista.filter(p => p.gama === gamaFilter);
+  const nav = document.getElementById('catNav'), cv = document.getElementById('catalogView');
+  const pf = document.getElementById('pesqFixa'), cn = document.querySelector('.cliente-nav');
+  if (pf) pf.style.top = (cn && getComputedStyle(cn).position === 'sticky' && cn.offsetParent ? cn.offsetHeight : 0) + 'px';
+  carregarMeus();
+  const termoNav = ((document.getElementById('pesquisaProduto') || {}).value || '').trim();
+  if (!termoNav && !navSec) {
+    cv.dataset.nivel = 'inicio'; nav.innerHTML = '';
+    let h = '';
+    if (ultimaEnc) h += `<div class="repetir"><span><b>🔁 Comprar outra vez</b>Última encomenda: ${(ultimaEnc.itens || []).length} artigo(s) · ${eur((ultimaEnc.total || 0))} s/ IVA</span><button class="btn btn-gold" onclick="repetirUltima()">Repetir encomenda</button></div>`;
+    h += '<div class="tiles">' + seccoes().map(x => tile(`irNav('${x.id}')`, x.nome, x.n, x.img, x.ico)).join('');
+    if (meusIds && meusIds.length) h += tile("irNav('meus')", 'Os meus produtos', meusIds.length, '', '⭐', 'Os que costuma pedir');
+    grid.innerHTML = h + '</div>';
+    return;
+  }
+  cv.dataset.nivel = 'dentro';
+  if (termoNav) nav.innerHTML = `<button class="voltar" onclick="irNav(null)">‹ Catálogo</button> Resultados para «<b>${escH(termoNav)}</b>»`;
+  else {
+    const partes = [`<button class="voltar" onclick="history.state && history.state.cat ? history.back() : irNav(${navSub ? `'${navSec}'` : 'null'})">‹ Voltar</button>`, `<button onclick="irNav(null)">Catálogo</button>`];
+    partes.push(navSub ? `› <button onclick="irNav('${navSec}')">${escH(nomeSec(navSec))}</button> › <b>${escH(nomeSub(navSec, navSub))}</b>` : `› <b>${escH(nomeSec(navSec))}</b>`);
+    nav.innerHTML = partes.join(' ');
+    if (!navSub && (navSec === 'cao' || navSec === 'gato')) {
+      const lst = produtos.filter(p => RACAO(p) && daEspecie(p, navSec)); const gamas = [...new Set(lst.map(p => p.gama))];
+      grid.innerHTML = '<div class="tiles">' + gamas.map(g => { const ps = lst.filter(p => p.gama === g); const im = (ps.find(p => p.imagem) || {}).imagem; return tile(`irNav('${navSec}','${g.replace(/'/g, "\\'")}')`, g, ps.length, im, '🥣', DESC_GAMA[g]); }).join('') + '</div>';
+      return;
+    }
+    if (!navSub && navSec === 'testes') {
+      grid.innerHTML = '<div class="tiles">' + ESP_TESTES.map(([id, nome, ico]) => { const n = produtos.filter(p => p.gama === 'Testes rápidos' && daEspecie(p, id)).length; return n ? tile(`irNav('testes','${id}')`, nome, n, '', ico) : ''; }).join('') + '</div>';
+      return;
+    }
+  }
+  let lista = produtos;
+  if (!termoNav) {
+    if (navSec === 'cao' || navSec === 'gato') lista = produtos.filter(p => RACAO(p) && daEspecie(p, navSec) && p.gama === navSub);
+    else if (navSec === 'testes') lista = produtos.filter(p => p.gama === 'Testes rápidos' && daEspecie(p, navSub));
+    else if (navSec === 'equip') lista = produtos.filter(p => p.gama === 'Equipamentos');
+    else if (navSec === 'meus') lista = (meusIds || []).map(id => produtos.find(p => p.id === id)).filter(Boolean);
+  }
   const termo = ((document.getElementById('pesquisaProduto') || {}).value || '').trim().toLowerCase();
   if (termo) lista = lista.filter(p => p.nome.toLowerCase().includes(termo) || p.tamanhos.some(t => String(t.cod || '').includes(termo) || String(t.ean || '').includes(termo)));
   if (lista.length === 0) {
@@ -1006,7 +1075,7 @@ function renderCatalog() {
     return;
   }
   const ordemGamas = [...new Set(produtos.map(x => x.gama))];
-  const agrupar = gamaFilter === 'todas';
+  const agrupar = !!termoNav;
   if (agrupar) lista = [...lista].sort((a, b) => ordemGamas.indexOf(a.gama) - ordemGamas.indexOf(b.gama));
   const contaGama = {}; lista.forEach(x => contaGama[x.gama] = (contaGama[x.gama] || 0) + 1);
   let gamaAnterior = null;
