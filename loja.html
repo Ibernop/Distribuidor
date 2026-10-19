@@ -109,6 +109,27 @@ section { padding: 48px 0; }
 .repetir span{font-size:.9rem}.repetir b{display:block;font-size:1rem}
 #catalogView[data-nivel="dentro"] #banners,#catalogView[data-nivel="dentro"] #destaques{display:none!important}
 @media(max-width:600px){.tiles{grid-template-columns:repeat(2,1fr);gap:10px}.tile .ti{height:84px;font-size:2.4rem}.tile{padding:10px}}
+.vista-btns{margin-left:auto;display:inline-flex;background:#fff;border:1px solid var(--border);border-radius:30px;padding:3px}
+.vista-btns button{border:0;background:none;padding:6px 12px;border-radius:30px;font:inherit;font-size:.8rem;font-weight:700;color:var(--gray);cursor:pointer;text-decoration:none}
+.vista-btns button.on{background:var(--charcoal);color:#fff}
+.lista-rapida{grid-column:1/-1;background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.lr-gama{padding:10px 14px;background:var(--green-soft);font-weight:800;color:var(--charcoal);font-size:.9rem}
+.lr-linha{display:grid;grid-template-columns:44px 1fr auto 78px;gap:10px;align-items:center;padding:8px 12px;border-top:1px solid var(--border)}
+.lr-linha.off{opacity:.5}
+.lr-img{width:44px;height:44px;display:flex;align-items:center;justify-content:center}.lr-img img{max-width:44px;max-height:44px;object-fit:contain}
+.lr-nome{line-height:1.25;min-width:0}.lr-nome b{display:block;font-size:.88rem;color:var(--charcoal)}.lr-nome span{font-size:.76rem;color:var(--gray)}
+.lr-preco{font-weight:800;font-size:.9rem;color:var(--gold-dark);white-space:nowrap}
+.lr-qtd{width:78px;padding:9px 8px;border:1px solid var(--border);border-radius:10px;font:inherit;text-align:center;font-weight:700}
+.lr-esg{color:var(--red);font-weight:700}.lr-pouco{color:var(--gold-dark);font-weight:700}
+.lr-barra{grid-column:1/-1;position:sticky;bottom:12px;z-index:12;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--charcoal);color:#fff;border-radius:14px;padding:12px 16px;margin-top:10px;box-shadow:0 8px 24px rgba(7,32,46,.25)}
+.lr-barra span{font-size:.88rem;white-space:nowrap}.lr-barra .btn{padding:9px 16px}
+@media(max-width:600px){.lr-linha{grid-template-columns:36px 1fr 64px;row-gap:4px}.lr-img{width:36px;height:36px}.lr-img img{max-width:36px;max-height:36px}.lr-preco{grid-column:2;grid-row:2;font-size:.85rem}.lr-qtd{grid-column:3;grid-row:1/3;width:64px}.lr-barra{bottom:84px}}
+#cartProgresso{padding:12px 20px 0}#cartProgresso:empty{display:none}
+.pg-txt{font-size:.85rem;margin-bottom:6px}.pg-barra{height:8px;background:var(--border);border-radius:9px;overflow:hidden}.pg-barra i{display:block;height:100%;background:var(--gold);border-radius:9px;transition:width .3s}
+.pg-dica{margin-top:8px;font-size:.8rem;background:#eaf3fd;color:#0f5fb0;padding:7px 10px;border-radius:9px}
+.tl{display:flex;align-items:center;gap:6px;margin:10px 0 8px;flex-wrap:wrap}.tl>b{flex:1;min-width:14px;height:2px;background:var(--border)}
+.tl-p{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--gray);font-weight:600}.tl-p i{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--border);font-style:normal;font-size:.72rem;font-weight:800}
+.tl-p.feito i{background:#1d7a3e;color:#fff}.tl-p.feito{color:#1d7a3e}.tl-p.atual span{font-weight:800}
 .product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 @media (max-width: 900px) { .product-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 600px) { .product-grid { grid-template-columns: 1fr; } }
@@ -414,6 +435,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
     <strong>O seu pedido</strong>
     <button onclick="closeCart()" style="background:none; border:none; font-size:1.3rem; cursor:pointer;">✕</button>
   </div>
+  <div id="cartProgresso"></div>
   <div class="cart-items" id="cartItems"></div>
   <div class="cart-footer">
     <div class="cart-total" style="font-size:0.9rem; font-weight:600; color:var(--gray); margin-bottom:6px;"><span>Subtotal</span><span id="cartSubtotal">0,00€</span></div>
@@ -778,6 +800,17 @@ function totaisCarrinho() {
 function atualizarMinimo() {
   const el = document.getElementById('minimoMsg'); if (!el) return;
   const t = totaisCarrinho().total;
+  const pg = document.getElementById('cartProgresso');
+  if (pg) {
+    if (!(t > 0)) pg.innerHTML = '';
+    else {
+      const pct = Math.min(100, t / PEDIDO_MINIMO * 100), ok = t >= PEDIDO_MINIMO;
+      let dica = ''; let melhor = null;
+      Object.keys(cart).forEach(k => { const it = cart[k]; if (it.prox && (!melhor || it.prox.faltam < melhor.prox.faltam)) melhor = it; });
+      if (melhor) dica = `<div class="pg-dica">💡 Junte mais <b>${melhor.prox.faltam}</b> saco(s) ${escH(melhor.gama || '')} de ${escH(melhor.tamanho)} e passa a <b>${melhor.prox.preco.toFixed(2)}€/un.</b></div>`;
+      pg.innerHTML = `<div class="pg-txt">${ok ? '✅ Pedido mínimo atingido' : 'Faltam <b>' + (PEDIDO_MINIMO - t).toFixed(2) + '€</b> para o pedido mínimo de ' + PEDIDO_MINIMO + '€'}</div><div class="pg-barra"><i style="width:${pct}%;${ok ? 'background:#1d7a3e' : ''}"></i></div>${dica}`;
+    }
+  }
   if (t > 0 && t < PEDIDO_MINIMO) { el.style.display = 'block'; el.textContent = 'Pedido mínimo de ' + PEDIDO_MINIMO + '€ (sem IVA). Faltam ' + (PEDIDO_MINIMO - t).toFixed(2) + '€.'; }
   else el.style.display = 'none';
   const b = document.getElementById('btnRever');
@@ -882,6 +915,11 @@ function dataPT(ts) {
   return d ? d.toLocaleDateString('pt-PT') + ' ' + d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '';
 }
 
+function linhaTempo(estado) {
+  const passos = [['pendente', 'Recebida'], ['separado', 'Em preparação'], ['enviado', 'Enviada']];
+  const at = Math.max(0, passos.findIndex(x => x[0] === estado));
+  return '<div class="tl">' + passos.map((x, i) => `<div class="tl-p${i <= at ? ' feito' : ''}${i === at ? ' atual' : ''}"><i>${i < at || (i === at && i === passos.length - 1) ? '✓' : i + 1}</i><span>${x[1]}</span></div>`).join('<b></b>') + '</div>';
+}
 function carregarHistorico() {
   const el = document.getElementById('historicoLista');
   el.innerHTML = '<p class="hist-vazio">A carregar...</p>';
@@ -894,6 +932,7 @@ function carregarHistorico() {
       return `<div class="hist-card">
         <div class="hist-top"><div><strong>Encomenda ${p.id.slice(-6).toUpperCase()}</strong><span>${dataPT(p.criadoEm)} · ${pagLabel(p.metodoPagamento)}</span></div>
         <div class="hist-total">${eur(total * 1.23)}<small>c/ IVA · ${eur(total)} s/ IVA</small></div></div>
+        ${linhaTempo(p.estado)}
         <ul>${(p.itens || []).map(it => `<li>${it.qty}× ${escH(it.nome)} <em>(${escH(it.tamanho)})</em></li>`).join('')}</ul>
         <div class="hist-acoes">
           <button class="btn btn-gold" onclick="repetirEncomenda('${p.id}')">Repetir encomenda</button>
@@ -1057,6 +1096,72 @@ function carregarMeus() {
 }
 function repetirUltima() { if (!ultimaEnc) return; if (typeof minhasEncomendas !== 'undefined' && !minhasEncomendas.find(x => x.id === ultimaEnc.id)) minhasEncomendas.push(ultimaEnc); repetirEncomenda(ultimaEnc.id); }
 
+// ---------- Pesquisa: ignora acentos/maiúsculas e entende termos em português ----------
+const normTxt = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const SINONIMOS = [
+  ['salm', 'salmon'], ['frang', 'chicken'], ['galinh', 'chicken'], ['peru', 'turkey'], ['cordeir', 'lamb'], ['borreg', 'lamb'], ['peix', 'fish'], ['atum', 'tuna'],
+  ['pato', 'duck'], ['coelh', 'rabbit'], ['porc', 'pork'], ['vaca', 'beef'], ['vitel', 'beef'], ['bacalh', 'cod'], ['sardinh', 'sardine'], ['arenque', 'herring'],
+  ['ester', 'steril'], ['castrad', 'steril'], ['cachor', 'puppy junior'], ['filhot', 'puppy junior kitten'], ['gatinh', 'kitten junior'], ['jovem', 'junior'],
+  ['adult', 'adult'], ['idos', 'senior'], ['sen', 'senior'], ['pequen', 'mini small'], ['grand', 'maxi large'], ['medi', 'medium'],
+  ['peso', 'light weight'], ['obes', 'light weight'], ['magr', 'light weight'], ['renal', 'renal'], ['rim', 'renal'], ['urin', 'urinary'],
+  ['digest', 'gastro digest intestinal'], ['gastr', 'gastro intestinal'], ['intestin', 'intestinal gastro'], ['pele', 'derma skin'], ['dermat', 'derma skin'],
+  ['hipoal', 'hypoallergenic hypo'], ['alerg', 'hypoallergenic hypo'], ['oleo', 'oil'], ['humid', 'wetline wet'], ['lata', 'wetline wet'], ['saqueta', 'wetline wet pouch'],
+  ['sem cerea', 'grain free'], ['cerea', 'grain'], ['articul', 'joint mobility'], ['cardi', 'cardiac'], ['diabet', 'diabetic'], ['hepat', 'hepatic'], ['figad', 'hepatic'],
+  ['teste', 'test teste'], ['rapid', 'rapid test'], ['leitor', 'reader'], ['cao', 'dog cao'], ['caes', 'dog cao'], ['gato', 'cat gato'], ['cavalo', 'equin horse'], ['ave', 'bird ave']
+];
+const NOME_ESP = { cao: 'cao caes dog', gato: 'gato cat', caogato: 'cao gato dog cat', aves: 'aves bird', coelhos: 'coelho rabbit', repteis: 'repteis reptile', equinos: 'equino cavalo horse', bovinos: 'bovino vaca cattle', ovinos: 'ovino ovelha sheep', suinos: 'suino porco pig', todas: '' };
+function correspondePesquisa(p, termo) {
+  const alvo = normTxt([p.nome, p.gama, NOME_ESP[p.especie] || '', ...p.tamanhos.map(t => (t.cod || '') + ' ' + (t.ean || '') + ' ' + t.label)].join(' '));
+  return normTxt(termo).split(/\s+/).filter(Boolean).every(tok => {
+    if (alvo.includes(tok)) return true;
+    return SINONIMOS.some(([k, v]) => tok.length >= 3 && (tok.startsWith(k) || k.startsWith(tok)) && v.split(' ').some(w => alvo.includes(w)));
+  });
+}
+
+// ---------- Vista em lista (encomenda rápida) ----------
+let vistaLista = (() => { try { const v = localStorage.getItem('vistaCatalogo'); if (v) return v === 'lista'; } catch (e) {} return window.innerWidth < 700; })();
+function mudarVista(lista) { vistaLista = lista; try { localStorage.setItem('vistaCatalogo', lista ? 'lista' : 'cartoes'); } catch (e) {} renderCatalog(); }
+function htmlVistaBtns() { return `<span class="vista-btns"><button type="button" class="${vistaLista ? '' : 'on'}" onclick="mudarVista(false)">▦ Cartões</button><button type="button" class="${vistaLista ? 'on' : ''}" onclick="mudarVista(true)">☰ Lista rápida</button></span>`; }
+function htmlListaRapida(lista, agrupar) {
+  const desc = (currentCliente && currentCliente.desconto) || 0; let gamaAnt = null;
+  const linhas = lista.map(p => {
+    let cab = '';
+    if (agrupar && p.gama !== gamaAnt) { gamaAnt = p.gama; cab = `<div class="lr-gama">${escH(p.gama)}</div>`; }
+    return cab + p.tamanhos.map((t, i) => {
+      const q = stockDe(p.id, t.label), esg = q === 0, semPreco = !(t.preco > 0);
+      const pr = t.preco * (1 - desc / 100);
+      const st = esg ? '<span class="lr-esg">Esgotado</span>' : (q !== null && q <= LIMITE_STOCK_BAIXO ? `<span class="lr-pouco">Restam ${q}</span>` : '');
+      return `<div class="lr-linha${esg || semPreco ? ' off' : ''}">
+        <div class="lr-img">${p.imagem ? `<img src="${p.imagem}" alt="" loading="lazy">` : ''}</div>
+        <div class="lr-nome"><b>${escH(p.nome)}</b><span>${escH(t.label)}${t.cod ? ' · ' + escH(t.cod) : ''}${t.unidades > 1 ? ' · caixa' : ''} ${st}</span></div>
+        <div class="lr-preco">${semPreco ? '—' : pr.toFixed(2) + '€'}</div>
+        <input type="number" min="0" step="1" inputmode="numeric" placeholder="0" class="lr-qtd" data-p="${p.id}" data-i="${i}" ${esg || semPreco ? 'disabled' : ''} oninput="contarLista()">
+      </div>`;
+    }).join('');
+  }).join('');
+  return `<div class="lista-rapida">${linhas}</div><div class="lr-barra" id="lrBarra" style="display:none"><span id="lrConta"></span><button class="btn btn-gold" onclick="adicionarLista()">Adicionar ao carrinho</button></div>`;
+}
+function contarLista() {
+  let n = 0, v = 0; const desc = (currentCliente && currentCliente.desconto) || 0;
+  document.querySelectorAll('.lr-qtd').forEach(inp => { const q = parseInt(inp.value || '0', 10); if (q > 0) { const p = produtos.find(x => x.id === +inp.dataset.p); const t = p && p.tamanhos[+inp.dataset.i]; n += q; v += t ? t.preco * (1 - desc / 100) * q : 0; } });
+  const el = document.getElementById('lrConta'); if (el) el.innerHTML = `<b>${n}</b> unid. · ${v.toFixed(2)}€ s/ IVA`;
+  const bar = document.getElementById('lrBarra'); if (bar) bar.style.display = n ? 'flex' : 'none';
+}
+function adicionarLista() {
+  const avisos = []; let n = 0;
+  document.querySelectorAll('.lr-qtd').forEach(inp => {
+    const q = parseInt(inp.value || '0', 10); if (!(q > 0)) return;
+    const p = produtos.find(x => x.id === +inp.dataset.p), t = p && p.tamanhos[+inp.dataset.i]; if (!t) return;
+    const key = p.id + '_' + t.label, disp = stockDe(p.id, t.label), ja = cart[key] ? cart[key].qty : 0;
+    if (disp !== null && ja + q > disp) { avisos.push(p.nome + ' (' + t.label + '): só há ' + disp); return; }
+    if (cart[key]) cart[key].qty += q; else cart[key] = { nome: p.nome, tamanho: t.label, preco: t.preco, qty: q };
+    n += q; inp.value = '';
+  });
+  if (n) { renderCart(); avisoCarrinho(n + ' unidade(s)'); contarLista(); }
+  if (avisos.length) alert('Não foi possível adicionar:\n' + avisos.join('\n'));
+  if (!n && !avisos.length) alert('Indique a quantidade em pelo menos um produto.');
+}
+
 function renderCatalog() {
   const grid = document.getElementById('productGrid');
   const nav = document.getElementById('catNav'), cv = document.getElementById('catalogView');
@@ -1074,11 +1179,11 @@ function renderCatalog() {
     return;
   }
   cv.dataset.nivel = 'dentro';
-  if (termoNav) nav.innerHTML = `<button class="voltar" onclick="irNav(null)">‹ Catálogo</button> Resultados para «<b>${escH(termoNav)}</b>»`;
+  if (termoNav) nav.innerHTML = `<button class="voltar" onclick="irNav(null)">‹ Catálogo</button> Resultados para «<b>${escH(termoNav)}</b>»` + htmlVistaBtns();
   else {
     const partes = [`<button class="voltar" onclick="history.state && history.state.cat ? history.back() : irNav(${navSub ? `'${navSec}'` : 'null'})">‹ Voltar</button>`, `<button onclick="irNav(null)">Catálogo</button>`];
     partes.push(navSub ? `› <button onclick="irNav('${navSec}')">${escH(nomeSec(navSec))}</button> › <b>${escH(nomeSub(navSec, navSub))}</b>` : `› <b>${escH(nomeSec(navSec))}</b>`);
-    nav.innerHTML = partes.join(' ');
+    nav.innerHTML = partes.join(' ') + ((navSub || navSec === 'equip' || navSec === 'meus') ? htmlVistaBtns() : '');
     if (!navSub && (navSec === 'cao' || navSec === 'gato')) {
       const lst = produtos.filter(p => RACAO(p) && daEspecie(p, navSec)); const gamas = [...new Set(lst.map(p => p.gama))];
       grid.innerHTML = '<div class="tiles">' + gamas.map(g => { const ps = lst.filter(p => p.gama === g); const im = (ps.find(p => p.imagem) || {}).imagem; return tile(`irNav('${navSec}','${g.replace(/'/g, "\\'")}')`, g, ps.length, im, '🥣', DESC_GAMA[g]); }).join('') + '</div>';
@@ -1096,8 +1201,8 @@ function renderCatalog() {
     else if (navSec === 'equip') lista = produtos.filter(p => p.gama === 'Equipamentos');
     else if (navSec === 'meus') lista = (meusIds || []).map(id => produtos.find(p => p.id === id)).filter(Boolean);
   }
-  const termo = ((document.getElementById('pesquisaProduto') || {}).value || '').trim().toLowerCase();
-  if (termo) lista = lista.filter(p => p.nome.toLowerCase().includes(termo) || p.tamanhos.some(t => String(t.cod || '').includes(termo) || String(t.ean || '').includes(termo)));
+  const termo = ((document.getElementById('pesquisaProduto') || {}).value || '').trim();
+  if (termo) lista = lista.filter(p => correspondePesquisa(p, termo));
   if (lista.length === 0) {
     grid.innerHTML = '<div class="empty-state">Sem produtos nesta combinação de filtros.</div>';
     return;
@@ -1105,6 +1210,7 @@ function renderCatalog() {
   const ordemGamas = [...new Set(produtos.map(x => x.gama))];
   const agrupar = !!termoNav;
   if (agrupar) lista = [...lista].sort((a, b) => ordemGamas.indexOf(a.gama) - ordemGamas.indexOf(b.gama));
+  if (vistaLista) { grid.innerHTML = htmlListaRapida(lista, agrupar); return; }
   const contaGama = {}; lista.forEach(x => contaGama[x.gama] = (contaGama[x.gama] || 0) + 1);
   let gamaAnterior = null;
   grid.innerHTML = lista.map(p => {
