@@ -581,6 +581,7 @@ setInterval(() => {
 
 auth.onAuthStateChanged(user => {
   currentUser = user;
+  if (!user && /[?&]demo\b/.test(location.search)) return entrarDemo();
   if (!user) {
     try { localStorage.removeItem(CHAVE_ULTIMA_ATIVIDADE); } catch (e) {}
     cart = {};
@@ -618,6 +619,17 @@ auth.onAuthStateChanged(user => {
     }
   });
 });
+
+// Demonstração sem login: abrir loja.html?demo (para mostrar a loja a potenciais clientes; não envia encomendas)
+function entrarDemo() {
+  currentCliente = { empresa: 'Demonstração', aprovado: true, desconto: 0, preview: true };
+  cart = {}; showView('catalog'); document.getElementById('clienteNav').style.display = 'none';
+  aplicarPagamentos(); renderCatalog(); renderCart();
+  document.getElementById('headerActions').innerHTML = '<span>Demonstração</span><button onclick="location.href=\'loja.html\'">Entrar como cliente</button>';
+  const b = document.createElement('div'); b.id = 'avisoPreview'; b.textContent = '👀 Demonstração da Área de Cliente Ibernop — explore o catálogo e o carrinho. Para encomendar, peça o seu acesso à Ibernop.';
+  b.style.cssText = 'position:sticky;top:0;z-index:50;background:#fff3cd;color:#664d03;padding:10px 16px;text-align:center;font-weight:600;font-size:.9rem';
+  if (!document.getElementById('avisoPreview')) document.body.prepend(b);
+}
 
 function updateHeaderActions() {
   const el = document.getElementById('headerActions');
@@ -734,7 +746,7 @@ function abrirRevisao() {
   document.getElementById('revBack').style.display = 'flex';
 }
 function fecharRevisao() { document.getElementById('revBack').style.display = 'none'; }
-function confirmarEnvio() { fecharRevisao(); if (currentCliente && currentCliente.preview) { alert('Modo de pré-visualização: as encomendas só podem ser enviadas por clientes.'); return; } submitPedido(); }
+function confirmarEnvio() { fecharRevisao(); if (currentCliente && currentCliente.preview) { alert(currentUser ? 'Modo de pré-visualização: as encomendas só podem ser enviadas por clientes.' : 'Esta é uma demonstração. Para fazer encomendas, peça o seu acesso à Ibernop: geral@ibernop.com · 938 093 411.'); return; } submitPedido(); }
 
 // ---------- Financeiro (faturas e saldos, importados na Gestão) ----------
 function abrirFinanceiro() {
