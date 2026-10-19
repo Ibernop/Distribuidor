@@ -927,7 +927,7 @@ function setCatalogFilter(f, btn) {
 
 function renderCatalog() {
   const grid = document.getElementById('productGrid');
-  let lista = catalogFilter === 'todos' ? produtos : produtos.filter(p => p.especie === catalogFilter || (p.especie === 'caogato' && (catalogFilter === 'cao' || catalogFilter === 'gato')));
+  let lista = catalogFilter === 'todos' ? produtos : produtos.filter(p => p.especie === catalogFilter || p.especie === 'todas' || (p.especie === 'caogato' && (catalogFilter === 'cao' || catalogFilter === 'gato')));
   if (gamaFilter !== 'todas') lista = lista.filter(p => p.gama === gamaFilter);
   const termo = ((document.getElementById('pesquisaProduto') || {}).value || '').trim().toLowerCase();
   if (termo) lista = lista.filter(p => p.nome.toLowerCase().includes(termo) || p.tamanhos.some(t => String(t.cod || '').includes(termo) || String(t.ean || '').includes(termo)));
@@ -962,7 +962,7 @@ function renderCatalog() {
     return `
       <div class="product-card" id="pcard-${p.id}">
         <div class="product-thumb">
-          ${p.imagem ? `<img src="${p.imagem}" alt="${p.nome}" loading="lazy">` : `<span class="placeholder-icon">${({gato:'🐱',aves:'🐦',coelhos:'🐰',repteis:'🦎',equinos:'🐴',bovinos:'🐄',ovinos:'🐑',suinos:'🐖'})[p.especie] || '🐶'}</span>`}
+          ${p.imagem ? `<img src="${p.imagem}" alt="${p.nome}" loading="lazy">` : `<span class="placeholder-icon">${({todas:'🔬',gato:'🐱',aves:'🐦',coelhos:'🐰',repteis:'🦎',equinos:'🐴',bovinos:'🐄',ovinos:'🐑',suinos:'🐖'})[p.especie] || '🐶'}</span>`}
         </div>
         <span class="gama-tag">${p.gama}</span>${p.tamanhos.some(t => t.promo) ? `<span class="gama-tag" style="background:#e63946;color:#fff;margin-left:6px">Promoção -${Math.max(...p.tamanhos.map(t => t.promo || 0))}%</span>` : ''}
         <h3>${p.nome}</h3>
