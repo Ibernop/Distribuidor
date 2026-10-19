@@ -131,6 +131,29 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
 .cliente-nav .wrap { display: flex; gap: 6px; padding-top: 10px; padding-bottom: 10px; overflow-x: auto; }
 .cliente-nav button { font: inherit; font-weight: 700; font-size: .85rem; border: 1.5px solid var(--border); background: #fff; color: var(--charcoal); padding: 9px 18px; border-radius: 32px; cursor: pointer; white-space: nowrap; }
 .cliente-nav button.on { background: var(--charcoal); border-color: var(--charcoal); color: #fff; }
+/* ---------- Menu lateral (área de cliente) ---------- */
+.menu-logo, .menu-btn, #menuFundo { display: none; }
+body.com-menu .hero-strip { display: none !important; }
+body.com-menu #clienteNav { position: fixed; top: 0; left: 0; bottom: 0; width: 240px; background: var(--charcoal); border: 0; z-index: 60; overflow-y: auto; }
+body.com-menu #clienteNav .wrap { display: flex; flex-direction: column; gap: 4px; padding: 26px 18px; max-width: none; overflow: visible; }
+body.com-menu .menu-logo { display: block; margin: 0 0 26px 8px; }
+body.com-menu .menu-logo img { height: 54px; display: block; }
+body.com-menu #clienteNav button { border: 0; background: transparent; color: rgba(255,255,255,.82); text-align: left; padding: 12px 14px; border-radius: 10px; font-size: .95rem; display: flex; gap: 12px; align-items: center; border-left: 3px solid transparent; }
+body.com-menu #clienteNav button:hover { background: rgba(255,255,255,.08); color: #fff; }
+body.com-menu #clienteNav button.on { background: rgba(255,255,255,.1); color: #fff; border-left-color: var(--gold); }
+body.com-menu #clienteNav .menu-sep { height: 1px; background: rgba(255,255,255,.12); margin: 14px 6px; }
+body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incidencias"], body.demo #clienteNav [data-v="financeiro"], body.demo #clienteNav [data-v="conta"], body.demo #clienteNav .menu-sair { display: none !important; }
+@media (min-width: 900px) {
+  body.com-menu { padding-left: 240px; }
+  body.com-menu header.site .brand { visibility: hidden; }
+}
+@media (max-width: 899px) {
+  body.com-menu #clienteNav { transform: translateX(-100%); transition: transform .25s ease; box-shadow: 0 0 40px rgba(0,0,0,.3); }
+  body.com-menu.menu-aberto #clienteNav { transform: none; }
+  body.com-menu .menu-btn { display: inline-flex; background: transparent; border: 1px solid rgba(255,255,255,.35); color: #fff; font-size: 1.3rem; border-radius: 8px; padding: 4px 11px; cursor: pointer; margin-right: 12px; }
+  body.com-menu.menu-aberto #menuFundo { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 55; }
+  body.com-menu header.site .brand-sub { display: none; }
+}
 #historicoView, #contaView { padding: 36px 0 60px; }
 #historicoView h2, #contaView h2 { margin: 0 0 18px; }
 .hist-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; margin-bottom: 14px; }
@@ -209,6 +232,7 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
 
 <header class="site">
   <div class="wrap">
+    <button class="menu-btn" onclick="document.body.classList.toggle('menu-aberto')" aria-label="Menu">☰</button>
     <div class="brand">
       <a href="index.html"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop" style="height:46px;display:block"></a>
       <div>
@@ -287,13 +311,19 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
   </div>
 </section>
 
+<div id="menuFundo" onclick="document.body.classList.remove('menu-aberto')"></div>
 <nav id="clienteNav" class="cliente-nav" style="display:none;">
   <div class="wrap">
-    <button data-v="catalog" onclick="irPara('catalog')">Catálogo</button>
-    <button data-v="historico" onclick="irPara('historico')">As minhas encomendas</button>
-    <button data-v="incidencias" onclick="irPara('incidencias')">Incidências</button>
-    <button data-v="financeiro" onclick="irPara('financeiro')">Financeiro</button>
-    <button data-v="conta" onclick="irPara('conta')">A minha conta</button>
+    <a class="menu-logo" href="index.html"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop"></a>
+    <button data-v="catalog" onclick="irPara('catalog')"><span>🛒</span>Loja</button>
+    <button onclick="irPromocoes()"><span>⭐</span>Promoções</button>
+    <button data-v="historico" onclick="irPara('historico')"><span>📦</span>As minhas encomendas</button>
+    <button data-v="financeiro" onclick="irPara('financeiro')"><span>💶</span>Financeiro</button>
+    <button data-v="incidencias" onclick="irPara('incidencias')"><span>⚠️</span>Incidências</button>
+    <button data-v="conta" onclick="irPara('conta')"><span>👤</span>A minha conta</button>
+    <div class="menu-sep"></div>
+    <button onclick="irContactos()"><span>☎️</span>Contactos</button>
+    <button class="menu-sair" onclick="doLogout()"><span>↩</span>Sair</button>
   </div>
 </nav>
 
@@ -623,7 +653,7 @@ auth.onAuthStateChanged(user => {
 // Demonstração sem login: abrir loja.html?demo (para mostrar a loja a potenciais clientes; não envia encomendas)
 function entrarDemo() {
   currentCliente = { empresa: 'Demonstração', aprovado: true, desconto: 0, preview: true };
-  cart = {}; showView('catalog'); document.getElementById('clienteNav').style.display = 'none';
+  cart = {}; document.body.classList.add('demo'); showView('catalog');
   aplicarPagamentos(); renderCatalog(); renderCart();
   document.getElementById('headerActions').innerHTML = '<span>Demonstração</span><button onclick="location.href=\'loja.html\'">Entrar como cliente</button>';
   const b = document.createElement('div'); b.id = 'avisoPreview'; b.textContent = '👀 Demonstração da Área de Cliente Ibernop — explore o catálogo e o carrinho. Para encomendar, peça o seu acesso à Ibernop.';
@@ -650,6 +680,7 @@ function showView(view) {
   document.getElementById('financeiroView').style.display = view === 'financeiro' ? 'block' : 'none';
   document.getElementById('incidenciasView').style.display = view === 'incidencias' ? 'block' : 'none';
   document.getElementById('clienteNav').style.display = cliente ? 'block' : 'none';
+  document.body.classList.toggle('com-menu', cliente); document.body.classList.remove('menu-aberto');
   document.getElementById('historicoView').style.display = view === 'historico' ? 'block' : 'none';
   document.getElementById('contaView').style.display = view === 'conta' ? 'block' : 'none';
   document.querySelectorAll('#clienteNav button').forEach(b => b.classList.toggle('on', b.dataset.v === view));
@@ -797,6 +828,15 @@ function htmlEscaloes(t, p) {
   const d = (currentCliente && currentCliente.desconto) || 0, ref = t ? t.preco * (1 - d / 100) : 0;
   const es = escaloesDe(t).filter(e => e.preco < ref - 0.004); if (!es.length) return '';
   return '💰 Compre mais, pague menos: ' + es.map(e => `<b>${e.q}+</b> ${e.preco.toFixed(2)}€`).join(' · ') + ' /un.<br><small>Somam todos os sabores ' + escH(p ? p.gama : '') + ' de ' + escH(t.label) + '.</small>';
+}
+
+function irPromocoes() {
+  irPara('catalog');
+  setTimeout(() => { const d = document.getElementById('destaques'); (d && d.style.display !== 'none' ? d : document.getElementById('catalogView')).scrollIntoView({ behavior: 'smooth' }); }, 60);
+}
+function irContactos() {
+  document.body.classList.remove('menu-aberto');
+  document.querySelector('footer.site').scrollIntoView({ behavior: 'smooth' });
 }
 
 function irPara(view) {
