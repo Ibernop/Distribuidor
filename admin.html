@@ -389,6 +389,7 @@ function loadClientes() {
           <div class="entry-sub">Faturação: ${esc(c.moradaFaturacao || c.morada)}</div>
           <div class="entry-sub">Entrega: ${esc(c.moradaEntrega || c.moradaFaturacao || c.morada)}</div>
           <div class="entry-sub">Desconto: ${c.desconto || 0}% · Pagamento: ${pagLista(c).map(pagLabel).join(', ')}</div>
+          <div class="entry-sub">${c.consentimento ? `🛡️ RGPD aceite a ${new Date(c.consentimento.data).toLocaleDateString('pt-PT')} · Promoções por e-mail: ${c.consentimento.marketing ? '<b style="color:#1d7a3e">sim</b>' : 'não'}` : '🛡️ RGPD: <span style="color:#b26b00">ainda não aceitou (é pedido no 1.º login)</span>'}</div>
         </div>`;
       const pags = pagLista(c);
       return `
