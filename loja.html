@@ -175,6 +175,11 @@ footer.site strong { color: #fff; }
 .fc-topo h3{margin:6px 0 2px;font-size:1.1rem;color:var(--charcoal);line-height:1.25;padding-right:30px}.fc-esp{margin:0;color:var(--gray);font-size:.85rem}
 .fc-tab{width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:6px}.fc-tab th{text-align:left;font-size:.75rem;color:var(--gray);border-bottom:1px solid var(--border);padding:6px}.fc-tab td{padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top}.fc-tab small{color:var(--gray)}
 .ficha-box h4{margin:14px 0 4px;font-size:.92rem;color:var(--charcoal)}.ficha-box p{margin:0;font-size:.84rem;line-height:1.5;color:#3a4650}
+#barraEmNome{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:#fff;border:2px solid var(--gold);border-radius:14px;padding:12px 14px;margin:0 0 16px}
+#barraEmNome label{font-weight:800;color:var(--charcoal);font-size:.9rem}#barraEmNome select{flex:1;min-width:220px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font:inherit}
+#barraEmNome small{flex-basis:100%;color:var(--gray);font-size:.78rem}
+.btn-aviso{margin-left:6px;border:1px solid var(--gold);background:#fff;color:var(--gold-dark);border-radius:20px;padding:3px 9px;font:inherit;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap}.btn-aviso.on{background:var(--gold);color:#fff}
+.lr-linha .btn-aviso{margin:0;justify-self:end}
 .consent{display:flex;gap:10px;align-items:flex-start;font-size:.82rem;line-height:1.45;color:var(--gray);margin:4px 0 12px;cursor:pointer;text-align:left}.consent input{margin-top:3px;width:18px;height:18px;flex:none;accent-color:var(--gold)}.consent a{color:var(--gold-dark)}
 footer.site{text-align:left!important;padding:44px 0 22px!important}
 footer.site a{color:#fff;text-decoration:none}footer.site a:hover{text-decoration:underline}
@@ -704,8 +709,8 @@ auth.onAuthStateChanged(user => {
         b.style.cssText = 'position:sticky;top:0;z-index:50;background:#fff3cd;color:#664d03;padding:10px 16px;text-align:center;font-weight:600;font-size:.9rem';
         if (!document.getElementById('avisoPreview')) document.body.prepend(b);
       };
-      if (!doc.exists && (user.email || '').toLowerCase() === 'ibernop@outlook.com') return verLoja();
-      db.collection('equipa_b2b').doc(user.uid).get().then(e => { if (e.exists) verLoja(); else showView('pending'); }).catch(() => showView('pending'));
+      if (!doc.exists && (user.email || '').toLowerCase() === 'ibernop@outlook.com') { membroEquipa = { papel: 'admin', vendedorId: '', nome: 'Administração' }; verLoja(); return montarSeletorCliente(); }
+      db.collection('equipa_b2b').doc(user.uid).get().then(e => { if (e.exists) { membroEquipa = { papel: e.data().papel, vendedorId: e.data().vendedorId || '', nome: e.data().nome || user.email }; verLoja(); montarSeletorCliente(); } else showView('pending'); }).catch(() => showView('pending'));
     }
   });
 });
@@ -719,6 +724,29 @@ function entrarDemo() {
   const b = document.createElement('div'); b.id = 'avisoPreview'; b.textContent = '👀 Demonstração da Área de Cliente Ibernop — explore o catálogo e o carrinho. Para encomendar, peça o seu acesso à Ibernop.';
   b.style.cssText = 'position:sticky;top:0;z-index:50;background:#fff3cd;color:#664d03;padding:10px 16px;text-align:center;font-weight:600;font-size:.9rem';
   if (!document.getElementById('avisoPreview')) document.body.prepend(b);
+}
+
+// ---------- Equipa: encomendar em nome de um cliente (só os da sua zona, a pedido do cliente) ----------
+let membroEquipa = null, clienteAlvo = null, clientesEquipa = [];
+function montarSeletorCliente() {
+  if (!membroEquipa) return;
+  const q = membroEquipa.papel === 'vendedor' ? db.collection('clientes_b2b').where('vendedorId', '==', membroEquipa.vendedorId) : db.collection('clientes_b2b');
+  q.get().then(snap => {
+    clientesEquipa = snap.docs.map(d => ({ uid: d.id, ...d.data() })).filter(c => c.aprovado).sort((a, b) => String(a.nomeComercial || a.empresa).localeCompare(String(b.nomeComercial || b.empresa)));
+    let bar = document.getElementById('barraEmNome');
+    if (!bar) { bar = document.createElement('div'); bar.id = 'barraEmNome'; const w = document.querySelector('#catalogView .wrap'); w.insertBefore(bar, w.firstChild); }
+    bar.innerHTML = `<label>🧾 Encomendar em nome de:</label><select id="selEmNome" onchange="escolherClienteAlvo(this.value)"><option value="">— Só ver a loja (pré-visualização) —</option>${clientesEquipa.map(c => `<option value="${c.uid}">${escH(c.nomeComercial || c.empresa)}${c.localidade ? ' — ' + escH(c.localidade) : ''}</option>`).join('')}</select><small>Use só quando o cliente lhe pedir. A encomenda fica em nome do cliente, com a indicação de que foi feita por si.</small>`;
+    if (!clientesEquipa.length) bar.querySelector('small').textContent = 'Ainda não tem clientes aprovados atribuídos.';
+  }).catch(() => {});
+}
+function escolherClienteAlvo(uid) {
+  const c = clientesEquipa.find(x => x.uid === uid);
+  cart = {};
+  if (c) { clienteAlvo = c; currentCliente = { ...c, preview: false, emNomeDe: true }; }
+  else { clienteAlvo = null; currentCliente = { empresa: 'Pré-visualização (Gestão)', aprovado: true, desconto: 0, preview: true }; }
+  const av = document.getElementById('avisoPreview');
+  if (av) { av.textContent = c ? '🧾 A encomendar em nome de ' + (c.nomeComercial || c.empresa) + ' — preços, descontos e pagamentos deste cliente.' : '👁 Modo de pré-visualização da Gestão — vê a loja como um cliente, sem desconto. Não é possível enviar encomendas.'; av.style.background = c ? '#d9f2e3' : '#fff3cd'; av.style.color = c ? '#14532d' : '#664d03'; }
+  updateHeaderActions(); aplicarPagamentos(); renderCatalog(); renderCart();
 }
 
 function updateHeaderActions() {
@@ -1145,7 +1173,7 @@ function htmlListaRapida(lista, agrupar) {
         <div class="lr-img" onclick="abrirFicha(${p.id})" style="cursor:pointer">${p.imagem ? `<img src="${p.imagem}" alt="" loading="lazy">` : ''}</div>
         <div class="lr-nome"><b onclick="abrirFicha(${p.id})" style="cursor:pointer">${escH(p.nome)} <small class="ficha-i">ⓘ</small></b><span>${escH(t.label)}${t.cod ? ' · ' + escH(t.cod) : ''}${t.unidades > 1 ? ' · caixa' : ''} ${st}</span></div>
         <div class="lr-preco">${semPreco ? '—' : pr.toFixed(2) + '€'}</div>
-        <input type="number" min="0" step="1" inputmode="numeric" placeholder="0" class="lr-qtd" data-p="${p.id}" data-i="${i}" ${esg || semPreco ? 'disabled' : ''} oninput="contarLista()">
+        ${esg && btnAviso(p, t) ? btnAviso(p, t) : `<input type="number" min="0" step="1" inputmode="numeric" placeholder="0" class="lr-qtd" data-p="${p.id}" data-i="${i}" ${esg || semPreco ? 'disabled' : ''} oninput="contarLista()">`}
       </div>`;
     }).join('');
   }).join('');
@@ -1172,6 +1200,26 @@ function adicionarLista() {
   if (!n && !avisos.length) alert('Indique a quantidade em pelo menos um produto.');
 }
 
+// ---------- Avise-me quando houver stock ----------
+let meusAvisos = new Set(), avisosCarregados = false;
+const idAviso = k => (currentUser ? currentUser.uid : '') + '_' + k.replace(/\//g, '-');
+function carregarAvisos() {
+  if (avisosCarregados || !currentUser || !currentCliente || currentCliente.preview || currentCliente.emNomeDe) return; avisosCarregados = true;
+  db.collection('avisos_stock').where('clienteUid', '==', currentUser.uid).get().then(s => { meusAvisos = new Set(s.docs.map(d => d.data().key)); renderCatalog(); }).catch(() => {});
+}
+function btnAviso(p, t) {
+  if (!currentUser || !currentCliente || currentCliente.preview || currentCliente.emNomeDe) return '';
+  const k = p.id + '_' + t.label, on = meusAvisos.has(k);
+  return `<button type="button" class="btn-aviso${on ? ' on' : ''}" onclick="event.stopPropagation();avisarMe(${p.id},'${t.label.replace(/'/g, "\\'")}')">${on ? '🔔 Vai ser avisado' : '🔔 Avise-me'}</button>`;
+}
+function avisarMe(pid, label) {
+  const p = produtos.find(x => x.id === pid); if (!p || !currentUser) return; const k = pid + '_' + label, ref = db.collection('avisos_stock').doc(idAviso(k));
+  if (meusAvisos.has(k)) { ref.delete().then(() => { meusAvisos.delete(k); renderCatalog(); }).catch(e => alert('Não foi possível cancelar: ' + e.message)); return; }
+  ref.set({ clienteUid: currentUser.uid, empresa: currentCliente.nomeComercial || currentCliente.empresa || '', email: currentUser.email || '', vendedorId: currentCliente.vendedorId || '', key: k, nome: p.nome, tamanho: label, criadoEm: firebase.firestore.FieldValue.serverTimestamp() })
+    .then(() => { meusAvisos.add(k); renderCatalog(); avisoCarrinho('Vamos avisá-lo quando ' + p.nome + ' (' + label + ') voltar a ter stock'); })
+    .catch(e => alert('Não foi possível registar o aviso: ' + e.message));
+}
+
 // ---------- Ficha do produto ----------
 function abrirFicha(id) {
   const p = produtos.find(x => x.id === id); if (!p) return;
@@ -1193,6 +1241,7 @@ function fecharFicha() { document.getElementById('fichaBack').style.display = 'n
 
 function renderCatalog() {
   const grid = document.getElementById('productGrid');
+  carregarAvisos();
   const nav = document.getElementById('catNav'), cv = document.getElementById('catalogView');
   const pf = document.getElementById('pesqFixa'), cn = document.querySelector('.cliente-nav');
   if (pf) pf.style.top = (cn && getComputedStyle(cn).position === 'sticky' && cn.offsetParent ? cn.offsetHeight : 0) + 'px';
@@ -1257,7 +1306,7 @@ function renderCatalog() {
       const esgotado = qty === 0;
       let avisoHtml = '';
       if (esgotado) {
-        avisoHtml = `<span style="color:var(--red); font-weight:700; font-size:0.78rem;">Esgotado</span>`;
+        avisoHtml = `<span style="color:var(--red); font-weight:700; font-size:0.78rem;">Esgotado</span>${btnAviso(p, t)}`;
       } else if (qty !== null && qty <= LIMITE_STOCK_BAIXO) {
         avisoHtml = `<span style="color:var(--gold-dark); font-weight:700; font-size:0.78rem;">Restam ${qty}</span>`;
       }
@@ -1439,7 +1488,8 @@ function submitPedido() {
 
   // O stock passa a ser gerido só pela Ibernop (desce quando a encomenda é separada)
   Promise.resolve().then(() => db.collection('pedidos_b2b').add({
-    clienteUid: currentUser.uid,
+    clienteUid: clienteAlvo ? clienteAlvo.uid : currentUser.uid,
+    feitoPor: clienteAlvo ? { uid: currentUser.uid, email: currentUser.email || '', nome: (membroEquipa && membroEquipa.nome) || '', papel: (membroEquipa && membroEquipa.papel) || '' } : null,
     empresa: currentCliente.empresa,
     nomeFaturacao: currentCliente.nomeFaturacao || '',
     nif: currentCliente.nif,
@@ -1452,7 +1502,7 @@ function submitPedido() {
     estado: 'pendente', // pendente -> separado -> enviado
     criadoEm: firebase.firestore.FieldValue.serverTimestamp()
   })).then(ref => {
-    enviarEmail(EMAILJS.tplEncomenda, { referencia: ref.id.slice(-6).toUpperCase(), data: new Date().toLocaleString('pt-PT'), nome_faturacao: currentCliente.nomeFaturacao || '', morada_entrega: currentCliente.moradaEntrega || currentCliente.morada || '', pagamento: pagLabel(metodoPagamento), itens_html: '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:4px 0 14px"><tr style="background:#07202e;color:#fff"><th align="center" style="padding:7px 5px;width:30px">Qtd</th><th align="left" style="padding:7px 5px">Produto</th><th align="right" style="padding:7px 5px">Preço un.</th><th align="right" style="padding:7px 5px">Total</th></tr>' + itens.map(it => `<tr><td align="center" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;font-weight:bold">${it.qty}</td><td style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top">${escH(it.nome)}<br><span style="color:#6b7780;font-size:12px">${escH(it.tamanho)}</span></td><td align="right" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;white-space:nowrap">${eur(it.preco)}</td><td align="right" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;white-space:nowrap;font-weight:bold">${eur(it.preco * it.qty)}</td></tr>`).join('') + '</table>', subtotal: eur(subtotal), desconto: desconto ? desconto + '% pré-pagamento (-' + eur(valorDesconto) + ')' : 'Incluído nos preços', total_sem_iva: eur(total), iva: eur(total * 0.23), total_com_iva: eur(total * 1.23) });
+    enviarEmail(EMAILJS.tplEncomenda, { cliente_email: clienteAlvo ? (clienteAlvo.email || '') : '', feito_por: clienteAlvo ? ((membroEquipa && membroEquipa.nome) || currentUser.email) : '', referencia: ref.id.slice(-6).toUpperCase(), data: new Date().toLocaleString('pt-PT'), nome_faturacao: currentCliente.nomeFaturacao || '', morada_entrega: currentCliente.moradaEntrega || currentCliente.morada || '', pagamento: pagLabel(metodoPagamento), itens_html: '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:4px 0 14px"><tr style="background:#07202e;color:#fff"><th align="center" style="padding:7px 5px;width:30px">Qtd</th><th align="left" style="padding:7px 5px">Produto</th><th align="right" style="padding:7px 5px">Preço un.</th><th align="right" style="padding:7px 5px">Total</th></tr>' + itens.map(it => `<tr><td align="center" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;font-weight:bold">${it.qty}</td><td style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top">${escH(it.nome)}<br><span style="color:#6b7780;font-size:12px">${escH(it.tamanho)}</span></td><td align="right" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;white-space:nowrap">${eur(it.preco)}</td><td align="right" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;white-space:nowrap;font-weight:bold">${eur(it.preco * it.qty)}</td></tr>`).join('') + '</table>', subtotal: eur(subtotal), desconto: desconto ? desconto + '% pré-pagamento (-' + eur(valorDesconto) + ')' : 'Incluído nos preços', total_sem_iva: eur(total), iva: eur(total * 0.23), total_com_iva: eur(total * 1.23) });
     msgEl.textContent = 'Encomenda enviada! Vamos preparar e avisamos quando for enviada.';
     msgEl.style.color = 'var(--gold-dark)';
     cart = {};

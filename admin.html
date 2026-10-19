@@ -880,6 +880,7 @@ function loadPedidos() {
               <div class="entry-title">${p.empresa}</div>
               <div class="entry-sub">${p.nomeFaturacao ? esc(p.nomeFaturacao) + ' · ' : ''}NIF: ${p.nif} · ${metodoLabel}${p.vendedorId ? ' · Vendedor: ' + esc(nomeVendedor(p.vendedorId)) : ''}</div>
               ${p.moradaEntrega ? `<div class="entry-sub">Entrega: ${esc(p.moradaEntrega)}</div>` : ''}
+              ${p.feitoPor ? `<div class="entry-sub" style="color:#0f5fb0;font-weight:700">🧾 Feita por ${esc(p.feitoPor.nome || p.feitoPor.email)} em nome do cliente</div>` : ''}
               ${(() => { const o = totaisOficiais(p); return `<div class="entry-sub">Subtotal: ${o.subtotal.toFixed(2)}€${o.desconto ? ` · Desconto (${o.desconto}%): -${o.valorDesconto.toFixed(2)}€` : ''} · <strong>Total s/ IVA: ${o.total.toFixed(2)}€</strong> · IVA 23%: ${o.iva.toFixed(2)}€ · <strong>c/ IVA: ${o.comIva.toFixed(2)}€</strong></div>` + (o.diferente ? `<div class="entry-sub" style="color:var(--red);font-weight:700">Atenção: valores recalculados pela tabela atual e pelo desconto da ficha. O cliente enviou ${(p.total || 0).toFixed(2)}€ s/ IVA. Confirme antes de faturar.</div>` : '') + (o.desconhecido ? `<div class="entry-sub" style="color:var(--red)">Há produtos que já não estão na tabela; foi usado o preço enviado.</div>` : ''); })()}
             </div>
             <span class="badge ${p.estado}">${p.estado}</span>
@@ -1016,13 +1017,33 @@ async function importarFinanceiro() {
 function loadStockAdmin() {
   document.getElementById('stockList').innerHTML = '<div class="empty-state">A carregar...</div>';
   loadDestaquesAdmin();
-  carregarPrivado().then(() => {
+  carregarPrivado().then(() => carregarAvisosStock()).then(() => {
     precosAdmin = { ...precosMapa }; liveStockAdmin = { ...stockMapa };
     renderStockList();
   }).catch(err => {
     document.getElementById('stockList').innerHTML = '<div class="empty-state">Erro ao carregar stock.</div>';
     console.error(err);
   });
+}
+
+// Clientes que pediram aviso quando houver stock
+let avisosStock = {};
+function carregarAvisosStock() {
+  const q = ehVendedor() ? db.collection('avisos_stock').where('vendedorId', '==', meuVendedorId) : db.collection('avisos_stock');
+  return q.get().then(s => { avisosStock = {}; s.docs.forEach(d => { const a = { id: d.id, ...d.data() }; (avisosStock[a.key] = avisosStock[a.key] || []).push(a); }); }).catch(() => { avisosStock = {}; });
+}
+function emailAvisos(key) {
+  const l = avisosStock[key] || []; if (!l.length) return; const a = l[0];
+  const bcc = [...new Set(l.map(x => x.email).filter(Boolean))].join(',');
+  location.href = 'mailto:?bcc=' + encodeURIComponent(bcc) + '&subject=' + encodeURIComponent('Já temos stock: ' + a.nome + ' (' + a.tamanho + ')') + '&body=' + encodeURIComponent('Olá,\n\nO produto ' + a.nome + ' (' + a.tamanho + ') que nos pediu para avisar já está disponível na Área de Cliente Ibernop.\n\nCumprimentos,\nIbernop');
+}
+function limparAvisos(key) {
+  const l = avisosStock[key] || []; if (!l.length || !confirm('Retirar os ' + l.length + ' pedido(s) de aviso deste produto? Faça-o depois de avisar os clientes.')) return;
+  Promise.all(l.map(a => db.collection('avisos_stock').doc(a.id).delete())).then(() => { delete avisosStock[key]; renderStockList(); }).catch(e => alert('Não foi possível: ' + e.message));
+}
+function htmlAvisosTopo() {
+  const ks = Object.keys(avisosStock); if (!ks.length) return '';
+  return `<div class="entry-card" style="border:2px solid var(--gold);padding:14px 18px;margin-bottom:14px"><strong>🔔 Clientes à espera de stock</strong>${ks.map(k => { const l = avisosStock[k]; return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px"><span style="flex:1;min-width:220px"><b>${esc(l[0].nome)}</b> — ${esc(l[0].tamanho)}<br><small style="color:var(--gray)">${l.map(a => esc(a.empresa || a.email)).join(', ')}</small></span><button class="btn primary" onclick="emailAvisos('${k.replace(/'/g, "\\'")}')">✉️ Avisar (${l.length})</button><button class="btn" onclick="limparAvisos('${k.replace(/'/g, "\\'")}')">Já avisei</button></div>`; }).join('')}</div>`;
 }
 
 function renderStockList() {
@@ -1039,9 +1060,9 @@ function renderStockList() {
     });
   });
   if (linhas.length === 0) { el.innerHTML = '<div class="empty-state">Sem resultados.</div>'; return; }
-  el.innerHTML = linhas.map(l => `
+  el.innerHTML = htmlAvisosTopo() + linhas.map(l => `
     <div class="entry-card" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 18px;">
-      <div><strong>${l.nome}</strong> <span style="color:var(--gray);">— ${l.tamanho}</span></div>
+      <div><strong>${l.nome}</strong> <span style="color:var(--gray);">— ${l.tamanho}</span>${avisosStock[l.key] ? ` <span class="badge pendente" title="Clientes à espera de stock">🔔 ${avisosStock[l.key].length}</span>` : ''}</div>
       <div style="display:flex; align-items:center; gap:8px;">
         <label style="font-size:.78rem;color:var(--gray)">Preço s/ IVA €</label>
         <input type="number" id="preco-${l.key}" value="${l.preco}" min="0" step="0.01" style="width:90px;${l.alterado ? 'border-color:var(--gold)' : ''}">
@@ -1058,7 +1079,12 @@ function guardarStock(key) {
   Promise.all([
     gravarStock({ [key]: val }),
     ehVendedor() ? Promise.resolve() : gravarPrecos({ [key]: preco })
-  ]).then(() => { liveStockAdmin[key] = val; precosAdmin[key] = preco; alert('Guardado: ' + preco.toFixed(2) + '€ s/ IVA · stock ' + val); })
+  ]).then(() => {
+    const antes = liveStockAdmin[key]; liveStockAdmin[key] = val; precosAdmin[key] = preco;
+    const espera = avisosStock[key] || [];
+    if (val > 0 && espera.length) { if (confirm('Guardado. Há ' + espera.length + ' cliente(s) à espera deste produto. Abrir o e-mail para os avisar?')) emailAvisos(key); }
+    else alert('Guardado: ' + preco.toFixed(2) + '€ s/ IVA · stock ' + val);
+  })
     .catch(e => alert('Não foi possível guardar: ' + e.message));
 }
 
