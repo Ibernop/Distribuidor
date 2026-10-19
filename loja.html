@@ -339,6 +339,13 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
       <button class="active" data-f="todos" onclick="setCatalogFilter('todos', this)">Todos</button>
       <button data-f="cao" onclick="setCatalogFilter('cao', this)">Cão</button>
       <button data-f="gato" onclick="setCatalogFilter('gato', this)">Gato</button>
+      <button data-f="aves" onclick="setCatalogFilter('aves', this)">Aves</button>
+      <button data-f="coelhos" onclick="setCatalogFilter('coelhos', this)">Coelhos</button>
+      <button data-f="repteis" onclick="setCatalogFilter('repteis', this)">Répteis</button>
+      <button data-f="equinos" onclick="setCatalogFilter('equinos', this)">Equinos</button>
+      <button data-f="bovinos" onclick="setCatalogFilter('bovinos', this)">Bovinos</button>
+      <button data-f="ovinos" onclick="setCatalogFilter('ovinos', this)">Ovinos</button>
+      <button data-f="suinos" onclick="setCatalogFilter('suinos', this)">Suínos</button>
     </div>
     <div class="catalog-filters" id="gamaFilters">
       <button class="active" data-g="todas" onclick="setGamaFilter('todas', this)">Todas as gamas</button>
@@ -920,7 +927,7 @@ function setCatalogFilter(f, btn) {
 
 function renderCatalog() {
   const grid = document.getElementById('productGrid');
-  let lista = catalogFilter === 'todos' ? produtos : produtos.filter(p => p.especie === catalogFilter);
+  let lista = catalogFilter === 'todos' ? produtos : produtos.filter(p => p.especie === catalogFilter || (p.especie === 'caogato' && (catalogFilter === 'cao' || catalogFilter === 'gato')));
   if (gamaFilter !== 'todas') lista = lista.filter(p => p.gama === gamaFilter);
   const termo = ((document.getElementById('pesquisaProduto') || {}).value || '').trim().toLowerCase();
   if (termo) lista = lista.filter(p => p.nome.toLowerCase().includes(termo) || p.tamanhos.some(t => String(t.cod || '').includes(termo) || String(t.ean || '').includes(termo)));
@@ -955,7 +962,7 @@ function renderCatalog() {
     return `
       <div class="product-card" id="pcard-${p.id}">
         <div class="product-thumb">
-          ${p.imagem ? `<img src="${p.imagem}" alt="${p.nome}" loading="lazy">` : `<span class="placeholder-icon">${p.especie === 'gato' ? '🐱' : '🐶'}</span>`}
+          ${p.imagem ? `<img src="${p.imagem}" alt="${p.nome}" loading="lazy">` : `<span class="placeholder-icon">${({gato:'🐱',aves:'🐦',coelhos:'🐰',repteis:'🦎',equinos:'🐴',bovinos:'🐄',ovinos:'🐑',suinos:'🐖'})[p.especie] || '🐶'}</span>`}
         </div>
         <span class="gama-tag">${p.gama}</span>${p.tamanhos.some(t => t.promo) ? `<span class="gama-tag" style="background:#e63946;color:#fff;margin-left:6px">Promoção -${Math.max(...p.tamanhos.map(t => t.promo || 0))}%</span>` : ''}
         <h3>${p.nome}</h3>
