@@ -134,17 +134,20 @@ h1, h2, .brand { text-transform: uppercase; letter-spacing: .02em; }
 /* ---------- Menu lateral (área de cliente) ---------- */
 .menu-logo, .menu-btn, #menuFundo { display: none; }
 body.com-menu .hero-strip { display: none !important; }
-body.com-menu #clienteNav { position: fixed; top: 0; left: 0; bottom: 0; width: 240px; background: var(--charcoal); border: 0; z-index: 60; overflow-y: auto; }
+body.com-menu #clienteNav { position: fixed; top: 0; left: 0; bottom: 0; width: 260px; background: var(--charcoal); border: 0; z-index: 60; overflow-y: auto; }
 body.com-menu #clienteNav .wrap { display: flex; flex-direction: column; gap: 4px; padding: 26px 18px; max-width: none; overflow: visible; }
-body.com-menu .menu-logo { display: block; margin: 0 0 26px 8px; }
-body.com-menu .menu-logo img { height: 54px; display: block; }
+body.com-menu .menu-logo { display: flex; align-items: center; gap: 12px; margin: 0 0 28px 6px; color: #fff; text-decoration: none; font-weight: 800; font-size: 1.25rem; letter-spacing: .06em; line-height: 1.1; }
+body.com-menu .menu-logo img { height: 48px; display: block; }
+body.com-menu .menu-logo small { display: block; font-size: .62rem; font-weight: 600; letter-spacing: .08em; opacity: .7; text-transform: uppercase; margin-top: 3px; }
+body.com-menu { overflow-x: hidden; }
+body.com-menu #clienteNav button { white-space: normal; line-height: 1.25; }
 body.com-menu #clienteNav button { border: 0; background: transparent; color: rgba(255,255,255,.82); text-align: left; padding: 12px 14px; border-radius: 10px; font-size: .95rem; display: flex; gap: 12px; align-items: center; border-left: 3px solid transparent; }
 body.com-menu #clienteNav button:hover { background: rgba(255,255,255,.08); color: #fff; }
 body.com-menu #clienteNav button.on { background: rgba(255,255,255,.1); color: #fff; border-left-color: var(--gold); }
 body.com-menu #clienteNav .menu-sep { height: 1px; background: rgba(255,255,255,.12); margin: 14px 6px; }
 body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incidencias"], body.demo #clienteNav [data-v="financeiro"], body.demo #clienteNav [data-v="conta"], body.demo #clienteNav .menu-sair { display: none !important; }
 @media (min-width: 900px) {
-  body.com-menu { padding-left: 240px; }
+  body.com-menu { padding-left: 260px; }
   body.com-menu header.site .brand { visibility: hidden; }
 }
 @media (max-width: 899px) {
@@ -314,7 +317,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
 <div id="menuFundo" onclick="document.body.classList.remove('menu-aberto')"></div>
 <nav id="clienteNav" class="cliente-nav" style="display:none;">
   <div class="wrap">
-    <a class="menu-logo" href="index.html"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop"></a>
+    <a class="menu-logo" href="index.html"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop"><span>IBERNOP<small>Área de Cliente</small></span></a>
     <button data-v="catalog" onclick="irPara('catalog')"><span>🛒</span>Loja</button>
     <button onclick="irPromocoes()"><span>⭐</span>Promoções</button>
     <button data-v="historico" onclick="irPara('historico')"><span>📦</span>As minhas encomendas</button>
