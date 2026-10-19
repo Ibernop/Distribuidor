@@ -605,7 +605,16 @@ auth.onAuthStateChanged(user => {
       try { cart = JSON.parse(localStorage.getItem('carrinho_' + user.uid) || '{}') || {}; } catch (e) { cart = {}; }
       renderCart();
     } else {
-      showView('pending');
+      // Equipa (administradores e vendedores): entra na loja em modo de pré-visualização, sem poder enviar encomendas
+      const verLoja = () => {
+        currentCliente = { empresa: 'Pré-visualização (Gestão)', aprovado: true, desconto: 0, preview: true };
+        updateHeaderActions(); showView('catalog'); aplicarPagamentos(); loadStock(); renderCatalog(); cart = {}; renderCart();
+        const b = document.createElement('div'); b.id = 'avisoPreview'; b.textContent = '👁 Modo de pré-visualização da Gestão — vê a loja como um cliente, sem desconto. Não é possível enviar encomendas.';
+        b.style.cssText = 'position:sticky;top:0;z-index:50;background:#fff3cd;color:#664d03;padding:10px 16px;text-align:center;font-weight:600;font-size:.9rem';
+        if (!document.getElementById('avisoPreview')) document.body.prepend(b);
+      };
+      if (!doc.exists && (user.email || '').toLowerCase() === 'ibernop@outlook.com') return verLoja();
+      db.collection('equipa_b2b').doc(user.uid).get().then(e => { if (e.exists) verLoja(); else showView('pending'); }).catch(() => showView('pending'));
     }
   });
 });
@@ -725,7 +734,7 @@ function abrirRevisao() {
   document.getElementById('revBack').style.display = 'flex';
 }
 function fecharRevisao() { document.getElementById('revBack').style.display = 'none'; }
-function confirmarEnvio() { fecharRevisao(); submitPedido(); }
+function confirmarEnvio() { fecharRevisao(); if (currentCliente && currentCliente.preview) { alert('Modo de pré-visualização: as encomendas só podem ser enviadas por clientes.'); return; } submitPedido(); }
 
 // ---------- Financeiro (faturas e saldos, importados na Gestão) ----------
 function abrirFinanceiro() {
