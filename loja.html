@@ -183,7 +183,9 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
 .conta-linha strong { text-align: right; }
 
 /* ---------- Destaques, vantagens, revisão e financeiro ---------- */
-.vantagens{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 18px}
+.vantagens{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 18px}.vant-rodape{margin:34px 0 10px;opacity:.95}
+.banners{position:relative;margin:0 0 18px;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(7,32,46,.15);aspect-ratio:1920/521;background:#eee}.banners .bn{position:absolute;inset:0;opacity:0;transition:opacity .8s ease}.banners .bn.on{opacity:1}.banners img{width:100%;height:100%;object-fit:cover;display:block}.bn-dots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:8px;z-index:2}.bn-dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.6);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3)}.bn-dots i.on{background:#fff}@media(max-width:700px){.banners{aspect-ratio:760/428}}
+.gama-sec{grid-column:1/-1;display:flex;align-items:center;gap:12px;margin:22px 0 2px;font-size:1.15rem;color:var(--charcoal)}.gama-sec:first-child{margin-top:0}.gama-sec small{font-size:.78rem;font-weight:600;color:var(--gray)}.gama-sec:after{content:"";flex:1;height:2px;background:var(--border)}
 .vantagens div{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px 14px;font-size:.85rem;line-height:1.25}
 .vantagens b{display:block;font-size:.9rem;color:var(--charcoal)}
 .vantagens span.i{font-size:1.5rem}
@@ -356,12 +358,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
 <!-- ---------- Vista: aprovado, catálogo ---------- -->
 <section id="catalogView" style="display:none;">
   <div class="wrap">
-    <div class="vantagens">
-      <div><span class="i">🚚</span><span><b>Entrega rápida</b>24 a 48 horas úteis</span></div>
-      <div><span class="i">🧾</span><span><b>Pedido mínimo 120€</b>sem IVA</span></div>
-      <div><span class="i">💳</span><span><b>Pagamento flexível</b>Pré-pagamento, 7, 15 ou 30 dias</span></div>
-      <div><span class="i">🤝</span><span><b>Gestor de zona</b>Acompanhamento próximo</span></div>
-    </div>
+    <div class="banners" id="banners"><picture class="bn on"><source media="(max-width:700px)" srcset="https://www.ownat.com/cdnassets/banners-rotatius-home/New-care/care-weight/care-weight-mob/Banner-Care-760x428px-PT.jpg"><img src="https://www.ownat.com/cdnassets/banners-rotatius-home/New-care/care-weight/Banner-Care-1920x521px-PT.jpg" alt="Ownat Care" ></picture><picture class="bn"><source media="(max-width:700px)" srcset="https://www.ownat.com/cdnassets/banners-rotatius-home/New-Author/Mobile/Banner-Author-760x428px-PT.jpg"><img src="https://www.ownat.com/cdnassets/banners-rotatius-home/New-Author/Desktop/Banner-Author-1920x521px-PT.jpg" alt="Ownat Author" loading="lazy"></picture><picture class="bn"><source media="(max-width:700px)" srcset="https://www.ownat.com/cdnassets/banners-rotatius-home/SPOT-2026-PERRO/banner-web-movil-ownat_gos_PT.jpg"><img src="https://www.ownat.com/cdnassets/banners-rotatius-home/SPOT-2026-PERRO/banner-web-ownat_gos-PT.jpg" alt="Ownat — como é natural, eles adoram" loading="lazy"></picture><div class="bn-dots"></div></div>
     <div class="dest-wrap" id="destaques" style="display:none">
       <div class="dest-head"><h2>⭐ Destaques e promoções</h2><div class="dest-nav"><button type="button" onclick="moverDestaques(-1)" aria-label="Anterior">‹</button><button type="button" onclick="moverDestaques(1)" aria-label="Seguinte">›</button></div></div>
       <div class="dest-track" id="destTrack"></div>
@@ -394,6 +391,12 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
       <button data-g="Equipamentos" onclick="setGamaFilter('Equipamentos', this)">🔬 Equipamentos</button>
     </div>
     <div class="product-grid" id="productGrid"></div>
+    <div class="vantagens vant-rodape">
+      <div><span class="i">🚚</span><span><b>Entrega rápida</b>24 a 48 horas úteis</span></div>
+      <div><span class="i">🧾</span><span><b>Pedido mínimo 150€</b>sem IVA</span></div>
+      <div><span class="i">💳</span><span><b>Pagamento flexível</b>Pré-pagamento, 7, 15 ou 30 dias</span></div>
+      <div><span class="i">🤝</span><span><b>Gestor de zona</b>Acompanhamento próximo</span></div>
+    </div>
   </div>
 </section>
 
@@ -422,7 +425,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
       <label class="payment-opt"><input type="radio" name="payMethod" value="d15"> 15 dias</label>
       <label class="payment-opt"><input type="radio" name="payMethod" value="d30"> 30 dias</label>
     </div>
-    <button class="btn btn-gold" style="width:100%; justify-content:center;" onclick="abrirRevisao()">Rever encomenda</button>
+    <button class="btn btn-gold" id="btnRever" style="width:100%; justify-content:center;" onclick="abrirRevisao()">Rever encomenda</button>
     <div id="checkoutMsg" style="margin-top:10px; font-size:0.85rem; font-weight:600;"></div>
   </div>
 </div>
@@ -741,7 +744,7 @@ function verProduto(id, idx) {
 }
 
 // ---------- Pedido mínimo e revisão antes de enviar ----------
-const PEDIDO_MINIMO = 120;
+const PEDIDO_MINIMO = 150;
 function totaisCarrinho() {
   aplicarEscaloes();
   const itens = Object.keys(cart).map(k => ({ ...cart[k], key: k }));
@@ -757,6 +760,8 @@ function atualizarMinimo() {
   const t = totaisCarrinho().total;
   if (t > 0 && t < PEDIDO_MINIMO) { el.style.display = 'block'; el.textContent = 'Pedido mínimo de ' + PEDIDO_MINIMO + '€ (sem IVA). Faltam ' + (PEDIDO_MINIMO - t).toFixed(2) + '€.'; }
   else el.style.display = 'none';
+  const b = document.getElementById('btnRever');
+  if (b) { const bloq = t < PEDIDO_MINIMO; b.disabled = bloq; b.style.opacity = bloq ? '.5' : ''; b.style.cursor = bloq ? 'not-allowed' : ''; b.textContent = bloq && t > 0 ? 'Mínimo 150€ sem IVA' : 'Rever encomenda'; }
 }
 function abrirRevisao() {
   const msgEl = document.getElementById('checkoutMsg');
@@ -1000,7 +1005,14 @@ function renderCatalog() {
     grid.innerHTML = '<div class="empty-state">Sem produtos nesta combinação de filtros.</div>';
     return;
   }
+  const ordemGamas = [...new Set(produtos.map(x => x.gama))];
+  const agrupar = gamaFilter === 'todas';
+  if (agrupar) lista = [...lista].sort((a, b) => ordemGamas.indexOf(a.gama) - ordemGamas.indexOf(b.gama));
+  const contaGama = {}; lista.forEach(x => contaGama[x.gama] = (contaGama[x.gama] || 0) + 1);
+  let gamaAnterior = null;
   grid.innerHTML = lista.map(p => {
+    let cab = '';
+    if (agrupar && p.gama !== gamaAnterior) { gamaAnterior = p.gama; cab = `<h3 class="gama-sec">${escH(p.gama)} <small>${contaGama[p.gama]} produto${contaGama[p.gama] > 1 ? 's' : ''}</small></h3>`; }
     // Escolhe como pré-selecionado o primeiro tamanho que ainda tenha stock (se todos esgotados, fica o primeiro na mesma)
     const primeiroComStock = p.tamanhos.findIndex((t) => {
       const q = stockDe(p.id, t.label);
@@ -1024,7 +1036,7 @@ function renderCatalog() {
       </div>`;
     }).join('');
     const todosEsgotados = primeiroComStock === -1;
-    return `
+    return cab + `
       <div class="product-card" id="pcard-${p.id}">
         <div class="product-thumb">
           ${p.imagem ? `<img src="${p.imagem}" alt="${p.nome}" loading="lazy">` : `<span class="placeholder-icon">${({todas:'🔬',gato:'🐱',aves:'🐦',coelhos:'🐰',repteis:'🦎',equinos:'🐴',bovinos:'🐄',ovinos:'🐑',suinos:'🐖'})[p.especie] || '🐶'}</span>`}
@@ -1239,5 +1251,10 @@ function submitPedido() {
   addEventListener('appinstalled', () => { box.hidden = true; });
 })();
 </script>
+<script>(function(){ const c=document.getElementById('banners'); if(!c) return; const sl=[...c.querySelectorAll('.bn')], d=c.querySelector('.bn-dots'); let k=0, t;
+  d.innerHTML=sl.map((_,i)=>'<i data-i="'+i+'"></i>').join('');
+  const ir=i=>{ k=(i+sl.length)%sl.length; sl.forEach((s,n)=>s.classList.toggle('on',n===k)); d.querySelectorAll('i').forEach((x,n)=>x.classList.toggle('on',n===k)); };
+  d.querySelectorAll('i').forEach(x=>x.onclick=()=>{ ir(+x.dataset.i); clearInterval(t); t=setInterval(()=>ir(k+1),5000); });
+  ir(0); t=setInterval(()=>ir(k+1),5000); })();</script>
 </body>
 </html>
