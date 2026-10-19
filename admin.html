@@ -932,7 +932,7 @@ async function carregarPrivado() {
     // Migração automática (só um administrador consegue gravar)
     if (acessivel && !ehVendedor()) {
       try {
-        if (!(dp && dp.exists)) await PRIV_P.set({ p: pm, esc: typeof ESCALOES !== 'undefined' ? ESCALOES : {}, escQtd: typeof ESCALOES_QTD !== 'undefined' ? ESCALOES_QTD : [10, 23, 31], migradoEm: new Date().toISOString() });
+        if (!(dp && dp.exists) && Object.values(pm).some(v => v > 0)) await PRIV_P.set({ p: pm, esc: typeof ESCALOES !== 'undefined' ? ESCALOES : {}, escQtd: typeof ESCALOES_QTD !== 'undefined' ? ESCALOES_QTD : [10, 23, 31], migradoEm: new Date().toISOString() });
         if (!(ds && ds.exists)) await PRIV_S.set({ q: sm, migradoEm: new Date().toISOString() });
       } catch (e) { console.warn('Migração para registos protegidos ainda não possível:', e.message); }
     }
