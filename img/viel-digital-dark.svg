@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="200" viewBox="0 0 760 200" role="img" aria-labelledby="title desc">
+  <title id="title">Viel Digital logo, dark-background version</title>
+  <desc id="desc">A flowing V mark with a forward arrow, followed by the Viel Digital wordmark.</desc>
+  <defs>
+    <linearGradient id="flow" x1="18" y1="18" x2="142" y2="136" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#55DEA4"/>
+      <stop offset="1" stop-color="#27B979"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(28 30)">
+    <path fill="url(#flow)" d="M0 13h34l28 61 28-61h34l-43 98H43L0 13Z"/>
+    <path fill="#EAF3EF" d="m120 17 20 20-20 20h-16l20-20-20-20h16Z"/>
+  </g>
+  <text x="206" y="104" fill="#EAF3EF" font-family="Bricolage Grotesque, Figtree, Arial, sans-serif" font-size="68" font-weight="800" letter-spacing="-3.4">Viel</text>
+  <text x="356" y="104" fill="#3CCF91" font-family="Bricolage Grotesque, Figtree, Arial, sans-serif" font-size="68" font-weight="800" letter-spacing="-3.4">Digital</text>
+  <text x="210" y="139" fill="#9FB4AC" font-family="Figtree, Arial, sans-serif" font-size="17" font-weight="700" letter-spacing="2.2">SITES · LOJAS ONLINE · PORTAIS B2B</text>
+</svg>
