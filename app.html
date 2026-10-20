@@ -29,5 +29,25 @@ a.eq .ic{background:rgba(255,255,255,.18)}
   <a class="eq" href="admin.html"><span class="ic">💼</span><span>Gestão de equipa<small>Administração e gestores de zona</small></span></a>
 </div>
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});</script>
+<div id="appInst" hidden style="position:fixed;right:14px;bottom:14px;z-index:9999;max-width:290px;font-family:inherit"><div id="appDica" hidden style="background:#fff;color:#07202e;border-radius:14px;padding:12px 14px;margin-bottom:8px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:.85rem;line-height:1.4">No iPhone: toque em <b>Partilhar</b> (o quadrado com a seta) e depois em <b>Adicionar ao ecrã principal</b>.</div><button id="appBtn" type="button" style="display:flex;align-items:center;gap:8px;margin-left:auto;background:#07202e;color:#fff;border:0;border-radius:999px;padding:11px 18px;font-family:inherit;font-weight:600;font-size:.9rem;line-height:1;box-shadow:0 10px 30px rgba(0,0,0,.3);cursor:pointer">📲 Instalar app <span id="appX" style="opacity:.6;margin-left:4px">✕</span></button></div>
+<script>
+(function () {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  const box = document.getElementById('appInst'), btn = document.getElementById('appBtn'), dica = document.getElementById('appDica');
+  const instalada = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  let fechado = false; try { fechado = localStorage.getItem('appInstFechado') === '1'; } catch (e) {}
+  if (instalada || fechado) return;
+  let pedido = null;
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); pedido = e; box.hidden = false; });
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (ios) box.hidden = false;
+  btn.addEventListener('click', e => {
+    if (e.target.id === 'appX') { box.hidden = true; try { localStorage.setItem('appInstFechado', '1'); } catch (x) {} return; }
+    if (pedido) { pedido.prompt(); pedido.userChoice.then(() => { box.hidden = true; pedido = null; }); }
+    else if (ios) dica.hidden = !dica.hidden;
+  });
+  addEventListener('appinstalled', () => { box.hidden = true; });
+})();
+</script>
 </body>
 </html>
