@@ -246,13 +246,13 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
 .conta-linha strong { text-align: right; }
 
 /* ---------- Destaques, vantagens, revisão e financeiro ---------- */
-.vantagens{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 18px}.vant-rodape{margin:34px 0 10px;opacity:.95}
+.vantagens{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 18px}.vant-rodape{margin:34px 0 10px;opacity:.95}
 .banners{position:relative;margin:0 0 18px;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(7,32,46,.15);aspect-ratio:1920/380;max-height:280px;background:#eee}.banners .bn{position:absolute;inset:0;opacity:0;transition:opacity .8s ease}.banners .bn.on{opacity:1}.banners img{width:100%;height:100%;object-fit:cover;display:block}.bn-dots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:8px;z-index:2}.bn-dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.6);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3)}.bn-dots i.on{background:#fff}@media(max-width:700px){.banners{aspect-ratio:760/428}}
 .gama-sec{grid-column:1/-1;display:flex;align-items:center;gap:12px;margin:22px 0 2px;font-size:1.15rem;color:var(--charcoal)}.gama-sec:first-child{margin-top:0}.gama-sec small{font-size:.78rem;font-weight:600;color:var(--gray)}.gama-sec:after{content:"";flex:1;height:2px;background:var(--border)}
 .vantagens div{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px 14px;font-size:.85rem;line-height:1.25}
 .vantagens b{display:block;font-size:.9rem;color:var(--charcoal)}
 .vantagens span.i{font-size:1.5rem}
-@media(max-width:900px){.vantagens{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.vantagens{grid-template-columns:1fr}}
 .dest-wrap{position:relative;margin:0 0 22px}
 .dest-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px}
 .dest-head h2{font-size:1.15rem;margin:0}
@@ -303,7 +303,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
   <div class="wrap">
     <button class="menu-btn" onclick="document.body.classList.toggle('menu-aberto')" aria-label="Menu">☰</button>
     <div class="brand">
-      <a href="index.html"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop" style="height:46px;display:block"></a>
+      <a href="index.html"><img src="img/ext/ibernop-logo-branco.png" alt="Ibernop" style="height:46px;display:block"></a>
       <div>
         IBERNOP
         <span class="brand-sub">Área de Cliente · Encomendas</span>
@@ -323,7 +323,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
 
 <!-- ---------- Vista: não autenticado ---------- -->
 <section id="authView">
-  <div class="auth-foto"><div class="auth-mosaico"><img src="https://images.unsplash.com/photo-1537204696486-967f1b7198c8?auto=format&fit=crop&w=900&q=70" alt=""><img src="https://images.unsplash.com/photo-1536589961747-e239b2abbec2?auto=format&fit=crop&w=900&q=70" alt=""><img src="https://images.unsplash.com/photo-1552728089-57bdde30beb3?auto=format&fit=crop&w=900&q=70" alt=""></div><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop"><span>IBERNOP</span></div>
+  <div class="auth-foto"><div class="auth-mosaico"><img src="img/ext/foto-1537204696486-967f1b7198c8.webp" alt=""><img src="img/ext/foto-1536589961747-e239b2abbec2.jpg" alt=""><img src="img/ext/foto-1552728089-57bdde30beb3.webp" alt=""></div><img src="img/ext/ibernop-logo-branco.png" alt="Ibernop"><span>IBERNOP</span></div>
   <div class="auth-lado"><div class="auth-wrap">
     <h2 class="auth-titulo">Bem-vindo à Área de Cliente Ibernop!</h2>
     <p class="auth-sub">Acesso exclusivo para lojas e clínicas parceiras. Entre com o seu e-mail e palavra-passe.</p>
@@ -383,7 +383,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
 <div id="menuFundo" onclick="document.body.classList.remove('menu-aberto')"></div>
 <nav id="clienteNav" class="cliente-nav" style="display:none;">
   <div class="wrap">
-    <a class="menu-logo" href="index.html"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop"><span>IBERNOP<small>Área de Cliente</small></span></a>
+    <a class="menu-logo" href="index.html"><img src="img/ext/ibernop-logo-branco.png" alt="Ibernop"><span>IBERNOP<small>Área de Cliente</small></span></a>
     <button data-v="catalog" onclick="irPara('catalog')"><span>🛒</span>Loja</button>
     <button onclick="irPromocoes()"><span>⭐</span>Promoções</button>
     <button data-v="historico" onclick="irPara('historico')"><span>📦</span>As minhas encomendas</button>
@@ -422,7 +422,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
 <!-- ---------- Vista: aprovado, catálogo ---------- -->
 <section id="catalogView" style="display:none;">
   <div class="wrap">
-    <div class="banners" id="banners"><picture class="bn on"><source media="(max-width:700px)" srcset="https://www.ownat.com/cdnassets/banners-rotatius-home/New-care/care-weight/care-weight-mob/Banner-Care-760x428px-PT.jpg"><img src="https://www.ownat.com/cdnassets/banners-rotatius-home/New-care/care-weight/Banner-Care-1920x521px-PT.jpg" alt="Ownat Care" ></picture><picture class="bn"><source media="(max-width:700px)" srcset="https://www.ownat.com/cdnassets/banners-rotatius-home/New-Author/Mobile/Banner-Author-760x428px-PT.jpg"><img src="https://www.ownat.com/cdnassets/banners-rotatius-home/New-Author/Desktop/Banner-Author-1920x521px-PT.jpg" alt="Ownat Author" loading="lazy"></picture><picture class="bn"><source media="(max-width:700px)" srcset="https://www.ownat.com/cdnassets/banners-rotatius-home/SPOT-2026-PERRO/banner-web-movil-ownat_gos_PT.jpg"><img src="https://www.ownat.com/cdnassets/banners-rotatius-home/SPOT-2026-PERRO/banner-web-ownat_gos-PT.jpg" alt="Ownat — como é natural, eles adoram" loading="lazy"></picture><div class="bn-dots"></div></div>
+    <div class="banners" id="banners"><picture class="bn on"><source media="(max-width:700px)" srcset="img/ext/banner-care-760x428px-pt.webp"><img src="img/ext/banner-care-1920x521px-pt.webp" alt="Ownat Care" ></picture><picture class="bn"><source media="(max-width:700px)" srcset="img/ext/banner-author-760x428px-pt.webp"><img src="img/ext/banner-author-1920x521px-pt.webp" alt="Ownat Author" loading="lazy"></picture><picture class="bn"><source media="(max-width:700px)" srcset="img/ext/banner-web-movil-ownat_gos_pt.webp"><img src="img/ext/banner-web-ownat_gos-pt.webp" alt="Ownat — como é natural, eles adoram" loading="lazy"></picture><div class="bn-dots"></div></div>
     <div class="dest-wrap" id="destaques" style="display:none">
       <div class="dest-head"><h2>⭐ Destaques e promoções</h2><div class="dest-nav"><button type="button" onclick="moverDestaques(-1)" aria-label="Anterior">‹</button><button type="button" onclick="moverDestaques(1)" aria-label="Seguinte">›</button></div></div>
       <div class="dest-track" id="destTrack"></div>
@@ -434,7 +434,6 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
     <div class="vantagens vant-rodape">
       <div><span class="i">🚚</span><span><b>Entrega rápida</b>24 a 48 horas úteis</span></div>
       <div><span class="i">🧾</span><span><b>Pedido mínimo 150€</b>sem IVA</span></div>
-      <div><span class="i">💳</span><span><b>Pagamento flexível</b>Pré-pagamento, 7, 15 ou 30 dias</span></div>
       <div><span class="i">🤝</span><span><b>Gestor de zona</b>Acompanhamento próximo</span></div>
     </div>
   </div>
@@ -476,7 +475,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
 <footer class="site">
   <div class="wrap">
     <div class="ft-cols">
-      <div><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop" style="height:64px"><p>Distribuidor de produtos para animais, fundado por médicos veterinários.</p></div>
+      <div><img src="img/ext/ibernop-logo-branco.png" alt="Ibernop" style="height:64px"><p>Distribuidor de produtos para animais, fundado por médicos veterinários.</p></div>
       <div><h4>Ibernop - Produtos para Animais, Lda</h4><p>Rua dos Tractores, 506 – Armazém AI<br>Alto Estanqueiro-Jardia, Montijo<br>Portugal<br><span style="opacity:.75">NIF 516007068</span></p></div>
       <div><h4>Contacto</h4><p>📞 <a href="tel:+351938093411">938 093 411</a> · <a href="tel:+351212454927">212 454 927</a><br>✉️ <a href="mailto:geral@ibernop.com">geral@ibernop.com</a><br>📦 <a href="mailto:encomendas@ibernop.com">encomendas@ibernop.com</a></p></div>
     </div>
@@ -1102,8 +1101,8 @@ const DESC_GAMA = { 'Wetline': 'Alimentos húmidos', 'Salmon Oil': 'Suplemento',
 function daEspecie(p, e) { return p.especie === e || (p.especie === 'caogato' && (e === 'cao' || e === 'gato')); }
 function seccoes() {
   return [
-    { id: 'cao', nome: 'Alimentação Cão', img: 'https://www.ownat.com/cdnassets/banners/dog-header.png', n: produtos.filter(p => RACAO(p) && daEspecie(p, 'cao')).length },
-    { id: 'gato', nome: 'Alimentação Gato', img: 'https://www.ownat.com/cdnassets/banners/cat-header.png', n: produtos.filter(p => RACAO(p) && daEspecie(p, 'gato')).length },
+    { id: 'cao', nome: 'Alimentação Cão', img: 'img/ext/dog-header.png', n: produtos.filter(p => RACAO(p) && daEspecie(p, 'cao')).length },
+    { id: 'gato', nome: 'Alimentação Gato', img: 'img/ext/cat-header.png', n: produtos.filter(p => RACAO(p) && daEspecie(p, 'gato')).length },
     { id: 'testes', nome: 'Testes rápidos', img: 'img/teste-cao.webp', n: produtos.filter(p => p.gama === 'Testes rápidos').length },
     { id: 'equip', nome: 'Equipamentos', ico: '🔬', img: (produtos.find(p => p.gama === 'Equipamentos') || {}).imagem, n: produtos.filter(p => p.gama === 'Equipamentos').length }
   ].filter(x => x.n);

@@ -26,7 +26,7 @@ input, select, textarea { padding: 10px 12px; border: 1px solid var(--border); b
 
 /* ---------- Login ---------- */
 #loginScreen { display: grid; grid-template-columns: 1.1fr 1fr; min-height: 100vh; }
-.login-foto { background: linear-gradient(180deg, rgba(7,32,46,.65) 0, rgba(7,32,46,.05) 45%, rgba(7,32,46,.55) 100%), url(https://images.unsplash.com/photo-1770270402445-b72169c6e48a?auto=format&fit=crop&w=1400&q=75) center/cover; color: #fff; display: flex; flex-direction: column; justify-content: space-between; padding: 32px 40px; }
+.login-foto { background: linear-gradient(180deg, rgba(7,32,46,.65) 0, rgba(7,32,46,.05) 45%, rgba(7,32,46,.55) 100%), url(img/ext/foto-1770270402445-b72169c6e48a.webp) center/cover; color: #fff; display: flex; flex-direction: column; justify-content: space-between; padding: 32px 40px; }
 .login-foto img { height: 64px; align-self: flex-start; }
 .login-foto p { font-size: 1.6rem; font-weight: 800; line-height: 1.25; margin: 0; max-width: 420px; }
 .login-lado { background: radial-gradient(circle at 92% 6%, #cfe4fb 0 20%, transparent 20.5%), radial-gradient(circle at 0% 70%, #dcecfd 0 15%, transparent 15.5%), #eef5fc; display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
@@ -107,7 +107,7 @@ h1, h2, .entry-title { letter-spacing: .01em; }
 <body>
 
 <div id="loginScreen">
-<div class="login-foto"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="Ibernop"><p>Juntos somos mais fortes. Cada encomenda conta!</p></div>
+<div class="login-foto"><img src="img/ext/ibernop-logo-branco.png" alt="Ibernop"><p>Juntos somos mais fortes. Cada encomenda conta!</p></div>
 <div class="login-lado">
 <div id="loginBox">
   <h2>Gestão Ibernop</h2>
@@ -123,7 +123,7 @@ h1, h2, .entry-title { letter-spacing: .01em; }
 <div id="app">
   <div class="wrap">
     <div class="topbar">
-      <h1 style="display:flex;align-items:center;gap:14px"><span style="background:var(--charcoal);border-radius:12px;padding:6px 10px;display:inline-flex"><img src="https://media.swipepages.com/2023/4/621f886f96edea001153d2aa/logo_white.png" alt="" style="height:38px"></span>GESTÃO IBERNOP</h1>
+      <h1 style="display:flex;align-items:center;gap:14px"><span style="background:var(--charcoal);border-radius:12px;padding:6px 10px;display:inline-flex"><img src="img/ext/ibernop-logo-branco.png" alt="" style="height:38px"></span>GESTÃO IBERNOP</h1>
       <div style="display:flex; align-items:center; gap:12px;"><span id="papelInfo" style="font-size:0.82rem; color:var(--gray);"></span><button class="btn" id="btnNotif" style="display:none" onclick="ativarNotificacoes(true)">🔔 Ativar notificações</button><button class="btn" onclick="doLogout()">Sair</button></div>
     </div>
     <div class="tabs">
