@@ -864,7 +864,7 @@ function abrirRevisao() {
   const pag = document.querySelector('input[name="payMethod"]:checked');
   const c = currentCliente || {};
   document.getElementById('revConteudo').innerHTML = `
-    <table>${o.itens.map(it => `<tr><td>${it.qty}×</td><td>${escH(it.nome)}<br><small style="color:var(--gray)">${escH(it.tamanho)} · ${it.preco.toFixed(2)}€/un.${it.tier ? ' · escalão ' + it.tier + '+' : ''}</small></td><td style="text-align:right;white-space:nowrap">${(it.preco * it.qty).toFixed(2)}€</td></tr>`).join('')}</table>
+    <table>${o.itens.map(it => `<tr><td>${it.qty}×</td><td>${escH(it.nome)}<br><small style="color:var(--gray)">${espEtiqueta(it.key)}${escH(it.tamanho)} · ${it.preco.toFixed(2)}€/un.${it.tier ? ' · escalão ' + it.tier + '+' : ''}</small></td><td style="text-align:right;white-space:nowrap">${(it.preco * it.qty).toFixed(2)}€</td></tr>`).join('')}</table>
     <table class="tot" style="margin-top:8px">
       <tr><td>Subtotal (preço de tabela)</td><td style="text-align:right">${o.subtotalLista.toFixed(2)}€</td></tr>
       ${o.descontoLinhas > 0.004 ? `<tr><td>Descontos (cliente, promoções, escalões)</td><td style="text-align:right">-${o.descontoLinhas.toFixed(2)}€</td></tr>` : ''}
@@ -1381,6 +1381,14 @@ function avisoCarrinho(txt) {
 }
 
 // ---------- Carrinho ----------
+// Etiqueta Cão/Gato para o carrinho e a confirmação da encomenda
+function espEtiqueta(key) {
+  const p = key && produtos.find(x => String(x.id) === String(key).split('_')[0]);
+  const e = p && p.especie;
+  if (e === 'cao') return '<b style="color:#8a4b00">🐶 Cão</b> · ';
+  if (e === 'gato') return '<b style="color:#2a3f9e">🐱 Gato</b> · ';
+  return '';
+}
 function renderCart() {
   // Guarda o carrinho neste dispositivo, para não se perder se o cliente sair
   try { if (currentUser) localStorage.setItem('carrinho_' + currentUser.uid, JSON.stringify(cart)); } catch (e) {}
@@ -1411,7 +1419,7 @@ function renderCart() {
     subtotal += itemSubtotal;
     return `
       <div class="cart-item">
-        <div>${it.nome}<br><span style="color:var(--gray-light);">${it.tamanho} × ${it.qty} · ${it.precoLista != null && it.preco < it.precoLista - 0.004 ? `<s>${it.precoLista.toFixed(2)}€</s> ` : ''}${it.preco.toFixed(2)}€/un.</span>${it.tier ? `<br><span style="color:#1d7a3e;font-size:.78rem;font-weight:700">✓ Preço de ${it.tier}+ sacos aplicado</span>` : ''}${it.prox ? `<br><span style="color:#0f5fb0;font-size:.78rem">Junte mais ${it.prox.faltam} saco(s) ${escH(it.gama || '')} de ${escH(it.tamanho)} e passa a ${it.prox.preco.toFixed(2)}€/un. (poupa ${((it.preco - it.prox.preco) * it.qty).toFixed(2)}€ só nesta linha)</span>` : ''}</div>
+        <div>${it.nome}<br><span style="color:var(--gray-light);">${espEtiqueta(k)}${it.tamanho} × ${it.qty} · ${it.precoLista != null && it.preco < it.precoLista - 0.004 ? `<s>${it.precoLista.toFixed(2)}€</s> ` : ''}${it.preco.toFixed(2)}€/un.</span>${it.tier ? `<br><span style="color:#1d7a3e;font-size:.78rem;font-weight:700">✓ Preço de ${it.tier}+ sacos aplicado</span>` : ''}${it.prox ? `<br><span style="color:#0f5fb0;font-size:.78rem">Junte mais ${it.prox.faltam} saco(s) ${escH(it.gama || '')} de ${escH(it.tamanho)} e passa a ${it.prox.preco.toFixed(2)}€/un. (poupa ${((it.preco - it.prox.preco) * it.qty).toFixed(2)}€ só nesta linha)</span>` : ''}</div>
         <div style="text-align:right;">
           ${itemSubtotal.toFixed(2)}€<br>
           <a href="#" onclick="removeFromCart('${k}'); return false;" style="color:var(--red); font-size:0.8rem;">remover</a>
