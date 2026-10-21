@@ -56,6 +56,8 @@ input, select, textarea { padding: 10px 12px; border: 1px solid var(--border); b
 .badge.enviado { background: var(--green-soft); color: #237a4b; }
 .entry-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
 .itens-list { margin-top: 10px; font-size: 0.86rem; color: var(--gray); }
+.sep-esp { display: inline-block; font-size: .78em; font-weight: 800; padding: 2px 8px; border-radius: 999px; vertical-align: middle; margin-right: 4px; }
+.sep-cao { background: #fde9cf; color: #8a4b00; } .sep-gato { background: #e3e9ff; color: #2a3f9e; } .sep-caogato { background: #e8f3ec; color: #1f6b46; }
 .empty-state { text-align: center; color: var(--gray-light); padding: 50px 20px; }
 
 /* ---------- Lista de separação (modal + impressão) ---------- */
@@ -758,6 +760,13 @@ async function importarTabelaPrecos() {
 
 // ---------- Verificação de preços, stock e exportação ----------
 let pedidosClientes = {}, pedidosPrecos = {};
+// Espécie do produto (Cão/Gato) — vem gravada na encomenda ou é deduzida do produto, para encomendas antigas
+function especieItem(it) {
+  const M = { 'Cão': 'cao', 'Gato': 'gato', 'Cão e gato': 'caogato' }, T = { cao: 'Cão', gato: 'Gato', caogato: 'Cão e gato' };
+  let e = it.especie && M[it.especie];
+  if (!e) { const c = chaveItem(it); e = c && c.p && c.p.especie; }
+  return T[e] ? { cls: e, txt: (e === 'gato' ? '🐱 ' : e === 'cao' ? '🐶 ' : '') + T[e] } : null;
+}
 function chaveItem(it) {
   if (it.key) {
     const pid = it.key.split('_')[0], lab = it.key.split('_').slice(1).join('_');
@@ -868,7 +877,7 @@ function loadPedidos() {
     if (snap.empty) { el.innerHTML = '<div class="empty-state">Ainda não há encomendas.</div>'; return; }
     allPedidos = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     el.innerHTML = allPedidos.map(p => {
-      const itensHtml = (p.itens || []).map(it => { const pr = precoOficial(it); return `${it.qty}x ${esc(it.nome)} (${esc(it.tamanho)}) — ${((pr == null ? it.preco : pr) * it.qty).toFixed(2)}€`; }).join('<br>');
+      const itensHtml = (p.itens || []).map(it => { const pr = precoOficial(it); const _e = especieItem(it); return `${it.qty}x ${_e ? _e.txt + ' · ' : ''}${esc(it.nome)} (${esc(it.tamanho)}) — ${((pr == null ? it.preco : pr) * it.qty).toFixed(2)}€`; }).join('<br>');
       const metodoLabel = pagLabel(p.metodoPagamento);
       let actions = '';
       if (p.estado === 'pendente') actions = `<button class="btn primary" onclick="setEstadoPedido('${p.id}','separado')">Marcar como separado</button>`;
@@ -1098,7 +1107,7 @@ function abrirListaSeparacao(id) {
     <label class="separacao-item" id="sep-item-${i}">
       <input type="checkbox" onchange="document.getElementById('sep-item-${i}').classList.toggle('riscado', this.checked)">
       <span class="separacao-qty">${it.qty}x</span>
-      <span><span class="separacao-nome">${it.nome}</span> <span class="separacao-tamanho">— ${it.tamanho}</span></span>
+      <span>${especieItem(it) ? `<span class="sep-esp sep-${especieItem(it).cls}">${especieItem(it).txt}</span> ` : ''}<span class="separacao-nome">${it.nome}</span> <span class="separacao-tamanho">— ${it.tamanho}</span></span>
     </label>`).join('');
   document.getElementById('separacaoBackdrop').classList.add('open');
   document.getElementById('separacaoModal').classList.add('open');
