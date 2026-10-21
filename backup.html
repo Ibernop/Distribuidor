@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Backup | Ibernop</title>
+<style>
+  :root { --navy:#0f2b46; --ink:#1c2733; --gray:#5d6b78; --line:#dde3e9; --bg:#f4f6f8; --ok:#1e7a3d; --warn:#b3261e; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width:640px; margin:0 auto; padding:32px 16px 64px; display:grid; gap:20px; }
+  h1 { margin:0; font-size:1.5rem; color:var(--navy); }
+  h2 { margin:0 0 6px; font-size:1.1rem; color:var(--navy); }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px; display:grid; gap:12px; }
+  p { margin:0; color:var(--gray); }
+  input { width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:8px; font:inherit; }
+  button { padding:11px 18px; border:0; border-radius:999px; background:var(--navy); color:#fff; font:600 15px system-ui, sans-serif; cursor:pointer; }
+  button.sec { background:#fff; color:var(--navy); border:1.5px solid var(--navy); }
+  button.danger { background:var(--warn); }
+  button:disabled { opacity:.5; cursor:default; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .msg { font-size:.9rem; white-space:pre-line; }
+  .msg.ok { color:var(--ok); } .msg.warn { color:var(--warn); }
+  .log { font:13px/1.5 ui-monospace, Menlo, monospace; background:var(--bg); border-radius:8px; padding:10px 12px; white-space:pre-line; max-height:260px; overflow:auto; }
+  .hide { display:none !important; }
+  .tip { background:#fff8e1; border:1px solid #f0d98a; border-radius:8px; padding:10px 12px; font-size:.88rem; color:#5c4a00; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Backup Ibernop</h1>
+
+  <div class="card" id="loginBox">
+    <h2>Entrar</h2>
+    <p>Só a conta de administrador consegue fazer backup.</p>
+    <input type="email" id="lEmail" placeholder="E-mail" autocomplete="username">
+    <input type="password" id="lPass" placeholder="Palavra-passe" autocomplete="current-password">
+    <button onclick="entrar()">Entrar</button>
+    <div class="msg warn" id="lMsg"></div>
+  </div>
+
+  <div id="painel" class="hide" style="display:grid; gap:20px;">
+    <div class="row" style="justify-content:space-between;">
+      <span id="quem" style="color:var(--gray); font-size:.9rem;"></span>
+      <button class="sec" onclick="auth.signOut()">Sair</button>
+    </div>
+
+    <div class="card">
+      <h2>1. Fazer backup</h2>
+      <p>Descarrega todos os dados (clientes, encomendas, preços, stock, equipa) num ficheiro <b>encriptado</b>. Sem a palavra-passe ninguém o consegue abrir — nem tu. Guarda a palavra-passe num sítio seguro.</p>
+      <input type="password" id="bPass" placeholder="Palavra-passe do backup (mínimo 12 caracteres)" autocomplete="new-password">
+      <input type="password" id="bPass2" placeholder="Repetir palavra-passe" autocomplete="new-password">
+      <button id="bBtn" onclick="fazerBackup()">Fazer backup agora</button>
+      <div class="log hide" id="bLog"></div>
+      <div class="msg" id="bMsg"></div>
+      <div class="tip">Guarda o ficheiro em 2 sítios: pen/disco externo + Google Drive. Nunca enviar por e-mail nem pôr no GitHub.</div>
+    </div>
+
+    <div class="card">
+      <h2>2. Verificar um backup</h2>
+      <p>Confirma que um ficheiro de backup abre corretamente e mostra o que tem dentro. Não altera nada.</p>
+      <input type="file" id="vFile" accept=".ibk">
+      <input type="password" id="vPass" placeholder="Palavra-passe do backup">
+      <div class="row">
+        <button onclick="verificar()">Verificar</button>
+        <button class="sec hide" id="vJson" onclick="descarregarJson()">Descarregar JSON aberto</button>
+      </div>
+      <div class="log hide" id="vLog"></div>
+      <div class="msg" id="vMsg"></div>
+    </div>
+
+    <div class="card">
+      <h2>3. Restaurar (só em emergência)</h2>
+      <p>Volta a gravar no sistema os dados do backup verificado acima. Não apaga nada do que já existe: só repõe os registos do backup. Encomendas podem ficar bloqueadas pelas regras de segurança — nesse caso usa o guia de emergência.</p>
+      <input type="text" id="rConf" placeholder='Escreve RESTAURAR para confirmar'>
+      <button class="danger" id="rBtn" onclick="restaurar()" disabled>Restaurar dados do backup</button>
+      <div class="log hide" id="rLog"></div>
+      <div class="msg" id="rMsg"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBAlMWFnh8JM4sVuWjEJhde88AbmNhfv7k",
+  authDomain: "ibernop-7a0d6.firebaseapp.com",
+  projectId: "ibernop-7a0d6",
+  storageBucket: "ibernop-7a0d6.firebasestorage.app",
+  messagingSenderId: "345246578720",
+  appId: "1:345246578720:web:d43f2156277ee44257a445"
+};
+const app = firebase.initializeApp(firebaseConfig, 'backup');
+const auth = app.auth();
+const db = app.firestore();
+const ADMIN_EMAILS = ["ibernop@outlook.com"];
+const COLECOES = ['clientes_b2b','pedidos_b2b','precos_b2b','privado_b2b','config_b2b','estoque_b2b','equipa_b2b',
+  'vendedores_b2b','financeiro_b2b','incidencias_b2b','avisos_stock','lojas_publicas','notif_b2b'];
+const $ = id => document.getElementById(id);
+let backupAberto = null;
+
+function entrar() {
+  $('lMsg').textContent = '';
+  auth.signInWithEmailAndPassword($('lEmail').value.trim(), $('lPass').value)
+    .catch(() => { $('lMsg').textContent = 'E-mail ou palavra-passe incorretos.'; });
+}
+auth.onAuthStateChanged(u => {
+  const ok = u && ADMIN_EMAILS.includes((u.email || '').toLowerCase());
+  if (u && !ok) { auth.signOut(); $('lMsg').textContent = 'Esta conta não tem acesso.'; }
+  $('loginBox').classList.toggle('hide', !!ok);
+  $('painel').classList.toggle('hide', !ok);
+  if (ok) $('quem').textContent = 'Ligado como ' + u.email;
+});
+
+// ---------- Conversão de tipos Firestore <-> JSON ----------
+function paraJson(v) {
+  if (v === null || v === undefined) return v ?? null;
+  if (v instanceof firebase.firestore.Timestamp) return { __t: 'ts', s: v.seconds, n: v.nanoseconds };
+  if (v instanceof firebase.firestore.GeoPoint) return { __t: 'geo', lat: v.latitude, lng: v.longitude };
+  if (v instanceof firebase.firestore.DocumentReference) return { __t: 'ref', p: v.path };
+  if (v instanceof firebase.firestore.Blob) return { __t: 'blob', b: v.toBase64() };
+  if (Array.isArray(v)) return v.map(paraJson);
+  if (typeof v === 'object') { const o = {}; for (const k in v) o[k] = paraJson(v[k]); return o; }
+  return v;
+}
+function deJson(v) {
+  if (v === null || typeof v !== 'object') return v;
+  if (Array.isArray(v)) return v.map(deJson);
+  if (v.__t === 'ts') return new firebase.firestore.Timestamp(v.s, v.n);
+  if (v.__t === 'geo') return new firebase.firestore.GeoPoint(v.lat, v.lng);
+  if (v.__t === 'ref') return db.doc(v.p);
+  if (v.__t === 'blob') return firebase.firestore.Blob.fromBase64String(v.b);
+  const o = {}; for (const k in v) o[k] = deJson(v[k]); return o;
+}
+
+// ---------- Encriptação (AES-256-GCM, chave derivada com PBKDF2) ----------
+const ITER = 310000;
+const b64 = buf => { let s = ''; new Uint8Array(buf).forEach(c => s += String.fromCharCode(c)); return btoa(s); };
+const unb64 = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
+async function chave(pass, salt) {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: ITER, hash: 'SHA-256' }, base,
+    { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function encriptar(texto, pass) {
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const k = await chave(pass, salt);
+  const dados = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k, new TextEncoder().encode(texto));
+  return JSON.stringify({ formato: 'ibernop-backup', v: 1, kdf: 'PBKDF2-SHA256', iter: ITER, salt: b64(salt), iv: b64(iv), dados: b64(dados) });
+}
+async function desencriptar(conteudo, pass) {
+  const f = JSON.parse(conteudo);
+  if (f.formato !== 'ibernop-backup') throw new Error('Este ficheiro não é um backup Ibernop.');
+  const k = await chave(pass, unb64(f.salt));
+  const txt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(f.iv) }, k, unb64(f.dados));
+  return JSON.parse(new TextDecoder().decode(txt));
+}
+function descarregar(nome, texto, tipo) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([texto], { type: tipo }));
+  a.download = nome; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const hojeStr = () => new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', 'h');
+
+// ---------- 1. Backup ----------
+async function fazerBackup() {
+  const p1 = $('bPass').value, p2 = $('bPass2').value, msg = $('bMsg'), log = $('bLog');
+  msg.className = 'msg warn';
+  if (p1.length < 12) { msg.textContent = 'A palavra-passe tem de ter pelo menos 12 caracteres.'; return; }
+  if (p1 !== p2) { msg.textContent = 'As palavras-passe não coincidem.'; return; }
+  $('bBtn').disabled = true; msg.textContent = ''; log.classList.remove('hide'); log.textContent = '';
+  const backup = { criadoEm: new Date().toISOString(), projeto: firebaseConfig.projectId, colecoes: {} };
+  let total = 0, falhas = [];
+  for (const c of COLECOES) {
+    try {
+      const snap = await db.collection(c).get();
+      backup.colecoes[c] = {};
+      snap.forEach(d => { backup.colecoes[c][d.id] = paraJson(d.data()); });
+      total += snap.size;
+      log.textContent += `✓ ${c}: ${snap.size}\n`;
+    } catch (e) {
+      falhas.push(c);
+      log.textContent += `✗ ${c}: sem acesso (${e.code || e.message})\n`;
+    }
+  }
+  try {
+    const ficheiro = await encriptar(JSON.stringify(backup), p1);
+    descarregar(`ibernop-backup-${hojeStr()}.ibk`, ficheiro, 'application/octet-stream');
+    msg.className = falhas.length ? 'msg warn' : 'msg ok';
+    msg.textContent = `Backup feito: ${total} registos.` + (falhas.length ? `\nAtenção: não foi possível ler ${falhas.join(', ')}.` : '') +
+      '\nAgora usa "Verificar um backup" para confirmar que abre.';
+    $('bPass').value = ''; $('bPass2').value = '';
+  } catch (e) {
+    msg.textContent = 'Erro ao gerar o ficheiro: ' + e.message;
+  }
+  $('bBtn').disabled = false;
+}
+
+// ---------- 2. Verificar ----------
+async function verificar() {
+  const f = $('vFile').files[0], msg = $('vMsg'), log = $('vLog');
+  msg.className = 'msg warn'; backupAberto = null; $('vJson').classList.add('hide'); $('rBtn').disabled = true;
+  if (!f) { msg.textContent = 'Escolhe o ficheiro .ibk.'; return; }
+  try {
+    const b = await desencriptar(await f.text(), $('vPass').value);
+    backupAberto = b;
+    log.classList.remove('hide');
+    log.textContent = `Criado em: ${new Date(b.criadoEm).toLocaleString('pt-PT')}\n` +
+      Object.entries(b.colecoes).map(([c, docs]) => `${c}: ${Object.keys(docs).length}`).join('\n');
+    msg.className = 'msg ok'; msg.textContent = 'Backup válido e completo.';
+    $('vJson').classList.remove('hide');
+    $('rBtn').disabled = false;
+  } catch (e) {
+    msg.textContent = e.message.includes('Ibernop') ? e.message : 'Palavra-passe errada ou ficheiro danificado.';
+  }
+}
+function descarregarJson() {
+  if (!backupAberto) return;
+  if (!confirm('O ficheiro JSON fica SEM encriptação e com dados de clientes. Usar só para consulta e apagar a seguir. Continuar?')) return;
+  descarregar(`ibernop-backup-ABERTO-${hojeStr()}.json`, JSON.stringify(backupAberto, null, 2), 'application/json');
+}
+
+// ---------- 3. Restaurar ----------
+async function restaurar() {
+  const msg = $('rMsg'), log = $('rLog');
+  msg.className = 'msg warn';
+  if (!backupAberto) { msg.textContent = 'Primeiro verifica um backup no passo 2.'; return; }
+  if ($('rConf').value.trim() !== 'RESTAURAR') { msg.textContent = 'Escreve RESTAURAR para confirmar.'; return; }
+  $('rBtn').disabled = true; log.classList.remove('hide'); log.textContent = '';
+  let falhas = [];
+  for (const [c, docs] of Object.entries(backupAberto.colecoes)) {
+    const ids = Object.keys(docs); let ok = 0;
+    try {
+      for (let i = 0; i < ids.length; i += 400) {
+        const batch = db.batch();
+        ids.slice(i, i + 400).forEach(id => batch.set(db.collection(c).doc(id), deJson(docs[id])));
+        await batch.commit(); ok += Math.min(400, ids.length - i);
+      }
+      log.textContent += `✓ ${c}: ${ok} repostos\n`;
+    } catch (e) {
+      falhas.push(c);
+      log.textContent += `✗ ${c}: bloqueado (${e.code || e.message}) — ${ok} repostos\n`;
+    }
+  }
+  msg.className = falhas.length ? 'msg warn' : 'msg ok';
+  msg.textContent = falhas.length ? `Concluído com bloqueios em: ${falhas.join(', ')}. Ver o guia de emergência.` : 'Restauro concluído.';
+  $('rConf').value = ''; $('rBtn').disabled = false;
+}
+</script>
+</body>
+</html>
