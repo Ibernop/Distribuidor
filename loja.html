@@ -1074,7 +1074,7 @@ function enviarIncidencia() {
     msg.textContent = 'Incidência enviada. Vamos resolver o mais brevemente possível e o seu gestor de zona entrará em contacto.'; msg.style.color = 'var(--gold-dark)';
     ['incFatura', 'incData', 'incDesc'].forEach(id => { document.getElementById(id).value = ''; }); document.getElementById('incQtd').value = 1;
     carregarIncidencias();
-  }).catch(e => { msg.textContent = 'Erro ao enviar: ' + e.message; msg.style.color = 'var(--red)'; });
+  }).catch(e => { console.error(e); msg.textContent = 'Não foi possível enviar a incidência. Tente novamente.'; msg.style.color = 'var(--red)'; });
 }
 function carregarIncidencias() {
   const el = document.getElementById('incLista');
@@ -1215,10 +1215,10 @@ function btnAviso(p, t) {
 }
 function avisarMe(pid, label) {
   const p = produtos.find(x => x.id === pid); if (!p || !currentUser) return; const k = pid + '_' + label, ref = db.collection('avisos_stock').doc(idAviso(k));
-  if (meusAvisos.has(k)) { ref.delete().then(() => { meusAvisos.delete(k); renderCatalog(); }).catch(e => alert('Não foi possível cancelar: ' + e.message)); return; }
+  if (meusAvisos.has(k)) { ref.delete().then(() => { meusAvisos.delete(k); renderCatalog(); }).catch(e => (console.error(e), alert('Não foi possível cancelar o aviso. Tente novamente.'))); return; }
   ref.set({ clienteUid: currentUser.uid, empresa: currentCliente.nomeComercial || currentCliente.empresa || '', email: currentUser.email || '', vendedorId: currentCliente.vendedorId || '', key: k, nome: p.nome, tamanho: label, criadoEm: firebase.firestore.FieldValue.serverTimestamp() })
     .then(() => { meusAvisos.add(k); renderCatalog(); avisoCarrinho('Vamos avisá-lo quando ' + p.nome + ' (' + label + ') voltar a ter stock'); })
-    .catch(e => alert('Não foi possível registar o aviso: ' + e.message));
+    .catch(e => (console.error(e), alert('Não foi possível registar o aviso. Tente novamente.')));
 }
 
 // ---------- Ficha do produto ----------
@@ -1496,23 +1496,14 @@ function submitPedido() {
   msgEl.textContent = 'A processar...';
   msgEl.style.color = 'var(--gray)';
 
-  // O stock passa a ser gerido só pela Ibernop (desce quando a encomenda é separada)
-  Promise.resolve().then(() => db.collection('pedidos_b2b').add({
-    clienteUid: clienteAlvo ? clienteAlvo.uid : currentUser.uid,
-    feitoPor: clienteAlvo ? { uid: currentUser.uid, email: currentUser.email || '', nome: (membroEquipa && membroEquipa.nome) || '', papel: (membroEquipa && membroEquipa.papel) || '' } : null,
-    empresa: currentCliente.empresa,
-    nomeFaturacao: currentCliente.nomeFaturacao || '',
-    nif: currentCliente.nif,
-    moradaEntrega: currentCliente.moradaEntrega || currentCliente.morada || '',
-    vendedorId: currentCliente.vendedorId || '',
-    desconto, subtotal, valorDesconto, subtotalLista: o.subtotalLista, precosLiquidos: true,
-    itens, total, metodoPagamento,
-    iva: Math.round(total * 0.23 * 100) / 100,
-    totalComIva: Math.round(total * 1.23 * 100) / 100,
-    estado: 'pendente', // pendente -> separado -> enviado
-    criadoEm: firebase.firestore.FieldValue.serverTimestamp()
-  })).then(ref => {
-    enviarEmail(EMAILJS.tplEncomenda, { cliente_email: clienteAlvo ? (clienteAlvo.email || '') : '', feito_por: clienteAlvo ? ((membroEquipa && membroEquipa.nome) || currentUser.email) : '', referencia: ref.id.slice(-6).toUpperCase(), data: new Date().toLocaleString('pt-PT'), nome_faturacao: currentCliente.nomeFaturacao || '', morada_entrega: currentCliente.moradaEntrega || currentCliente.morada || '', pagamento: pagLabel(metodoPagamento), itens_html: '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:4px 0 14px"><tr style="background:#07202e;color:#fff"><th align="center" style="padding:7px 5px;width:30px">Qtd</th><th align="left" style="padding:7px 5px">Produto</th><th align="right" style="padding:7px 5px">Preço un.</th><th align="right" style="padding:7px 5px">Total</th></tr>' + itens.map(it => `<tr><td align="center" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;font-weight:bold">${it.qty}</td><td style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top">${escH(it.nome)}<br><span style="color:#6b7780;font-size:12px">${it.especie ? '<b style="color:#07202e">' + escH(it.especie) + '</b> · ' : ''}${escH(it.tamanho)}</span></td><td align="right" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;white-space:nowrap">${eur(it.preco)}</td><td align="right" style="padding:8px 5px;border-bottom:1px solid #e3e6e8;vertical-align:top;white-space:nowrap;font-weight:bold">${eur(it.preco * it.qty)}</td></tr>`).join('') + '</table>', subtotal: eur(subtotal), desconto: desconto ? desconto + '% pré-pagamento (-' + eur(valorDesconto) + ')' : 'Incluído nos preços', total_sem_iva: eur(total), iva: eur(total * 0.23), total_com_iva: eur(total * 1.23) });
+  // A encomenda é calculada e gravada no servidor da Ibernop: aqui só seguem produtos e quantidades.
+  const ERROS = { 'mínimo': 'A encomenda mínima é de ' + PEDIDO_MINIMO + ' € sem IVA.', 'forma de pagamento não disponível': 'Esta forma de pagamento não está disponível para a sua conta.',
+    'sessão expirada': 'A sua sessão expirou. Entre novamente e repita a encomenda.', 'produto sem preço': 'Um dos produtos ainda não tem preço. Contacte o seu gestor de zona.',
+    'cliente não aprovado': 'A sua conta ainda não está ativa. Contacte a Ibernop.', 'sem permissão': 'Não tem permissão para encomendar para este cliente.' };
+  currentUser.getIdToken().then(idToken => fetch(EMAILJS.servidor, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken, tipo: 'encomenda', metodoPagamento, clienteUid: clienteAlvo ? clienteAlvo.uid : '', itens: keys.map(k => ({ key: k, qty: cart[k].qty })) }) }))
+  .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok || !j.ok) { const e = new Error(ERROS[j.erro] || 'Não foi possível enviar a encomenda. Tente novamente ou contacte o seu gestor de zona.'); throw e; } return j; })
+  .then(() => {
     msgEl.innerHTML = 'Encomenda enviada! Vamos preparar e avisamos quando for enviada.<br><a href="https://search.google.com/local/writereview?placeid=ChIJ38RN-LA5GQ0RYSkkmOuETRY" target="_blank" rel="noopener" style="color:inherit;font-weight:700">⭐ Está satisfeito com a Ibernop? Deixe-nos uma avaliação no Google</a>';
     msgEl.style.color = 'var(--gold-dark)';
     cart = {};
@@ -1521,7 +1512,7 @@ function submitPedido() {
     setTimeout(() => { closeCart(); enviandoPedido = false; }, 6000);
   }).catch(err => {
     enviandoPedido = false;
-    msgEl.textContent = 'Erro ao enviar: ' + err.message;
+    msgEl.textContent = err.message;
     msgEl.style.color = 'var(--red)';
   });
 }
