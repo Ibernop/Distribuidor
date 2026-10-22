@@ -262,13 +262,13 @@ function loadIncidencias() {
   const el = document.getElementById('panelIncidencias');
   el.innerHTML = '<div class="empty-state">A carregar...</div>';
   carregarVendedores().catch(() => []).then(() => queryIncidencias().get()).then(snap => {
-    const l = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.estado === 'resolvida') - (b.estado === 'resolvida') || ((b.criadoEm && b.criadoEm.seconds) || 0) - ((a.criadoEm && a.criadoEm.seconds) || 0));
+    const l = snap.docs.filter(d => /^[A-Za-z0-9_-]{1,64}$/.test(d.id)).map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.estado === 'resolvida') - (b.estado === 'resolvida') || ((b.criadoEm && b.criadoEm.seconds) || 0) - ((a.criadoEm && a.criadoEm.seconds) || 0));
     if (!l.length) { el.innerHTML = '<div class="empty-state">Não há incidências.</div>'; return; }
     el.innerHTML = l.map(i => `<div class="entry-card">
       <div class="entry-top"><div>
         <div class="entry-title">${esc(i.tipo)} — ${esc(i.empresa)}</div>
         <div class="entry-sub">Fatura <strong>${esc(i.fatura)}</strong> de ${esc((i.dataFatura || '').split('-').reverse().join('/'))} · Vendedor: ${esc(i.vendedorId ? nomeVendedor(i.vendedorId) : 'Sem vendedor')}</div>
-        <div class="entry-sub">${esc(i.gama)} · ${esc(i.produto)} · ${esc(i.peso)} · Ref. ${esc(i.referencia)} · EAN ${esc(i.ean)} · Qtd ${i.quantidade}</div>
+        <div class="entry-sub">${esc(i.gama)} · ${esc(i.produto)} · ${esc(i.peso)} · Ref. ${esc(i.referencia)} · EAN ${esc(i.ean)} · Qtd ${esc(i.quantidade)}</div>
         ${i.descricao ? `<div class="entry-sub">"${esc(i.descricao)}"</div>` : ''}
         <div class="entry-sub">Comunicada em ${i.criadoEm && i.criadoEm.toDate ? i.criadoEm.toDate().toLocaleString('pt-PT') : ''}</div>
       </div><span class="badge ${i.estado === 'resolvida' ? 'aprovado' : 'pendente'}">${i.estado === 'resolvida' ? 'Resolvida' : 'Aberta'}</span></div>
@@ -893,7 +893,7 @@ function loadPedidos() {
               ${p.feitoPor ? `<div class="entry-sub" style="color:#0f5fb0;font-weight:700">🧾 Feita por ${esc(p.feitoPor.nome || p.feitoPor.email)} em nome do cliente</div>` : ''}
               ${(() => { const o = totaisOficiais(p); return `<div class="entry-sub">Subtotal: ${o.subtotal.toFixed(2)}€${o.desconto ? ` · Desconto (${o.desconto}%): -${o.valorDesconto.toFixed(2)}€` : ''} · <strong>Total s/ IVA: ${o.total.toFixed(2)}€</strong> · IVA 23%: ${o.iva.toFixed(2)}€ · <strong>c/ IVA: ${o.comIva.toFixed(2)}€</strong></div>` + (o.diferente ? `<div class="entry-sub" style="color:var(--red);font-weight:700">Atenção: valores recalculados pela tabela atual e pelo desconto da ficha. O cliente enviou ${(p.total || 0).toFixed(2)}€ s/ IVA. Confirme antes de faturar.</div>` : '') + (o.desconhecido ? `<div class="entry-sub" style="color:var(--red)">Há produtos que já não estão na tabela; foi usado o preço enviado.</div>` : ''); })()}
             </div>
-            <span class="badge ${p.estado}">${p.estado}</span>
+            <span class="badge ${['pendente','separado','enviado'].includes(p.estado) ? p.estado : ''}">${esc(p.estado)}</span>
           </div>
           <div class="itens-list">${itensHtml}</div>
           <div class="entry-actions">
