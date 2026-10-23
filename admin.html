@@ -1022,7 +1022,17 @@ function addDestaque() {
   if (destaquesAdmin.some(x => String(x.pid) === String(pid) && (x.tam || '') === tam)) { alert('Este produto (com este peso) já está nos destaques.'); return; }
   const qtd = parseInt(document.getElementById('dsQtd').value, 10) || 0;
   destaquesAdmin.push({ pid: Number(pid), tam, desc: parseFloat(document.getElementById('dsDesc').value) || 0, fim: document.getElementById('dsFim').value || '', nota: document.getElementById('dsNota').value.trim(), ...(qtd > 0 ? { qtd, restam: qtd } : {}), criadoEm: new Date().toISOString() });
-  guardarDestaques();
+  guardarDestaques().then(avisarClientesDestaque);
+}
+// Pergunta se quer avisar os clientes por notificação (o envio é feito pelo servidor da Ibernop)
+async function avisarClientesDestaque() {
+  if (!confirm('Destaque adicionado. Avisar já os clientes por notificação no telemóvel?')) return;
+  try {
+    const idToken = await auth.currentUser.getIdToken();
+    const r = await fetch('https://empty-sun-ba57.ibernop-cac.workers.dev', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken, tipo: 'avisar_destaque' }) });
+    const j = await r.json().catch(() => ({}));
+    alert(j.ok ? 'Notificação enviada a ' + j.enviados + ' aparelho(s).' : 'Não foi possível enviar o aviso.');
+  } catch (e) { alert('Não foi possível enviar o aviso: ' + (e.message || e)); }
 }
 function removerDestaque(i) { destaquesAdmin.splice(i, 1); guardarDestaques(); }
 function moverDestaque(i, d) { const j = i + d; if (j < 0 || j >= destaquesAdmin.length) return; [destaquesAdmin[i], destaquesAdmin[j]] = [destaquesAdmin[j], destaquesAdmin[i]]; guardarDestaques(); }

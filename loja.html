@@ -838,7 +838,7 @@ function verProduto(id, idx) {
 const PEDIDO_MINIMO = 150;
 // Portes: encomendas abaixo de 150€ (sem IVA) pagam 7,10€ de portes. Só ficam ativos quando o servidor (Cloudflare)
 // também aceitar encomendas abaixo de 150€ e somar os portes — até lá, mantém-se o pedido mínimo de 150€ bloqueado.
-const PORTES_ATIVOS = false;
+const PORTES_ATIVOS = true;
 const PORTES_VALOR = 7.10;
 function totaisCarrinho() {
   aplicarEscaloes();
