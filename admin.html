@@ -368,6 +368,7 @@ function formNovoCliente() {
         <input type="text" id="ncMoradaEnt" placeholder="Morada de entrega (vazio = igual à de faturação)">
         <input type="text" id="ncLocalidade" placeholder="Localidade (aparece no site, ex.: Linda-a-Velha)">
         <select id="ncVendedor">${opcoesVendedor('')}</select>
+        <select id="ncCatalogo" title="O que este cliente vê na loja">${opcoesCatalogo('tudo')}</select>
         <span style="display:flex; align-items:center; gap:6px;"><label style="font-size:0.85rem; color:var(--gray);">Desconto fixo:</label><input type="number" id="ncDesconto" value="0" min="0" max="100" style="width:70px;"> %</span>
       </div>
       <div style="display:flex; gap:16px; margin:10px 0; font-size:0.9rem;">
@@ -410,6 +411,7 @@ function loadClientes() {
           </div>
           <div class="entry-actions" style="align-items:center; flex-wrap:wrap;">
             <select id="vend-${id}">${opcoesVendedor(c.vendedorId || '')}</select>
+            <select id="cat-${id}" title="O que este cliente vê na loja">${opcoesCatalogo(c.catalogo || 'tudo')}</select>
             <span style="display:flex; align-items:center; gap:6px;"><label style="font-size:0.85rem; color:var(--gray);">Desconto:</label><input type="number" id="desc-${id}" value="${c.desconto || 0}" min="0" max="100" style="width:64px;"> %</span>
             ${Object.entries(PAGS).map(([k, l]) => `<label style="font-size:0.85rem;"><input type="checkbox" id="pg-${k}-${id}" ${pags.includes(k) ? 'checked' : ''}> ${l}</label>`).join('')}
             <button class="btn primary" onclick="guardarCliente('${id}')">Guardar</button>
@@ -485,6 +487,10 @@ function senhaAleatoria() {
   return Array.from(a, n => n.toString(36)).join('') + 'Aa1!';
 }
 
+// O que o cliente vê na loja: tudo, só Ownat (rações) ou só testes rápidos/equipamentos (Vet Diagnostix)
+function opcoesCatalogo(sel) {
+  return [['tudo', '🛒 Vê tudo (Ownat + testes)'], ['ownat', '🐾 Só Ownat (rações)'], ['testes', '🧪 Só testes rápidos']].map(([k, l]) => `<option value="${k}" ${sel === k ? 'selected' : ''}>${l}</option>`).join('');
+}
 async function criarCliente() {
   const v = id => document.getElementById(id).value.trim();
   const erro = document.getElementById('ncErro'); erro.classList.remove('show');
@@ -492,7 +498,7 @@ async function criarCliente() {
     nomeFaturacao: v('ncFaturacao'), nomeComercial: v('ncComercial'), nif: v('ncNif'),
     contacto: v('ncContacto'), telefone: v('ncTelefone'), email: v('ncEmail').toLowerCase(),
     localidade: v('ncLocalidade'), moradaFaturacao: v('ncMoradaFat'), moradaEntrega: v('ncMoradaEnt') || v('ncMoradaFat'),
-    vendedorId: v('ncVendedor'), desconto: parseFloat(v('ncDesconto') || '0') || 0,
+    vendedorId: v('ncVendedor'), desconto: parseFloat(v('ncDesconto') || '0') || 0, catalogo: v('ncCatalogo') || 'tudo',
     pagamentos: lerPagamentos(k => 'ncPag-' + k)
   };
   const falta = !dados.nomeFaturacao || !dados.nomeComercial || !dados.nif || !dados.email || !dados.moradaFaturacao;
@@ -525,6 +531,7 @@ function guardarCliente(id) {
   db.collection('clientes_b2b').doc(id).update({
     vendedorId: document.getElementById('vend-' + id).value,
     desconto: parseFloat(document.getElementById('desc-' + id).value || '0') || 0,
+    catalogo: document.getElementById('cat-' + id).value || 'tudo',
     pagamentos
   }).then(() => alert('Cliente guardado.'));
 }
@@ -587,7 +594,7 @@ function iniciarAvisos() {
     const n = s.size, b = document.getElementById('contaPendentes');
     b.textContent = n; b.style.display = n ? 'inline-flex' : 'none';
     document.title = (n ? '(' + n + ') ' : '') + 'Gestão | Ibernop';
-    if (pendentesVistos !== null) s.docChanges().forEach(ch => { if (ch.type === 'added') mostrarAviso('Nova encomenda: ' + (ch.doc.data().empresa || '')); });
+    if (pendentesVistos !== null) s.docChanges().forEach(ch => { if (ch.type === 'added') { mostrarAviso('Nova encomenda: ' + (ch.doc.data().empresa || '')); setTimeout(verificarQtdDestaques, 2500); } });
     pendentesVistos = n;
   }, () => {});
 }
@@ -970,23 +977,51 @@ let precosAdmin = {}; // preços alterados na Gestão (sem IVA)
 // ---------- Destaques da área de cliente ----------
 let destaquesAdmin = [];
 function loadDestaquesAdmin() {
-  db.collection('config_b2b').doc('destaques').get().then(d => { destaquesAdmin = (d.exists && d.data().itens) || []; renderDestaquesAdmin(); }).catch(e => { document.getElementById('destaquesBox').innerHTML = '<div class="empty-state">Erro ao carregar destaques.</div>'; console.error(e); });
+  db.collection('config_b2b').doc('destaques').get().then(d => { destaquesAdmin = (d.exists && d.data().itens) || []; renderDestaquesAdmin(); verificarQtdDestaques(); }).catch(e => { document.getElementById('destaquesBox').innerHTML = '<div class="empty-state">Erro ao carregar destaques.</div>'; console.error(e); });
 }
 function renderDestaquesAdmin() {
   const el = document.getElementById('destaquesBox');
-  const opts = produtos.flatMap(p => p.tamanhos.map(t => `<option value="${p.id}|${esc(t.label)}">${esc(p.nome)} — ${esc(t.label)}</option>`)).join('');
+  const opts = opcoesDestaque(dsEspSel);
   el.innerHTML = `<div class="entry-card"><div class="entry-title" style="margin-bottom:6px;">⭐ Destaques na área de cliente</div>
-    <p style="font-size:0.82rem;color:var(--gray);margin:0 0 10px;">Produtos que quer vender mais depressa (promoção, validade curta, escoamento). Aparecem num carrossel no topo do catálogo dos clientes. O desconto % é aplicado ao preço desse peso e, na data indicada, o destaque e a promoção terminam sozinhos.</p>
-    <div class="form-grid"><select id="dsProd">${opts}</select><input type="number" id="dsDesc" min="0" max="90" step="0.5" placeholder="Desconto % (ex.: 10)"><label style="display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--gray)">Válido até <input type="date" id="dsFim" style="flex:1"></label><input type="text" id="dsNota" placeholder="Nota (opcional, ex.: Validade curta)"></div>
+    <p style="font-size:0.82rem;color:var(--gray);margin:0 0 10px;">Produtos que quer vender mais depressa (promoção, validade curta, escoamento). Aparecem num carrossel no topo do catálogo dos clientes. O desconto % é aplicado ao preço desse peso. A promoção termina sozinha na data indicada ou quando se esgotar a quantidade em promoção (contada pelas encomendas recebidas).</p>
+    <div class="form-grid"><select id="dsEsp" onchange="dsEspSel=this.value;document.getElementById('dsProd').innerHTML=opcoesDestaque(dsEspSel)"><option value="" ${dsEspSel === '' ? 'selected' : ''}>Todas as espécies</option><option value="cao" ${dsEspSel === 'cao' ? 'selected' : ''}>🐶 Cão</option><option value="gato" ${dsEspSel === 'gato' ? 'selected' : ''}>🐱 Gato</option><option value="outros" ${dsEspSel === 'outros' ? 'selected' : ''}>Outras espécies / equipamentos</option></select><select id="dsProd">${opts}</select><input type="number" id="dsDesc" min="0" max="90" step="0.5" placeholder="Desconto % (ex.: 10)"><input type="number" id="dsQtd" min="1" step="1" placeholder="Quantidade em promoção (ex.: 30)"><label style="display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--gray)">Válido até <input type="date" id="dsFim" style="flex:1"></label><input type="text" id="dsNota" placeholder="Nota (opcional, ex.: Validade curta)"></div>
     <div class="entry-actions"><button class="btn primary" onclick="addDestaque()">Adicionar destaque</button></div>
-    ${destaquesAdmin.length ? destaquesAdmin.map((x, i) => { const p = produtos.find(p => String(p.id) === String(x.pid)); return `<div class="entry-sub" style="display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px 10px;background:#f6f8fa;border-radius:10px"><span style="flex:1"><strong>${esc(p ? p.nome : 'Produto removido')}${x.tam ? ' — ' + esc(x.tam) : ''}</strong>${x.desc ? ' · <span style="color:#e63946;font-weight:700">-' + x.desc + '%</span>' : (x.etiqueta ? ' · <span style="color:#e63946;font-weight:700">' + esc(x.etiqueta) + '</span>' : '')}${x.fim ? ' · até ' + x.fim.split('-').reverse().slice(0, 2).join('/') + (x.fim < new Date().toISOString().slice(0, 10) ? ' <span style="color:var(--red)">(terminado)</span>' : '') : ''}${x.nota ? ' · ' + esc(x.nota) : ''}</span><button class="btn" style="padding:6px 10px" onclick="moverDestaque(${i},-1)">↑</button><button class="btn" style="padding:6px 10px" onclick="moverDestaque(${i},1)">↓</button><button class="btn" style="padding:6px 12px;color:var(--red);border-color:var(--red)" onclick="removerDestaque(${i})">Remover</button></div>`; }).join('') : '<div class="entry-sub" style="margin-top:8px">Ainda não há destaques.</div>'}
+    ${destaquesAdmin.length ? destaquesAdmin.map((x, i) => { const p = produtos.find(p => String(p.id) === String(x.pid)); return `<div class="entry-sub" style="display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px 10px;background:#f6f8fa;border-radius:10px"><span style="flex:1"><strong>${esc(p ? p.nome : 'Produto removido')}${x.tam ? ' — ' + esc(x.tam) : ''}</strong>${x.desc ? ' · <span style="color:#e63946;font-weight:700">-' + x.desc + '%</span>' : (x.etiqueta ? ' · <span style="color:#e63946;font-weight:700">' + esc(x.etiqueta) + '</span>' : '')}${x.qtd ? ' · <span style="color:var(--gray)">' + x.qtd + ' un. em promoção (restam ' + Math.max(0, x.restam != null ? x.restam : x.qtd) + ')</span>' : ''}${x.fim ? ' · até ' + x.fim.split('-').reverse().slice(0, 2).join('/') + (x.fim < new Date().toISOString().slice(0, 10) ? ' <span style="color:var(--red)">(terminado)</span>' : '') : ''}${x.nota ? ' · ' + esc(x.nota) : ''}</span><button class="btn" style="padding:6px 10px" onclick="moverDestaque(${i},-1)">↑</button><button class="btn" style="padding:6px 10px" onclick="moverDestaque(${i},1)">↓</button><button class="btn" style="padding:6px 12px;color:var(--red);border-color:var(--red)" onclick="removerDestaque(${i})">Remover</button></div>`; }).join('') : '<div class="entry-sub" style="margin-top:8px">Ainda não há destaques.</div>'}
   </div>`;
+}
+let dsEspSel = '';
+const ESP_NOME = { cao: 'Cão', gato: 'Gato', caogato: 'Cão e gato' };
+function opcoesDestaque(f) {
+  const ok = p => !f || (f === 'cao' ? (p.especie === 'cao' || p.especie === 'caogato') : f === 'gato' ? (p.especie === 'gato' || p.especie === 'caogato') : !['cao', 'gato', 'caogato'].includes(p.especie));
+  return produtos.filter(ok).flatMap(p => p.tamanhos.map(t => `<option value="${p.id}|${esc(t.label)}">[${esc(ESP_NOME[p.especie] || p.especie || p.gama)}] ${esc(p.nome)} — ${esc(t.label)}</option>`)).join('');
+}
+// Termina sozinha a promoção cuja quantidade já foi toda encomendada (conta as encomendas desde que o destaque foi criado)
+async function verificarQtdDestaques() {
+  if (ehVendedor()) return;
+  try {
+    const d = await db.collection('config_b2b').doc('destaques').get();
+    const itens = (d.exists && d.data().itens) || [];
+    const lim = itens.filter(x => x.qtd > 0 && x.criadoEm);
+    if (!lim.length) return;
+    const desde = lim.map(x => x.criadoEm).sort()[0];
+    const s = await db.collection('pedidos_b2b').where('criadoEm', '>=', new Date(desde)).get();
+    const vend = lim.map(() => 0);
+    s.forEach(doc => { const p = doc.data(); const t = p.criadoEm && p.criadoEm.toDate ? p.criadoEm.toDate().getTime() : 0; (p.itens || []).forEach(it => { const c = chaveItem(it); if (!c) return; lim.forEach((x, i) => { if (t >= new Date(x.criadoEm).getTime() && String(c.key).split('_')[0] === String(x.pid) && (!x.tam || c.key === x.pid + '_' + x.tam)) vend[i] += Number(it.qty) || 0; }); }); });
+    let mudou = false; const fora = [];
+    lim.forEach((x, i) => { const r = Math.max(0, x.qtd - vend[i]); if (x.restam !== r) { x.restam = r; mudou = true; } if (r <= 0) fora.push(x); });
+    if (!mudou) return;
+    const novos = itens.filter(x => !fora.includes(x));
+    await db.collection('config_b2b').doc('destaques').set({ itens: novos, atualizado: firebase.firestore.FieldValue.serverTimestamp() });
+    destaquesAdmin = novos; renderDestaquesAdmin();
+    if (fora.length) mostrarAviso('Promoção terminada (quantidade esgotada): ' + fora.map(x => { const p = produtos.find(p => String(p.id) === String(x.pid)); return p ? p.nome : ''; }).join(', '));
+  } catch (e) { console.warn('verificarQtdDestaques', e); }
 }
 function guardarDestaques() { return db.collection('config_b2b').doc('destaques').set({ itens: destaquesAdmin, atualizado: firebase.firestore.FieldValue.serverTimestamp() }).then(renderDestaquesAdmin).catch(e => alert('Não foi possível guardar: ' + e.message)); }
 function addDestaque() {
   const [pid, tam] = document.getElementById('dsProd').value.split('|');
   if (destaquesAdmin.some(x => String(x.pid) === String(pid) && (x.tam || '') === tam)) { alert('Este produto (com este peso) já está nos destaques.'); return; }
-  destaquesAdmin.push({ pid: Number(pid), tam, desc: parseFloat(document.getElementById('dsDesc').value) || 0, fim: document.getElementById('dsFim').value || '', nota: document.getElementById('dsNota').value.trim() });
+  const qtd = parseInt(document.getElementById('dsQtd').value, 10) || 0;
+  destaquesAdmin.push({ pid: Number(pid), tam, desc: parseFloat(document.getElementById('dsDesc').value) || 0, fim: document.getElementById('dsFim').value || '', nota: document.getElementById('dsNota').value.trim(), ...(qtd > 0 ? { qtd, restam: qtd } : {}), criadoEm: new Date().toISOString() });
   guardarDestaques();
 }
 function removerDestaque(i) { destaquesAdmin.splice(i, 1); guardarDestaques(); }

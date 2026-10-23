@@ -424,6 +424,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
 <section id="catalogView" style="display:none;">
   <div class="wrap">
     <div class="banners" id="banners"><picture class="bn on"><source media="(max-width:700px)" srcset="img/ext/banner-care-760x428px-pt.webp"><img src="img/ext/banner-care-1920x521px-pt.webp" alt="Ownat Care" ></picture><picture class="bn"><source media="(max-width:700px)" srcset="img/ext/banner-author-760x428px-pt.webp"><img src="img/ext/banner-author-1920x521px-pt.webp" alt="Ownat Author" loading="lazy"></picture><picture class="bn"><source media="(max-width:700px)" srcset="img/ext/banner-web-movil-ownat_gos_pt.webp"><img src="img/ext/banner-web-ownat_gos-pt.webp" alt="Ownat — como é natural, eles adoram" loading="lazy"></picture><div class="bn-dots"></div></div>
+    <div id="notifCliente" style="display:none;margin:0 0 16px;padding:12px 16px;border-radius:12px;background:#fff6e5;color:#8a5a00;align-items:center;gap:12px;flex-wrap:wrap"><span style="flex:1;min-width:200px;font-size:.9rem"><b>🔔 Ative as notificações</b> e seja o primeiro a saber dos produtos em destaque e das promoções, assim que os publicarmos.</span><button type="button" class="btn btn-gold" onclick="notifCliente(true)">Ativar notificações</button><button type="button" class="btn" onclick="notifAdiar()">Agora não</button></div>
     <div class="dest-wrap" id="destaques" style="display:none">
       <div class="dest-head"><h2>⭐ Destaques e promoções</h2><div class="dest-nav"><button type="button" onclick="moverDestaques(-1)" aria-label="Anterior">‹</button><button type="button" onclick="moverDestaques(1)" aria-label="Seguinte">›</button></div></div>
       <div class="dest-track" id="destTrack"></div>
@@ -434,7 +435,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
     <div class="product-grid" id="productGrid"></div>
     <div class="vantagens vant-rodape">
       <div><span class="i">🚚</span><span><b>Entrega rápida</b>24 a 48 horas úteis</span></div>
-      <div><span class="i">🧾</span><span><b>Pedido mínimo 150€</b>sem IVA</span></div>
+      <div><span class="i">🧾</span><span><b id="infoMinTit">Pedido mínimo 150€</b><span id="infoMinSub">sem IVA</span></span></div>
       <div><span class="i">🤝</span><span><b>Gestor de zona</b>Acompanhamento próximo</span></div>
     </div>
   </div>
@@ -455,6 +456,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
   <div class="cart-footer">
     <div class="cart-total" style="font-size:0.9rem; font-weight:600; color:var(--gray); margin-bottom:6px;"><span>Subtotal</span><span id="cartSubtotal">0,00€</span></div>
     <div id="cartDescontoRow" class="cart-total" style="font-size:0.9rem; font-weight:600; color:var(--gold-dark); margin-bottom:6px; display:none;"><span>Desconto</span><span id="cartDescontoValor">0,00€</span></div>
+    <div id="cartPortesRow" class="cart-total" style="font-size:0.9rem; font-weight:600; color:var(--gray); margin-bottom:6px; display:none;"><span>Portes (encomenda abaixo de 150€)</span><span id="cartPortes">0,00€</span></div>
     <div class="cart-total" style="border-top:1px solid var(--border); padding-top:10px; font-size:0.95rem;"><span>Total sem IVA</span><span id="cartTotal">0,00€</span></div>
     <div class="cart-total" style="font-size:0.9rem; font-weight:600; color:var(--gray); margin:4px 0;"><span>IVA (23%)</span><span id="cartIva">0,00€</span></div>
     <div class="cart-total" style="border-top:2px solid var(--charcoal); padding-top:10px;"><span>Total com IVA</span><span id="cartTotalIva">0,00€</span></div>
@@ -490,6 +492,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script>
 // ============================================================
 // ATENÇÃO: este projeto Firebase TEM DE SER NOVO E DIFERENTE do
@@ -522,6 +525,7 @@ const LIMITE_STOCK_BAIXO = 5; // a partir daqui mostra o aviso "restam apenas X"
 // 2 leituras por visita em vez de ~350, e os preços deixam de estar num ficheiro público.
 let ESC_PRIV = null, ESC_QTD_PRIV = null;
 function loadStock() {
+  aplicarCatalogoCliente();
   const P = db.collection('privado_b2b');
   Promise.all([P.doc('precos').get().catch(() => null), P.doc('stock').get().catch(() => null)]).then(([dp, ds]) => {
     if (!(dp && dp.exists) || !(ds && ds.exists)) return loadStockAntigo();
@@ -682,6 +686,7 @@ auth.onAuthStateChanged(user => {
       showView('catalog');
       aplicarPagamentos();
       loadStock();
+      notifCliente(false);
       renderCatalog();
       try { cart = JSON.parse(localStorage.getItem('carrinho_' + user.uid) || '{}') || {}; } catch (e) { cart = {}; }
       renderCart();
@@ -732,7 +737,7 @@ function escolherClienteAlvo(uid) {
   else { clienteAlvo = null; currentCliente = { empresa: 'Pré-visualização (Gestão)', aprovado: true, desconto: 0, preview: true }; }
   const av = document.getElementById('avisoPreview');
   if (av) { av.textContent = c ? '🧾 A encomendar em nome de ' + (c.nomeComercial || c.empresa) + ' — preços, descontos e pagamentos deste cliente.' : '👁 Modo de pré-visualização da Gestão — vê a loja como um cliente, sem desconto. Não é possível enviar encomendas.'; av.style.background = c ? '#d9f2e3' : '#fff3cd'; av.style.color = c ? '#14532d' : '#664d03'; }
-  updateHeaderActions(); aplicarPagamentos(); renderCatalog(); renderCart();
+  updateHeaderActions(); aplicarPagamentos(); aplicarCatalogoCliente(); irNav(null); renderCatalog(); renderCart(); carregarDestaques();
 }
 
 function updateHeaderActions() {
@@ -766,6 +771,26 @@ const escH = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&a
 let minhasEncomendas = [];
 
 
+// ---------- Notificações no telemóvel/computador do cliente (novos destaques e promoções) ----------
+const VAPID_CLIENTE = 'BFMOBKDzFhdaBg2OpTHHzYKqjGrQey7K9IwVYMSrcW3CSPgeCPi-BuI8zHh_toxmc1wNsz25z8j4nCoB3or6m6A';
+function notifAdiar() { try { localStorage.setItem('notif_adiado', String(Date.now())); } catch (e) {} const b = document.getElementById('notifCliente'); if (b) b.style.display = 'none'; }
+async function notifCliente(pedir) {
+  const box = document.getElementById('notifCliente');
+  try {
+    if (!box || !currentUser || !currentCliente || currentCliente.preview || currentCliente.emNomeDe) return;
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !firebase.messaging.isSupported() || Notification.permission === 'denied') { box.style.display = 'none'; return; }
+    if (Notification.permission !== 'granted') {
+      if (!pedir) { let ad = 0; try { ad = Number(localStorage.getItem('notif_adiado')) || 0; } catch (e) {} box.style.display = Date.now() - ad > 3 * 864e5 ? 'flex' : 'none'; return; }
+      if (await Notification.requestPermission() !== 'granted') return;
+    }
+    const reg = await navigator.serviceWorker.register('sw.js'); await navigator.serviceWorker.ready;
+    const token = await firebase.messaging().getToken({ vapidKey: VAPID_CLIENTE, serviceWorkerRegistration: reg });
+    if (token) await db.collection('notif_clientes').doc(currentUser.uid).set({ email: currentUser.email || '', empresa: currentCliente.empresa || '', tokens: firebase.firestore.FieldValue.arrayUnion(token), atualizado: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    box.style.display = 'none';
+    if (pedir) alert('Notificações ativadas neste aparelho. Vai receber um aviso quando houver novos produtos em destaque.');
+  } catch (e) { console.error(e); if (pedir) alert('Não foi possível ativar as notificações neste aparelho.'); }
+}
+
 // ---------- Destaques (definidos na Gestão → Stock e preços) ----------
 let destTimer = null;
 function carregarDestaques() {
@@ -782,7 +807,7 @@ function carregarDestaques() {
     document.getElementById('destTrack').innerHTML = itens.map(x => {
       const ti = x.tam ? Math.max(0, x.p.tamanhos.findIndex(t => t.label === x.tam)) : 0; const t = x.p.tamanhos[ti]; const preco = t && t.preco > 0 ? (t.preco * (1 - desc / 100)) : 0;
       const antes = t && t.promo && t.precoOrig ? t.precoOrig * (1 - desc / 100) : 0; const ddmm = x.fim ? x.fim.split('-').reverse().slice(0, 2).join('/') : '';
-      return `<div class="dest-card">${x.pc ? `<span class="et">-${x.pc}%</span>` : (x.texto ? `<span class="et">${escH(x.texto)}</span>` : '')}<img src="${x.p.imagem || ''}" alt="" loading="lazy"><div><h3>${escH(x.p.nome)}${x.tam ? ` <span style="opacity:.8;font-weight:600">· ${escH(x.tam)}</span>` : ''}</h3>${(ddmm || x.notaTxt) ? `<div class="nota">${ddmm ? 'Promoção até ' + ddmm : ''}${ddmm && x.notaTxt ? ' · ' : ''}${escH(x.notaTxt)}</div>` : ''}${preco ? `<div class="pr">${antes ? `<s style="opacity:.6;font-weight:500;margin-right:6px">${antes.toFixed(2)}€</s>` : ''}${x.tam ? '' : 'desde '}${preco.toFixed(2)}€ <small style="font-weight:500;opacity:.75">s/ IVA</small></div>` : ''}<button type="button" onclick="verProduto(${x.p.id}, ${ti})">Ver e encomendar</button></div></div>`;
+      return `<div class="dest-card">${x.pc ? `<span class="et">-${x.pc}%</span>` : (x.texto ? `<span class="et">${escH(x.texto)}</span>` : '')}<img src="${x.p.imagem || ''}" alt="" loading="lazy"><div><h3>${escH(x.p.nome)}${x.tam ? ` <span style="opacity:.8;font-weight:600">· ${escH(x.tam)}</span>` : ''}</h3>${(ddmm || x.notaTxt) ? `<div class="nota">${ddmm ? 'Promoção até ' + ddmm : ''}${ddmm && x.notaTxt ? ' · ' : ''}${escH(x.notaTxt)}</div>` : ''}${x.qtd ? `<div class="nota"><b>Últimas ${Math.max(0, x.restam != null ? x.restam : x.qtd)} unidades</b></div>` : ''}${preco ? `<div class="pr">${antes ? `<s style="opacity:.6;font-weight:500;margin-right:6px">${antes.toFixed(2)}€</s>` : ''}${x.tam ? '' : 'desde '}${preco.toFixed(2)}€ <small style="font-weight:500;opacity:.75">s/ IVA</small></div>` : ''}<button type="button" onclick="verProduto(${x.p.id}, ${ti})">Ver e encomendar</button></div></div>`;
     }).join('');
     document.getElementById('destDots').innerHTML = itens.map((_, i) => `<i onclick="irDestaque(${i})"></i>`).join('');
     box.style.display = '';
@@ -811,6 +836,10 @@ function verProduto(id, idx) {
 
 // ---------- Pedido mínimo e revisão antes de enviar ----------
 const PEDIDO_MINIMO = 150;
+// Portes: encomendas abaixo de 150€ (sem IVA) pagam 7,10€ de portes. Só ficam ativos quando o servidor (Cloudflare)
+// também aceitar encomendas abaixo de 150€ e somar os portes — até lá, mantém-se o pedido mínimo de 150€ bloqueado.
+const PORTES_ATIVOS = false;
+const PORTES_VALOR = 7.10;
 function totaisCarrinho() {
   aplicarEscaloes();
   const itens = Object.keys(cart).map(k => ({ ...cart[k], key: k }));
@@ -819,11 +848,14 @@ function totaisCarrinho() {
   const pag = document.querySelector('input[name="payMethod"]:checked');
   const pp = pag && pag.value === 'pre' ? PP_DESCONTO : 0;
   const valorPP = r2(subtotal * pp / 100);
-  return { itens, subtotalLista, subtotal, descontoLinhas: r2(subtotalLista - subtotal), pp, valorPP, desconto: pp, valorDesconto: valorPP, total: r2(subtotal - valorPP) };
+  const base = r2(subtotal - valorPP);
+  const portes = PORTES_ATIVOS && base > 0 && base < PEDIDO_MINIMO ? PORTES_VALOR : 0;
+  return { itens, subtotalLista, subtotal, descontoLinhas: r2(subtotalLista - subtotal), pp, valorPP, desconto: pp, valorDesconto: valorPP, totalProdutos: base, portes, total: r2(base + portes) };
 }
+(function () { if (!PORTES_ATIVOS) return; const t = document.getElementById('infoMinTit'), s = document.getElementById('infoMinSub'); if (t) t.textContent = 'Portes grátis desde 150€'; if (s) s.textContent = 'abaixo: portes de 7,10€ s/IVA'; })();
 function atualizarMinimo() {
   const el = document.getElementById('minimoMsg'); if (!el) return;
-  const t = totaisCarrinho().total;
+  const t = totaisCarrinho().totalProdutos;
   const pg = document.getElementById('cartProgresso');
   if (pg) {
     if (!(t > 0)) pg.innerHTML = '';
@@ -832,19 +864,19 @@ function atualizarMinimo() {
       let dica = ''; let melhor = null;
       Object.keys(cart).forEach(k => { const it = cart[k]; if (it.prox && (!melhor || it.prox.faltam < melhor.prox.faltam)) melhor = it; });
       if (melhor) dica = `<div class="pg-dica">💡 Junte mais <b>${melhor.prox.faltam}</b> saco(s) ${escH(melhor.gama || '')} de ${escH(melhor.tamanho)} e passa a <b>${melhor.prox.preco.toFixed(2)}€/un.</b></div>`;
-      pg.innerHTML = `<div class="pg-txt">${ok ? '✅ Pedido mínimo atingido' : 'Faltam <b>' + (PEDIDO_MINIMO - t).toFixed(2) + '€</b> para o pedido mínimo de ' + PEDIDO_MINIMO + '€'}</div><div class="pg-barra"><i style="width:${pct}%;${ok ? 'background:#1d7a3e' : ''}"></i></div>${dica}`;
+      pg.innerHTML = `<div class="pg-txt">${PORTES_ATIVOS ? (ok ? '✅ Portes grátis' : 'Faltam <b>' + (PEDIDO_MINIMO - t).toFixed(2) + '€</b> para portes grátis (portes ' + PORTES_VALOR.toFixed(2).replace('.', ',') + '€ s/IVA)') : (ok ? '✅ Pedido mínimo atingido' : 'Faltam <b>' + (PEDIDO_MINIMO - t).toFixed(2) + '€</b> para o pedido mínimo de ' + PEDIDO_MINIMO + '€')}</div><div class="pg-barra"><i style="width:${pct}%;${ok ? 'background:#1d7a3e' : ''}"></i></div>${dica}`;
     }
   }
-  if (t > 0 && t < PEDIDO_MINIMO) { el.style.display = 'block'; el.textContent = 'Pedido mínimo de ' + PEDIDO_MINIMO + '€ (sem IVA). Faltam ' + (PEDIDO_MINIMO - t).toFixed(2) + '€.'; }
+  if (t > 0 && t < PEDIDO_MINIMO) { el.style.display = 'block'; el.textContent = PORTES_ATIVOS ? 'Encomenda abaixo de ' + PEDIDO_MINIMO + '€ (sem IVA): acrescem portes de ' + PORTES_VALOR.toFixed(2).replace('.', ',') + '€ sem IVA. Faltam ' + (PEDIDO_MINIMO - t).toFixed(2) + '€ para portes grátis.' : 'Pedido mínimo de ' + PEDIDO_MINIMO + '€ (sem IVA). Faltam ' + (PEDIDO_MINIMO - t).toFixed(2) + '€.'; }
   else el.style.display = 'none';
   const b = document.getElementById('btnRever');
-  if (b) { const bloq = t < PEDIDO_MINIMO; b.disabled = bloq; b.style.opacity = bloq ? '.5' : ''; b.style.cursor = bloq ? 'not-allowed' : ''; b.textContent = bloq && t > 0 ? 'Mínimo 150€ sem IVA' : 'Rever encomenda'; }
+  if (b) { const bloq = !PORTES_ATIVOS && t < PEDIDO_MINIMO; b.disabled = bloq; b.style.opacity = bloq ? '.5' : ''; b.style.cursor = bloq ? 'not-allowed' : ''; b.textContent = bloq && t > 0 ? 'Mínimo 150€ sem IVA' : 'Rever encomenda'; }
 }
 function abrirRevisao() {
   const msgEl = document.getElementById('checkoutMsg');
   const o = totaisCarrinho();
   if (!o.itens.length) { msgEl.textContent = 'O carrinho está vazio.'; msgEl.style.color = 'var(--red)'; return; }
-  if (o.total < PEDIDO_MINIMO) { msgEl.textContent = 'O pedido mínimo é de ' + PEDIDO_MINIMO + '€ sem IVA. Faltam ' + (PEDIDO_MINIMO - o.total).toFixed(2) + '€.'; msgEl.style.color = 'var(--red)'; return; }
+  if (!PORTES_ATIVOS && o.total < PEDIDO_MINIMO) { msgEl.textContent = 'O pedido mínimo é de ' + PEDIDO_MINIMO + '€ sem IVA. Faltam ' + (PEDIDO_MINIMO - o.total).toFixed(2) + '€.'; msgEl.style.color = 'var(--red)'; return; }
   msgEl.textContent = '';
   const pag = document.querySelector('input[name="payMethod"]:checked');
   const c = currentCliente || {};
@@ -854,6 +886,7 @@ function abrirRevisao() {
       <tr><td>Subtotal (preço de tabela)</td><td style="text-align:right">${o.subtotalLista.toFixed(2)}€</td></tr>
       ${o.descontoLinhas > 0.004 ? `<tr><td>Descontos (cliente, promoções, escalões)</td><td style="text-align:right">-${o.descontoLinhas.toFixed(2)}€</td></tr>` : ''}
       ${o.pp ? `<tr><td>Pré-pagamento (${o.pp}%)</td><td style="text-align:right">-${o.valorPP.toFixed(2)}€</td></tr>` : ''}
+      ${o.portes ? `<tr><td>Portes (encomenda abaixo de ${PEDIDO_MINIMO}€)</td><td style="text-align:right">${o.portes.toFixed(2)}€</td></tr>` : ''}
       <tr><td><b>Total sem IVA</b></td><td style="text-align:right"><b>${o.total.toFixed(2)}€</b></td></tr>
       <tr><td>IVA (23%)</td><td style="text-align:right">${(o.total * 0.23).toFixed(2)}€</td></tr>
       <tr><td><b>Total com IVA</b></td><td style="text-align:right"><b>${(o.total * 1.23).toFixed(2)}€</b></td></tr>
@@ -1084,6 +1117,14 @@ let navSec = null, navSub = null, meusIds = null, ultimaEnc = null, meusPedidos 
 const RACAO = p => p.gama !== 'Testes rápidos' && p.gama !== 'Equipamentos';
 const ESP_TESTES = [['cao','Cão','🐶'],['gato','Gato','🐱'],['aves','Aves','🐦'],['coelhos','Coelhos','🐰'],['repteis','Répteis','🦎'],['equinos','Equinos','🐴'],['bovinos','Bovinos','🐄'],['ovinos','Ovinos','🐑'],['suinos','Suínos','🐖']];
 const DESC_GAMA = { 'Wetline': 'Alimentos húmidos', 'Salmon Oil': 'Suplemento', 'Care': 'Cuidados específicos' };
+// O que cada cliente vê (definido na Gestão, na ficha do cliente): tudo, só Ownat (rações) ou só testes/equipamentos
+const PRODUTOS_TODOS = produtos.slice();
+function aplicarCatalogoCliente() {
+  const cat = (currentCliente && !currentCliente.preview && currentCliente.catalogo) || 'tudo';
+  produtos.length = 0;
+  PRODUTOS_TODOS.filter(p => cat === 'tudo' || (cat === 'ownat' ? RACAO(p) : !RACAO(p))).forEach(p => produtos.push(p));
+  const b = document.getElementById('banners'); if (b) b.style.display = cat === 'testes' ? 'none' : '';
+}
 function daEspecie(p, e) { return p.especie === e || (p.especie === 'caogato' && (e === 'cao' || e === 'gato')); }
 function seccoes() {
   return [
@@ -1392,6 +1433,7 @@ function renderCart() {
     atualizarMinimo();
     subtotalEl.textContent = '0,00€';
     descontoRowEl.style.display = 'none';
+    document.getElementById('cartPortesRow').style.display = 'none';
     totalEl.textContent = '0,00€';
     document.getElementById('cartIva').textContent = '0,00€';
     document.getElementById('cartTotalIva').textContent = '0,00€';
@@ -1415,6 +1457,7 @@ function renderCart() {
   subtotalEl.textContent = o.subtotalLista.toFixed(2) + '€';
   const dTot = o.descontoLinhas + o.valorPP;
   if (dTot > 0.004) { descontoRowEl.style.display = 'flex'; descontoValorEl.textContent = '-' + dTot.toFixed(2) + '€' + (o.pp ? ' (inclui ' + o.pp + '% pré-pag.)' : ''); } else descontoRowEl.style.display = 'none';
+  const pr = document.getElementById('cartPortesRow'); pr.style.display = o.portes ? 'flex' : 'none'; document.getElementById('cartPortes').textContent = o.portes.toFixed(2) + '€';
   totalEl.textContent = total.toFixed(2) + '€';
   document.getElementById('cartIva').textContent = (total * 0.23).toFixed(2) + '€';
   document.getElementById('cartTotalIva').textContent = (total * 1.23).toFixed(2) + '€';
@@ -1482,7 +1525,7 @@ function submitPedido() {
   msgEl.style.color = 'var(--gray)';
 
   // A encomenda é calculada e gravada no servidor da Ibernop: aqui só seguem produtos e quantidades.
-  const ERROS = { 'mínimo': 'A encomenda mínima é de ' + PEDIDO_MINIMO + ' € sem IVA.', 'forma de pagamento não disponível': 'Esta forma de pagamento não está disponível para a sua conta.',
+  const ERROS = { 'mínimo': PORTES_ATIVOS ? 'Não foi possível processar esta encomenda abaixo de ' + PEDIDO_MINIMO + ' €. Contacte o seu gestor de zona.' : 'A encomenda mínima é de ' + PEDIDO_MINIMO + ' € sem IVA.', 'forma de pagamento não disponível': 'Esta forma de pagamento não está disponível para a sua conta.',
     'sessão expirada': 'A sua sessão expirou. Entre novamente e repita a encomenda.', 'produto sem preço': 'Um dos produtos ainda não tem preço. Contacte o seu gestor de zona.',
     'cliente não aprovado': 'A sua conta ainda não está ativa. Contacte a Ibernop.', 'sem permissão': 'Não tem permissão para encomendar para este cliente.' };
   currentUser.getIdToken().then(idToken => fetch(EMAILJS.servidor, { method: 'POST', headers: { 'Content-Type': 'application/json' },
