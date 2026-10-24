@@ -190,6 +190,7 @@ async function fazerBackup() {
   try {
     const ficheiro = await encriptar(JSON.stringify(backup), p1);
     descarregar(`ibernop-backup-${hojeStr()}.ibk`, ficheiro, 'application/octet-stream');
+    try { await db.collection('config_b2b').doc('ultimo_backup').set({ data: new Date().toISOString(), por: (auth.currentUser && auth.currentUser.email) || '', registos: total, completo: falhas.length === 0 }); } catch (e) { /* o aviso na Gestão fica por atualizar, mas o backup está feito */ }
     msg.className = falhas.length ? 'msg warn' : 'msg ok';
     msg.textContent = `Backup feito: ${total} registos.` + (falhas.length ? `\nAtenção: não foi possível ler ${falhas.join(', ')}.` : '') +
       '\nAgora usa "Verificar um backup" para confirmar que abre.';

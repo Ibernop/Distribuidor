@@ -126,8 +126,9 @@ h1, h2, .entry-title { letter-spacing: .01em; }
   <div class="wrap">
     <div class="topbar">
       <h1 style="display:flex;align-items:center;gap:14px"><span style="background:var(--charcoal);border-radius:12px;padding:6px 10px;display:inline-flex"><img src="img/ext/ibernop-logo-branco.png" alt="" style="height:38px"></span>GESTÃO IBERNOP</h1>
-      <div style="display:flex; align-items:center; gap:12px;"><span id="papelInfo" style="font-size:0.82rem; color:var(--gray);"></span><button class="btn" id="btnNotif" style="display:none" onclick="ativarNotificacoes(true)">🔔 Ativar notificações</button><button class="btn" onclick="doLogout()">Sair</button></div>
+      <div style="display:flex; align-items:center; gap:12px;"><span id="papelInfo" style="font-size:0.82rem; color:var(--gray);"></span><a class="btn" id="btnBackup" href="backup.html" target="_blank" rel="noopener" style="display:none;text-decoration:none">💾 Backup</a><button class="btn" id="btnNotif" style="display:none" onclick="ativarNotificacoes(true)">🔔 Ativar notificações</button><button class="btn" onclick="doLogout()">Sair</button></div>
     </div>
+    <div id="avisoBackup" style="display:none;margin:0 0 14px;padding:10px 14px;border-radius:10px;font-size:0.9rem;font-weight:600"></div>
     <div class="tabs">
       <button id="tabClientes" class="active" onclick="setTab('clientes')">Clientes</button>
       <button id="tabPedidos" onclick="setTab('pedidos')">Encomendas <span id="contaPendentes" class="badge-n" style="display:none;"></span></button>
@@ -554,10 +555,29 @@ let papel = null, meuVendedorId = '', meuNome = '';
 let avisoUnsub = null, pendentesVistos = null;
 const ehVendedor = () => papel === 'vendedor';
 
+// Aviso de backup (só administrador): mostra há quantos dias foi o último e fica vermelho ao fim de 7 dias
+function mostrarAvisoBackup() {
+  const b = document.getElementById('avisoBackup'), btn = document.getElementById('btnBackup');
+  if (!b || !btn) return;
+  if (ehVendedor()) { b.style.display = 'none'; btn.style.display = 'none'; return; }
+  btn.style.display = '';
+  db.collection('config_b2b').doc('ultimo_backup').get().then(d => {
+    const x = d.exists ? d.data() : null;
+    let dias = null;
+    if (x && x.completo !== false && x.data) { const t = new Date(x.data).getTime(); if (!isNaN(t)) dias = Math.max(0, Math.floor((Date.now() - t) / 86400000)); }
+    const velho = dias === null || dias >= 7;
+    b.textContent = dias === null ? '⚠️ Ainda não há nenhum backup registado. Faça o primeiro backup. ' : velho ? '⚠️ O último backup foi há ' + dias + ' dias. Faça um novo backup. ' : '✓ Último backup: ' + (dias === 0 ? 'hoje' : 'há ' + dias + (dias === 1 ? ' dia' : ' dias')) + '.';
+    if (velho) { const l = document.createElement('a'); l.href = 'backup.html'; l.target = '_blank'; l.rel = 'noopener'; l.textContent = 'Fazer backup'; l.style.color = 'inherit'; l.style.textDecoration = 'underline'; b.appendChild(l); }
+    b.style.background = velho ? '#fdecea' : '#e6f4ea'; b.style.color = velho ? '#b3261e' : '#1d6b3a';
+    b.style.display = '';
+  }).catch(() => {});
+}
+
 function aplicarPapel(user) {
   const v = ehVendedor();
   ['tabStock', 'tabVendedores', 'tabEquipa', 'btnExpClientes', 'btnImpClientes', 'btnModeloClientes', 'btnImpFin', 'btnModeloFin'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = v ? 'none' : ''; });
   document.getElementById('papelInfo').textContent = (meuNome || user.email) + ' · ' + (v ? 'Vendedor' : 'Administrador');
+  mostrarAvisoBackup();
   iniciarAvisos();
   contarIncidencias();
   ativarNotificacoes(false);
