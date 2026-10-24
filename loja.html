@@ -1527,7 +1527,8 @@ function submitPedido() {
   // A encomenda é calculada e gravada no servidor da Ibernop: aqui só seguem produtos e quantidades.
   const ERROS = { 'mínimo': PORTES_ATIVOS ? 'Não foi possível processar esta encomenda abaixo de ' + PEDIDO_MINIMO + ' €. Contacte o seu gestor de zona.' : 'A encomenda mínima é de ' + PEDIDO_MINIMO + ' € sem IVA.', 'forma de pagamento não disponível': 'Esta forma de pagamento não está disponível para a sua conta.',
     'sessão expirada': 'A sua sessão expirou. Entre novamente e repita a encomenda.', 'produto sem preço': 'Um dos produtos ainda não tem preço. Contacte o seu gestor de zona.',
-    'cliente não aprovado': 'A sua conta ainda não está ativa. Contacte a Ibernop.', 'sem permissão': 'Não tem permissão para encomendar para este cliente.' };
+    'cliente não aprovado': 'A sua conta ainda não está ativa. Contacte a Ibernop.', 'sem permissão': 'Não tem permissão para encomendar para este cliente.',
+    'demasiados pedidos': 'Demasiados pedidos seguidos. Aguarde um minuto e tente de novo.', 'limite diário': 'O serviço atingiu o limite de hoje. Contacte a Ibernop.' };
   currentUser.getIdToken().then(idToken => fetch(EMAILJS.servidor, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ idToken, tipo: 'encomenda', metodoPagamento, clienteUid: clienteAlvo ? clienteAlvo.uid : '', itens: keys.map(k => ({ key: k, qty: cart[k].qty })) }) }))
   .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok || !j.ok) { const e = new Error(ERROS[j.erro] || 'Não foi possível enviar a encomenda. Tente novamente ou contacte o seu gestor de zona.'); throw e; } return j; })
