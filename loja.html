@@ -743,7 +743,7 @@ function escolherClienteAlvo(uid) {
 function updateHeaderActions() {
   const el = document.getElementById('headerActions');
   if (currentUser) {
-    el.innerHTML = `<span>${currentCliente ? currentCliente.empresa : currentUser.email}</span><button onclick="doLogout()">Sair</button>`;
+    el.innerHTML = `<span>${escH(currentCliente ? currentCliente.empresa : currentUser.email)}</span><button onclick="doLogout()">Sair</button>`;
   } else {
     el.innerHTML = '';
   }
