@@ -158,6 +158,9 @@ section { padding: 48px 0; }
 .cart-items { flex: 1; overflow-y: auto; padding: 16px 22px; }
 .cart-item { display: flex; justify-content: space-between; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--border); font-size: 1.05rem; line-height: 1.4; }
 .cart-footer { padding: 18px 22px; border-top: 1px solid var(--border); }
+.cart-grip{height:24px;flex:none;cursor:row-resize;touch-action:none;display:flex;align-items:center;justify-content:center;border-top:1px solid var(--border);background:#f3f6f8;user-select:none;-webkit-user-select:none}.cart-grip i{width:60px;height:6px;border-radius:6px;background:#aeb8bf}.cart-grip:hover i,.cart-grip.arrasta i{background:var(--gold)}
+.cart-footer{overflow-y:auto}
+
 .cart-total { display: flex; justify-content: space-between; font-weight: 800; font-size: 1.25rem; margin-bottom: 14px; }
 .payment-method-select { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
 .payment-opt { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; font-size: 0.88rem; }
@@ -454,6 +457,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
   </div>
   <div id="cartProgresso"></div>
   <div class="cart-items" id="cartItems"></div>
+  <div class="cart-grip" id="cartGrip" title="Arraste para cima ou para baixo para ajustar. Duplo toque para repor."><i></i></div>
   <div class="cart-footer">
     <div class="cart-total" style="font-size:1.05rem; font-weight:600; color:var(--gray); margin-bottom:6px;"><span>Subtotal</span><span id="cartSubtotal">0,00€</span></div>
     <div id="cartDescontoRow" class="cart-total" style="font-size:1.05rem; font-weight:600; color:var(--gold-dark); margin-bottom:6px; display:none;"><span>Desconto</span><span id="cartDescontoValor">0,00€</span></div>
@@ -474,6 +478,33 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
   </div>
 </div>
 
+<script>
+(function () {
+  var grip = document.getElementById('cartGrip'), foot = document.querySelector('#cartDrawer .cart-footer'), drawer = document.getElementById('cartDrawer');
+  if (!grip || !foot || !drawer) return;
+  var CH = 'cartRodapeAltura';
+  function lim(h) {
+    var max = Math.min(foot.scrollHeight, drawer.clientHeight - 230), min = 90;
+    if (max < min) max = min;
+    return Math.max(min, Math.min(max, h));
+  }
+  function aplicar(h) { if (h) foot.style.height = lim(h) + 'px'; else foot.style.height = ''; }
+  function guardar(h) { try { if (h) localStorage.setItem(CH, String(Math.round(h))); else localStorage.removeItem(CH); } catch (e) {} }
+  function ler() { try { return parseInt(localStorage.getItem(CH), 10) || 0; } catch (e) { return 0; } }
+  var y0 = 0, h0 = 0, ativo = false;
+  grip.addEventListener('pointerdown', function (e) {
+    ativo = true; y0 = e.clientY; h0 = foot.offsetHeight; grip.classList.add('arrasta');
+    try { grip.setPointerCapture(e.pointerId); } catch (x) {}
+    e.preventDefault();
+  });
+  grip.addEventListener('pointermove', function (e) { if (ativo) aplicar(h0 - (e.clientY - y0)); });
+  function fim() { if (!ativo) return; ativo = false; grip.classList.remove('arrasta'); guardar(foot.style.height ? parseInt(foot.style.height, 10) : 0); }
+  grip.addEventListener('pointerup', fim); grip.addEventListener('pointercancel', fim);
+  grip.addEventListener('dblclick', function () { aplicar(0); guardar(0); });
+  new MutationObserver(function () { if (drawer.classList.contains('open')) aplicar(ler()); }).observe(drawer, { attributes: true, attributeFilter: ['class'] });
+  window.addEventListener('resize', function () { if (foot.style.height) aplicar(parseInt(foot.style.height, 10)); });
+})();
+</script>
 <div class="rev-back" id="revBack" onclick="if(event.target===this)fecharRevisao()"><div class="rev-box"><h3>Confirme a sua encomenda</h3><div id="revConteudo"></div><div style="display:flex;gap:10px;margin-top:16px"><button class="btn btn-outline" style="flex:1;justify-content:center" onclick="fecharRevisao()">Voltar</button><button class="btn btn-gold" style="flex:1;justify-content:center" onclick="confirmarEnvio()">Confirmar e enviar</button></div></div></div>
 
 <footer class="site">
