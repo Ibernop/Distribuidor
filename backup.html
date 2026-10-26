@@ -107,13 +107,16 @@ function entrar() {
   auth.signInWithEmailAndPassword($('lEmail').value.trim(), $('lPass').value)
     .catch(() => { $('lMsg').textContent = 'E-mail ou palavra-passe incorretos.'; });
 }
+// Atualização automática: se o navegador tiver uma cópia antiga desta página, recarrega uma vez
+const VERSAO = '2026-10-26b';
+(async () => { try { const t = await (await fetch(location.pathname, { cache: 'no-store' })).text(); const m = t.match(/const VERSAO = '([^']+)'/); if (m && m[1] !== VERSAO && !sessionStorage.getItem('v_' + m[1])) { sessionStorage.setItem('v_' + m[1], '1'); location.reload(); } } catch (e) {} })();
 auth.onAuthStateChanged(async u => {
   let ok = !!u && ADMIN_EMAILS.includes((u.email || '').toLowerCase());
   if (u && !ok) { try { const d = await db.collection('equipa_b2b').doc(u.uid).get(); ok = d.exists && d.data().papel === 'admin'; } catch (e) { ok = false; } }
   if (u && !ok) { auth.signOut(); $('lMsg').textContent = 'Esta conta não tem acesso.'; }
   $('loginBox').classList.toggle('hide', !!ok);
   $('painel').classList.toggle('hide', !ok);
-  if (ok) $('quem').textContent = 'Ligado como ' + u.email;
+  if (ok) $('quem').textContent = 'Ligado como ' + u.email + ' · versão ' + VERSAO;
 });
 
 // ---------- Conversão de tipos Firestore <-> JSON ----------
