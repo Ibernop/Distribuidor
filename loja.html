@@ -1067,10 +1067,11 @@ function abrirIncidencias() {
   }
   carregarIncidencias();
 }
+function espInc(p) { return ({ cao: 'Cão', gato: 'Gato', caogato: 'Cão e gato' })[p.especie] || ''; }
 function incGamaMudou() {
   const gama = document.getElementById('incGama').value;
   const lista = produtos.filter(p => p.gama === gama);
-  document.getElementById('incProduto').innerHTML = '<option value="">' + (gama ? 'Escolha o produto' : 'Escolha primeiro a gama') + '</option>' + lista.map(p => `<option value="${p.id}">${escH(p.nome)}</option>`).join('');
+  document.getElementById('incProduto').innerHTML = '<option value="">' + (gama ? 'Escolha o produto' : 'Escolha primeiro a gama') + '</option>' + lista.map(p => `<option value="${p.id}">${escH(p.nome)}${espInc(p) ? ' — ' + espInc(p) : ''}</option>`).join('');
   incProdutoMudou();
 }
 function incProdutoMudou() {
@@ -1084,7 +1085,7 @@ function enviarIncidencia() {
   if (!v('incFatura') || !v('incData') || !p || !v('incPeso')) { msg.textContent = 'Preencha o n.º e a data da fatura, a gama, o produto e o peso.'; msg.style.color = 'var(--red)'; return; }
   const t = p.tamanhos.find(x => x.label === v('incPeso')) || {};
   const inc = { clienteUid: currentUser.uid, empresa: currentCliente.nomeComercial || currentCliente.empresa || '', nif: currentCliente.nif || '',
-    vendedorId: currentCliente.vendedorId || '', fatura: v('incFatura'), dataFatura: v('incData'), tipo: v('incTipo'), gama: p.gama, produto: p.nome,
+    vendedorId: currentCliente.vendedorId || '', fatura: v('incFatura'), dataFatura: v('incData'), tipo: v('incTipo'), gama: p.gama, produto: p.nome + (espInc(p) ? ' — ' + espInc(p) : ''),
     referencia: t.cod || '', ean: t.ean || '', peso: v('incPeso'), quantidade: Number(v('incQtd')) || 1, descricao: v('incDesc'),
     estado: 'aberta', criadoEm: firebase.firestore.FieldValue.serverTimestamp() };
   msg.textContent = 'A enviar...'; msg.style.color = 'var(--gray)';
