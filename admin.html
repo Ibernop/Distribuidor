@@ -592,7 +592,7 @@ function mostrarAvisoBackup() {
     let dias = null;
     if (x && x.completo !== false && x.data) { const t = new Date(x.data).getTime(); if (!isNaN(t)) dias = Math.max(0, Math.floor((Date.now() - t) / 86400000)); }
     const velho = dias === null || dias >= 7;
-    b.textContent = dias === null ? '⚠️ Ainda não há nenhum backup registado. Faça o primeiro backup. ' : velho ? '⚠️ O último backup foi há ' + dias + ' dias. Faça um novo backup. ' : '✓ Último backup: ' + (dias === 0 ? 'hoje' : 'há ' + dias + (dias === 1 ? ' dia' : ' dias')) + '.';
+    b.textContent = (x && x.completo === false) ? '⚠️ O último backup ficou incompleto. Faça um novo backup. ' : dias === null ? '⚠️ Ainda não há nenhum backup registado. Faça o primeiro backup. ' : velho ? '⚠️ O último backup foi há ' + dias + ' dias. Faça um novo backup. ' : '✓ Último backup: ' + (dias === 0 ? 'hoje' : 'há ' + dias + (dias === 1 ? ' dia' : ' dias')) + '.';
     if (velho) { const l = document.createElement('a'); l.href = 'backup.html'; l.target = '_blank'; l.rel = 'noopener'; l.textContent = 'Fazer backup'; l.style.color = 'inherit'; l.style.textDecoration = 'underline'; b.appendChild(l); }
     b.style.background = velho ? '#fdecea' : '#e6f4ea'; b.style.color = velho ? '#b3261e' : '#1d6b3a';
     b.style.display = '';
