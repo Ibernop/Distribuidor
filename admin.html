@@ -215,7 +215,7 @@ function doLogin() {
 function doLogout() { auth.signOut(); }
 
 // Atualização automática: se o navegador tiver uma cópia antiga desta página, recarrega uma vez
-const VERSAO = '2026-10-26c';
+const VERSAO = '2026-10-26d';
 (async () => { try { const t = await (await fetch(location.pathname, { cache: 'no-store' })).text(); const m = t.match(/const VERSAO = '([^']+)'/); if (m && m[1] !== VERSAO && !sessionStorage.getItem('v_' + m[1])) { sessionStorage.setItem('v_' + m[1], '1'); location.reload(); } } catch (e) {} })();
 auth.onAuthStateChanged(async user => {
   let ok = false; papel = null; meuVendedorId = ''; meuNome = '';
@@ -393,7 +393,7 @@ function formNovoCliente() {
 function loadClientes() {
   const el = document.getElementById('panelClientes');
   el.innerHTML = '<div class="empty-state">A carregar...</div>';
-  carregarVendedores().catch(() => []).then(() => db.collection('lojas_publicas').get()).then(ps => { publicas = {}; ps.forEach(d => { publicas[d.id] = d.data(); }); }).then(() => ehVendedor() ? db.collection('clientes_b2b').where('vendedorId', '==', meuVendedorId).get() : db.collection('clientes_b2b').orderBy('criadoEm', 'desc').get()).then(snap => {
+  carregarVendedores().catch(() => []).then(() => db.collection('lojas_publicas').get()).then(ps => { publicas = {}; ps.forEach(d => { publicas[d.id] = d.data(); }); }).then(() => carregarStatsPedidos().catch(e => { statsCli = {}; console.warn('stats', e); })).then(() => ehVendedor() ? db.collection('clientes_b2b').where('vendedorId', '==', meuVendedorId).get() : db.collection('clientes_b2b').orderBy('criadoEm', 'desc').get()).then(snap => {
     const docs = ehVendedor() ? snap.docs.slice().sort((a, b) => String(a.data().nomeComercial || a.data().empresa || '').localeCompare(String(b.data().nomeComercial || b.data().empresa || ''), 'pt')) : snap.docs;
     const mk = doc => {
       const c = doc.data(), id = doc.id;
@@ -404,6 +404,7 @@ function loadClientes() {
           <div class="entry-sub">${esc(c.contacto)} · <a href="tel:${esc(c.telefone)}">${esc(c.telefone)}</a> · <a href="mailto:${esc(c.email)}">${esc(c.email)}</a></div>
           <div class="entry-sub">Faturação: ${esc(c.moradaFaturacao || c.morada)}</div>
           <div class="entry-sub">Entrega: ${esc(c.moradaEntrega || c.moradaFaturacao || c.morada)}</div>
+          ${linhaCompras(id, c)}
           <div class="entry-sub">Desconto: ${c.desconto || 0}% · Pagamento: ${pagLista(c).map(pagLabel).join(', ')}</div>
           <div class="entry-sub">${c.consentimento ? `🛡️ RGPD aceite a ${new Date(c.consentimento.data).toLocaleDateString('pt-PT')} · Promoções por e-mail: ${c.consentimento.marketing ? '<b style="color:#1d7a3e">sim</b>' : 'não'}` : '🛡️ RGPD: <span style="color:#b26b00">ainda não aceitou (é pedido no 1.º login)</span>'}</div>${c.vendedorId ? '' : '<div class="entry-sub" style="color:#b23b3b;font-weight:700">⚠️ Sem vendedor atribuído — o gestor de zona não recebe as encomendas deste cliente</div>'}
         </div>`;
@@ -417,6 +418,7 @@ function loadClientes() {
               <div class="entry-sub">${esc(c.contacto)} · ${esc(c.email)} · ${esc(c.telefone)}</div>
               <div class="entry-sub">Faturação: ${esc(c.moradaFaturacao || c.morada)}</div>
               <div class="entry-sub">Entrega: ${esc(c.moradaEntrega || c.moradaFaturacao || c.morada)}</div>
+              ${linhaCompras(id, c)}
             </div>
             <span class="badge ${c.aprovado ? 'aprovado' : 'pendente'}">${c.aprovado ? 'Ativo' : 'Inativo'}</span>
           </div>
@@ -552,8 +554,29 @@ async function criarCliente() {
   }
 }
 
+// ---------- Compras por cliente (última encomenda, nº de encomendas, clientes parados) ----------
+let statsCli = {};
+const DIAS_PARADO = 60;
+async function carregarStatsPedidos() {
+  const snap = ehVendedor() ? await db.collection('pedidos_b2b').where('vendedorId', '==', meuVendedorId).get() : await db.collection('pedidos_b2b').get();
+  statsCli = {};
+  snap.forEach(d => {
+    const p = d.data(), uid = p.clienteUid; if (!uid) return;
+    const t = p.criadoEm && p.criadoEm.toDate ? p.criadoEm.toDate().getTime() : 0;
+    const s = statsCli[uid] || (statsCli[uid] = { n: 0, ultima: 0 });
+    s.n++; if (t > s.ultima) s.ultima = t;
+  });
+}
+function diasParado(id) { const s = statsCli[id]; return s && s.ultima ? Math.floor((Date.now() - s.ultima) / 86400000) : null; }
+function linhaCompras(id, c) {
+  const s = statsCli[id], d = diasParado(id);
+  if (!s) return '<div class="entry-sub">🛒 Ainda sem encomendas' + (c && c.aprovado ? ' <b style="color:#b3261e">· parado</b>' : '') + '</div>';
+  const data = new Date(s.ultima).toLocaleDateString('pt-PT');
+  return '<div class="entry-sub">🛒 Última encomenda: ' + data + ' (há ' + d + (d === 1 ? ' dia' : ' dias') + ') · ' + s.n + (s.n === 1 ? ' encomenda' : ' encomendas') + (d >= DIAS_PARADO && c && c.aprovado ? ' <b style="color:#b3261e">· parado há mais de ' + DIAS_PARADO + ' dias</b>' : '') + '</div>';
+}
+
 // ---------- Lista de clientes: pesquisa, filtros, ordem e grupos ----------
-let clientesCache = [], filtroCli = { q: '', gestor: '', estado: '', ordem: 'az', agrupar: false };
+let clientesCache = [], filtroCli = { q: '', gestor: '', estado: '', compra: '', ordem: 'az', agrupar: false };
 const semAcentos = t => String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const nomeCli = c => c.nomeComercial || c.empresa || '';
 function barraClientes() {
@@ -564,7 +587,8 @@ function barraClientes() {
     <input type="search" id="cliBusca" placeholder="🔎 Procurar por nome, NIF, e-mail, telefone, localidade..." value="${esc(filtroCli.q)}" oninput="filtroCli.q=this.value;renderClientes()">
     ${v ? '' : sel('cliGestor', filtroCli.gestor, gestores, "filtroCli.gestor=this.value;renderClientes()")}
     ${v ? '' : sel('cliEstado', filtroCli.estado, [['', 'Ativos e inativos'], ['ativo', 'Só ativos'], ['inativo', 'Só inativos']], "filtroCli.estado=this.value;renderClientes()")}
-    ${sel('cliOrdem', filtroCli.ordem, [['az', 'Ordem A → Z'], ['za', 'Ordem Z → A'], ...(v ? [] : [['recentes', 'Mais recentes primeiro']])], "filtroCli.ordem=this.value;renderClientes()")}
+    ${sel('cliCompra', filtroCli.compra, [['', 'Com ou sem compras'], ['parados', 'Parados (sem encomendas há +' + DIAS_PARADO + ' dias)'], ['nunca', 'Nunca encomendaram']], "filtroCli.compra=this.value;renderClientes()")}
+    ${sel('cliOrdem', filtroCli.ordem, [['az', 'Ordem A → Z'], ['za', 'Ordem Z → A'], ['parado', 'Parados há mais tempo primeiro'], ...(v ? [] : [['recentes', 'Mais recentes primeiro']])], "filtroCli.ordem=this.value;renderClientes()")}
     ${v ? '' : `<label class="cli-agrupar"><input type="checkbox" ${filtroCli.agrupar ? 'checked' : ''} onchange="filtroCli.agrupar=this.checked;renderClientes()"> Agrupar por gestor</label>`}
     <span id="cliConta" class="cli-conta"></span>
   </div>`;
@@ -578,10 +602,13 @@ function renderClientes() {
     if (f.gestor === '__sem') { if (c.vendedorId) return false; } else if (f.gestor && c.vendedorId !== f.gestor) return false;
     if (f.estado === 'ativo' && !c.aprovado) return false;
     if (f.estado === 'inativo' && c.aprovado) return false;
+    if (f.compra === 'nunca' && statsCli[x.id]) return false;
+    if (f.compra === 'parados' && !(c.aprovado && (diasParado(x.id) === null || diasParado(x.id) >= DIAS_PARADO))) return false;
     return true;
   });
   const cmp = (a, b) => nomeCli(a.c).localeCompare(nomeCli(b.c), 'pt', { sensitivity: 'base' });
   if (f.ordem === 'az') arr.sort(cmp); else if (f.ordem === 'za') arr.sort((a, b) => cmp(b, a));
+  else if (f.ordem === 'parado') arr.sort((a, b) => ((statsCli[a.id] || { ultima: 0 }).ultima - (statsCli[b.id] || { ultima: 0 }).ultima) || cmp(a, b));
   const conta = document.getElementById('cliConta'); if (conta) conta.textContent = arr.length + (arr.length === 1 ? ' cliente' : ' clientes') + (arr.length !== clientesCache.length ? ' de ' + clientesCache.length : '');
   if (!clientesCache.length) { box.innerHTML = '<div class="empty-state">Ainda não há clientes.</div>'; return; }
   if (!arr.length) { box.innerHTML = '<div class="empty-state">Nenhum cliente encontrado com esses filtros.</div>'; return; }
