@@ -215,7 +215,7 @@ function doLogin() {
 function doLogout() { auth.signOut(); }
 
 // Atualização automática: se o navegador tiver uma cópia antiga desta página, recarrega uma vez
-const VERSAO = '2026-10-26d';
+const VERSAO = '2026-10-26e';
 (async () => { try { const t = await (await fetch(location.pathname, { cache: 'no-store' })).text(); const m = t.match(/const VERSAO = '([^']+)'/); if (m && m[1] !== VERSAO && !sessionStorage.getItem('v_' + m[1])) { sessionStorage.setItem('v_' + m[1], '1'); location.reload(); } } catch (e) {} })();
 auth.onAuthStateChanged(async user => {
   let ok = false; papel = null; meuVendedorId = ''; meuNome = '';
@@ -393,7 +393,7 @@ function formNovoCliente() {
 function loadClientes() {
   const el = document.getElementById('panelClientes');
   el.innerHTML = '<div class="empty-state">A carregar...</div>';
-  carregarVendedores().catch(() => []).then(() => db.collection('lojas_publicas').get()).then(ps => { publicas = {}; ps.forEach(d => { publicas[d.id] = d.data(); }); }).then(() => carregarStatsPedidos().catch(e => { statsCli = {}; console.warn('stats', e); })).then(() => ehVendedor() ? db.collection('clientes_b2b').where('vendedorId', '==', meuVendedorId).get() : db.collection('clientes_b2b').orderBy('criadoEm', 'desc').get()).then(snap => {
+  carregarVendedores().catch(() => []).then(() => db.collection('lojas_publicas').get()).then(ps => { publicas = {}; ps.forEach(d => { publicas[d.id] = d.data(); }); }).then(() => carregarStatsPedidos().then(() => { statsOk = true; }).catch(e => { statsCli = {}; statsOk = false; console.warn('stats', e); })).then(() => ehVendedor() ? db.collection('clientes_b2b').where('vendedorId', '==', meuVendedorId).get() : db.collection('clientes_b2b').orderBy('criadoEm', 'desc').get()).then(snap => {
     const docs = ehVendedor() ? snap.docs.slice().sort((a, b) => String(a.data().nomeComercial || a.data().empresa || '').localeCompare(String(b.data().nomeComercial || b.data().empresa || ''), 'pt')) : snap.docs;
     const mk = doc => {
       const c = doc.data(), id = doc.id;
@@ -555,7 +555,7 @@ async function criarCliente() {
 }
 
 // ---------- Compras por cliente (última encomenda, nº de encomendas, clientes parados) ----------
-let statsCli = {};
+let statsCli = {}, statsOk = false;
 const DIAS_PARADO = 60;
 async function carregarStatsPedidos() {
   const snap = ehVendedor() ? await db.collection('pedidos_b2b').where('vendedorId', '==', meuVendedorId).get() : await db.collection('pedidos_b2b').get();
@@ -570,6 +570,7 @@ async function carregarStatsPedidos() {
 function diasParado(id) { const s = statsCli[id]; return s && s.ultima ? Math.floor((Date.now() - s.ultima) / 86400000) : null; }
 function linhaCompras(id, c) {
   const s = statsCli[id], d = diasParado(id);
+  if (!statsOk) return '<div class="entry-sub" style="color:#b26b00">🛒 Não foi possível ver as encomendas deste cliente.</div>';
   if (!s) return '<div class="entry-sub">🛒 Ainda sem encomendas' + (c && c.aprovado ? ' <b style="color:#b3261e">· parado</b>' : '') + '</div>';
   const data = new Date(s.ultima).toLocaleDateString('pt-PT');
   return '<div class="entry-sub">🛒 Última encomenda: ' + data + ' (há ' + d + (d === 1 ? ' dia' : ' dias') + ') · ' + s.n + (s.n === 1 ? ' encomenda' : ' encomendas') + (d >= DIAS_PARADO && c && c.aprovado ? ' <b style="color:#b3261e">· parado há mais de ' + DIAS_PARADO + ' dias</b>' : '') + '</div>';
@@ -602,6 +603,7 @@ function renderClientes() {
     if (f.gestor === '__sem') { if (c.vendedorId) return false; } else if (f.gestor && c.vendedorId !== f.gestor) return false;
     if (f.estado === 'ativo' && !c.aprovado) return false;
     if (f.estado === 'inativo' && c.aprovado) return false;
+    if (f.compra && !statsOk) return true;
     if (f.compra === 'nunca' && statsCli[x.id]) return false;
     if (f.compra === 'parados' && !(c.aprovado && (diasParado(x.id) === null || diasParado(x.id) >= DIAS_PARADO))) return false;
     return true;
