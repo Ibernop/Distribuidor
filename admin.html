@@ -102,6 +102,13 @@ h1, h2, .entry-title { letter-spacing: .01em; }
 .tabs button { border-radius: 32px !important; }
 .badge-n { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #e5484d; color: #fff; font-size: 0.72rem; font-weight: 800; align-items: center; justify-content: center; margin-left: 6px; }
 .aviso-toast { position: fixed; right: 20px; bottom: 20px; z-index: 999; background: var(--charcoal); color: #fff; padding: 14px 18px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.25); font-weight: 700; cursor: pointer; max-width: 340px; }
+.cli-barra{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px;padding:8px 0}
+.cli-barra input[type=search]{flex:1 1 260px;min-width:220px;padding:10px 12px;border:1px solid var(--border,#d8dee3);border-radius:10px;font:inherit}
+.cli-barra select{padding:10px;border:1px solid var(--border,#d8dee3);border-radius:10px;font:inherit;background:#fff}
+.cli-agrupar{display:flex;align-items:center;gap:6px;font-size:.9rem}
+.cli-conta{font-size:.9rem;color:var(--gray,#667);font-weight:700;margin-left:auto}
+.grp-cli{margin:22px 0 8px;font-size:1.05rem;color:var(--gold-dark,#0f5fb0);border-bottom:2px solid var(--border,#d8dee3);padding-bottom:6px}.grp-cli span{color:var(--gray,#667);font-weight:600}
+.letra-cli{margin:18px 0 6px;font-weight:800;font-size:1.1rem;color:var(--gold-dark,#0f5fb0);border-bottom:1px solid var(--border,#d8dee3)}
 </style>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#07202e"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Ibernop">
 <meta name="robots" content="noindex, nofollow">
@@ -208,7 +215,7 @@ function doLogin() {
 function doLogout() { auth.signOut(); }
 
 // Atualização automática: se o navegador tiver uma cópia antiga desta página, recarrega uma vez
-const VERSAO = '2026-10-26b';
+const VERSAO = '2026-10-26c';
 (async () => { try { const t = await (await fetch(location.pathname, { cache: 'no-store' })).text(); const m = t.match(/const VERSAO = '([^']+)'/); if (m && m[1] !== VERSAO && !sessionStorage.getItem('v_' + m[1])) { sessionStorage.setItem('v_' + m[1], '1'); location.reload(); } } catch (e) {} })();
 auth.onAuthStateChanged(async user => {
   let ok = false; papel = null; meuVendedorId = ''; meuNome = '';
@@ -388,7 +395,7 @@ function loadClientes() {
   el.innerHTML = '<div class="empty-state">A carregar...</div>';
   carregarVendedores().catch(() => []).then(() => db.collection('lojas_publicas').get()).then(ps => { publicas = {}; ps.forEach(d => { publicas[d.id] = d.data(); }); }).then(() => ehVendedor() ? db.collection('clientes_b2b').where('vendedorId', '==', meuVendedorId).get() : db.collection('clientes_b2b').orderBy('criadoEm', 'desc').get()).then(snap => {
     const docs = ehVendedor() ? snap.docs.slice().sort((a, b) => String(a.data().nomeComercial || a.data().empresa || '').localeCompare(String(b.data().nomeComercial || b.data().empresa || ''), 'pt')) : snap.docs;
-    const lista = snap.empty ? '<div class="empty-state">Ainda não há clientes.</div>' : docs.map(doc => {
+    const mk = doc => {
       const c = doc.data(), id = doc.id;
       if (ehVendedor()) return `
         <div class="entry-card">
@@ -455,8 +462,10 @@ function loadClientes() {
           </div>
           </details>
         </div>`;
-    }).join('');
-    el.innerHTML = (ehVendedor() ? '' : formNovoCliente()) + lista;
+    };
+    clientesCache = snap.empty ? [] : docs.map(doc => ({ id: doc.id, c: doc.data(), html: mk(doc) }));
+    el.innerHTML = (ehVendedor() ? '' : formNovoCliente()) + barraClientes() + '<div id="listaClientes"></div>';
+    renderClientes();
   }).catch(err => { el.innerHTML = '<div class="empty-state">Erro ao carregar clientes.</div>'; console.error(err); });
 }
 
@@ -541,6 +550,59 @@ async function criarCliente() {
     erro.classList.add('show');
     btn.disabled = false; btn.textContent = 'Criar cliente e enviar convite';
   }
+}
+
+// ---------- Lista de clientes: pesquisa, filtros, ordem e grupos ----------
+let clientesCache = [], filtroCli = { q: '', gestor: '', estado: '', ordem: 'az', agrupar: false };
+const semAcentos = t => String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const nomeCli = c => c.nomeComercial || c.empresa || '';
+function barraClientes() {
+  const v = ehVendedor();
+  const sel = (id, atual, ops, fn) => `<select id="${id}" onchange="${fn}">${ops.map(([k, l]) => `<option value="${esc(k)}" ${atual === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+  const gestores = [['', 'Todos os gestores'], ['__sem', 'Sem gestor'], ...vendedores.map(x => [x.id, x.nome + ' — ' + x.zona])];
+  return `<div class="cli-barra">
+    <input type="search" id="cliBusca" placeholder="🔎 Procurar por nome, NIF, e-mail, telefone, localidade..." value="${esc(filtroCli.q)}" oninput="filtroCli.q=this.value;renderClientes()">
+    ${v ? '' : sel('cliGestor', filtroCli.gestor, gestores, "filtroCli.gestor=this.value;renderClientes()")}
+    ${v ? '' : sel('cliEstado', filtroCli.estado, [['', 'Ativos e inativos'], ['ativo', 'Só ativos'], ['inativo', 'Só inativos']], "filtroCli.estado=this.value;renderClientes()")}
+    ${sel('cliOrdem', filtroCli.ordem, [['az', 'Ordem A → Z'], ['za', 'Ordem Z → A'], ...(v ? [] : [['recentes', 'Mais recentes primeiro']])], "filtroCli.ordem=this.value;renderClientes()")}
+    ${v ? '' : `<label class="cli-agrupar"><input type="checkbox" ${filtroCli.agrupar ? 'checked' : ''} onchange="filtroCli.agrupar=this.checked;renderClientes()"> Agrupar por gestor</label>`}
+    <span id="cliConta" class="cli-conta"></span>
+  </div>`;
+}
+function renderClientes() {
+  const box = document.getElementById('listaClientes'); if (!box) return;
+  const f = filtroCli, termos = semAcentos(f.q).trim().split(/\s+/).filter(Boolean);
+  const arr = clientesCache.filter(x => {
+    const c = x.c;
+    if (termos.length) { const alvo = semAcentos([nomeCli(c), c.nomeFaturacao, c.nif, c.email, c.contacto, c.telefone, c.localidade, c.moradaFaturacao, c.moradaEntrega, c.morada].join(' ')); if (!termos.every(t => alvo.includes(t))) return false; }
+    if (f.gestor === '__sem') { if (c.vendedorId) return false; } else if (f.gestor && c.vendedorId !== f.gestor) return false;
+    if (f.estado === 'ativo' && !c.aprovado) return false;
+    if (f.estado === 'inativo' && c.aprovado) return false;
+    return true;
+  });
+  const cmp = (a, b) => nomeCli(a.c).localeCompare(nomeCli(b.c), 'pt', { sensitivity: 'base' });
+  if (f.ordem === 'az') arr.sort(cmp); else if (f.ordem === 'za') arr.sort((a, b) => cmp(b, a));
+  const conta = document.getElementById('cliConta'); if (conta) conta.textContent = arr.length + (arr.length === 1 ? ' cliente' : ' clientes') + (arr.length !== clientesCache.length ? ' de ' + clientesCache.length : '');
+  if (!clientesCache.length) { box.innerHTML = '<div class="empty-state">Ainda não há clientes.</div>'; return; }
+  if (!arr.length) { box.innerHTML = '<div class="empty-state">Nenhum cliente encontrado com esses filtros.</div>'; return; }
+  let html = '';
+  if (f.agrupar && !ehVendedor()) {
+    const grupos = [...vendedores.map(x => ({ id: x.id, titulo: x.nome + ' — ' + x.zona })), { id: '', titulo: 'Sem gestor' }];
+    grupos.forEach(g => {
+      const m = arr.filter(x => (x.c.vendedorId || '') === g.id || (g.id === '' && !vendedores.some(v => v.id === x.c.vendedorId)));
+      if (m.length) html += `<h3 class="grp-cli">👤 ${esc(g.titulo)} <span>(${m.length})</span></h3>` + m.map(x => x.html).join('');
+    });
+  } else {
+    let letra = null;
+    arr.forEach(x => {
+      if (f.ordem === 'az' || f.ordem === 'za') {
+        const l = (semAcentos(nomeCli(x.c)).trim().charAt(0) || '#').toUpperCase(), L = /[A-Z]/.test(l) ? l : '#';
+        if (L !== letra) { letra = L; html += `<div class="letra-cli">${L}</div>`; }
+      }
+      html += x.html;
+    });
+  }
+  box.innerHTML = html;
 }
 
 function guardarCliente(id) {
