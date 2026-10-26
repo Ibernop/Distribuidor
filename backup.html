@@ -107,8 +107,9 @@ function entrar() {
   auth.signInWithEmailAndPassword($('lEmail').value.trim(), $('lPass').value)
     .catch(() => { $('lMsg').textContent = 'E-mail ou palavra-passe incorretos.'; });
 }
-auth.onAuthStateChanged(u => {
-  const ok = u && ADMIN_EMAILS.includes((u.email || '').toLowerCase());
+auth.onAuthStateChanged(async u => {
+  let ok = !!u && ADMIN_EMAILS.includes((u.email || '').toLowerCase());
+  if (u && !ok) { try { const d = await db.collection('equipa_b2b').doc(u.uid).get(); ok = d.exists && d.data().papel === 'admin'; } catch (e) { ok = false; } }
   if (u && !ok) { auth.signOut(); $('lMsg').textContent = 'Esta conta não tem acesso.'; }
   $('loginBox').classList.toggle('hide', !!ok);
   $('painel').classList.toggle('hide', !ok);
