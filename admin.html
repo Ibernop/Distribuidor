@@ -215,7 +215,7 @@ function doLogin() {
 function doLogout() { auth.signOut(); }
 
 // Atualização automática: se o navegador tiver uma cópia antiga desta página, recarrega uma vez
-const VERSAO = '2026-10-26e';
+const VERSAO = '2026-10-26f';
 (async () => { try { const t = await (await fetch(location.pathname, { cache: 'no-store' })).text(); const m = t.match(/const VERSAO = '([^']+)'/); if (m && m[1] !== VERSAO && !sessionStorage.getItem('v_' + m[1])) { sessionStorage.setItem('v_' + m[1], '1'); location.reload(); } } catch (e) {} })();
 auth.onAuthStateChanged(async user => {
   let ok = false; papel = null; meuVendedorId = ''; meuNome = '';
@@ -444,6 +444,7 @@ function loadClientes() {
             <label style="font-size:.85rem; color:var(--gray);">Telefone<input type="text" id="ed-tel-${id}" value="${esc(c.telefone || '')}" style="width:100%;"></label>
             <label style="font-size:.85rem; color:var(--gray);">Morada de faturação<input type="text" id="ed-mf-${id}" value="${esc(c.moradaFaturacao || c.morada || '')}" style="width:100%;"></label>
             <label style="font-size:.85rem; color:var(--gray);">Morada de entrega<input type="text" id="ed-me-${id}" value="${esc(c.moradaEntrega || c.moradaFaturacao || c.morada || '')}" style="width:100%;"></label>
+            <label style="font-size:.85rem; color:var(--gray);">Outras moradas de entrega (uma por linha; se houver, o cliente escolhe no fim do carrinho)<textarea id="ed-mx-${id}" rows="3" style="width:100%;" placeholder="Ex.: Clínica Loures, Rua X, 2670-000 Loures">${esc((c.moradasExtra || []).join('\n'))}</textarea></label>
             <label style="font-size:.85rem; color:var(--gray);">Localidade<input type="text" id="ed-loc-${id}" value="${esc(c.localidade || '')}" style="width:100%;"></label>
             <p style="font-size:.8rem; color:var(--gray); margin:2px 0;">O e-mail de acesso do cliente não se altera aqui. As encomendas já feitas mantêm os dados antigos.</p>
             <button class="btn primary" onclick="guardarDadosCliente('${id}')">Guardar dados</button>
@@ -653,7 +654,8 @@ function guardarDadosCliente(id) {
   db.collection('clientes_b2b').doc(id).update({
     nomeComercial, empresa: nomeComercial, nomeFaturacao, nif,
     contacto: v('ed-ctt'), telefone: v('ed-tel'),
-    moradaFaturacao, morada: moradaFaturacao, moradaEntrega: v('ed-me') || moradaFaturacao, localidade: v('ed-loc')
+    moradaFaturacao, morada: moradaFaturacao, moradaEntrega: v('ed-me') || moradaFaturacao, localidade: v('ed-loc'),
+    moradasExtra: [...new Set(v('ed-mx').split('\n').map(x => x.trim()).filter(Boolean))].slice(0, 8)
   }).then(() => { alert('Dados do cliente guardados.'); loadClientes(); }).catch(e => alert('Não foi possível guardar: ' + (e.message || e)));
 }
 

@@ -904,7 +904,11 @@ function atualizarMinimo() {
   const b = document.getElementById('btnRever');
   if (b) { const bloq = !PORTES_ATIVOS && t < PEDIDO_MINIMO; b.disabled = bloq; b.style.opacity = bloq ? '.5' : ''; b.style.cursor = bloq ? 'not-allowed' : ''; b.textContent = bloq && t > 0 ? 'Mínimo 150€ sem IVA' : 'Rever encomenda'; }
 }
+let moradaEscolhida = 0;
+// Moradas de entrega do cliente: a principal + as extra definidas na Gestão
+function moradasCliente(c) { c = c || {}; return [...new Set([c.moradaEntrega || c.moradaFaturacao || c.morada || '', ...(Array.isArray(c.moradasExtra) ? c.moradasExtra : [])].map(x => String(x || '').trim()).filter(Boolean))]; }
 function abrirRevisao() {
+  moradaEscolhida = 0;
   const msgEl = document.getElementById('checkoutMsg');
   const o = totaisCarrinho();
   if (!o.itens.length) { msgEl.textContent = 'O carrinho está vazio.'; msgEl.style.color = 'var(--red)'; return; }
@@ -923,7 +927,8 @@ function abrirRevisao() {
       <tr><td>IVA (23%)</td><td style="text-align:right">${(o.total * 0.23).toFixed(2)}€</td></tr>
       <tr><td><b>Total com IVA</b></td><td style="text-align:right"><b>${(o.total * 1.23).toFixed(2)}€</b></td></tr>
     </table>
-    <p style="font-size:.85rem;margin:12px 0 0"><b>Pagamento:</b> ${pag ? pagLabel(pag.value) : ''}<br><b>Entrega:</b> ${escH(c.moradaEntrega || c.moradaFaturacao || c.morada || '')}</p>`;
+    <p style="font-size:.85rem;margin:12px 0 0"><b>Pagamento:</b> ${pag ? pagLabel(pag.value) : ''}<br><b>Entrega:</b> ${moradasCliente(c).length > 1 ? '' : escH(moradasCliente(c)[0] || '')}</p>
+    ${moradasCliente(c).length > 1 ? `<div style="margin-top:6px;font-size:.88rem">${moradasCliente(c).map((m, i) => `<label style="display:flex;gap:8px;align-items:flex-start;padding:7px 8px;border:1px solid var(--line,#dde3e8);border-radius:8px;margin-bottom:6px;cursor:pointer"><input type="radio" name="morEnt" value="${i}" ${i === moradaEscolhida ? 'checked' : ''} onchange="moradaEscolhida=${i}" style="margin-top:3px"><span>${escH(m)}</span></label>`).join('')}</div><p style="font-size:.78rem;color:var(--gray);margin:2px 0 0">Escolha a morada para onde enviar esta encomenda.</p>` : ''}`;
   document.getElementById('revBack').style.display = 'flex';
 }
 function fecharRevisao() { document.getElementById('revBack').style.display = 'none'; }
@@ -1294,7 +1299,8 @@ function abrirFicha(id) {
     <table class="fc-tab"><tr><th>Tamanho</th><th>Preço s/ IVA</th><th>Stock</th></tr>${tams}</table>
     ${f && f.c ? `<h4>Composição</h4><p>${escH(f.c)}</p>` : ''}
     ${f && f.a ? `<h4>Componentes analíticos</h4><p>${escH(f.a)}</p>` : ''}
-    <a class="btn btn-outline" style="width:100%;justify-content:center;margin-top:14px" href="${fab}" target="_blank" rel="noopener">Ficha completa no site do fabricante ↗</a>`;
+    ${(typeof FICHAS_PDF !== 'undefined' && FICHAS_PDF.includes(id)) ? `<a class="btn btn-gold" style="width:100%;justify-content:center;margin-top:14px" href="fichas/ownat-${id}.pdf" target="_blank" rel="noopener">📄 Ficha técnica (PDF)</a>` : ''}
+    <a class="btn btn-outline" style="width:100%;justify-content:center;margin-top:10px" href="${fab}" target="_blank" rel="noopener">Ficha completa no site do fabricante ↗</a>`;
   document.getElementById('fichaBack').style.display = 'flex';
 }
 function fecharFicha() { document.getElementById('fichaBack').style.display = 'none'; }
@@ -1563,7 +1569,7 @@ function submitPedido() {
     'cliente não aprovado': 'A sua conta ainda não está ativa. Contacte a Ibernop.', 'sem permissão': 'Não tem permissão para encomendar para este cliente.',
     'demasiados pedidos': 'Demasiados pedidos seguidos. Aguarde um minuto e tente de novo.', 'limite diário': 'O serviço atingiu o limite de hoje. Contacte a Ibernop.' };
   currentUser.getIdToken().then(idToken => fetch(EMAILJS.servidor, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ idToken, tipo: 'encomenda', metodoPagamento, clienteUid: clienteAlvo ? clienteAlvo.uid : '', itens: keys.map(k => ({ key: k, qty: cart[k].qty })) }) }))
+    body: JSON.stringify({ idToken, tipo: 'encomenda', metodoPagamento, moradaIdx: moradaEscolhida, clienteUid: clienteAlvo ? clienteAlvo.uid : '', itens: keys.map(k => ({ key: k, qty: cart[k].qty })) }) }))
   .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok || !j.ok) { const e = new Error(ERROS[j.erro] || 'Não foi possível enviar a encomenda. Tente novamente ou contacte o seu gestor de zona.'); throw e; } return j; })
   .then(() => {
     msgEl.innerHTML = 'Encomenda enviada! Vamos preparar e avisamos quando for enviada.<br><a href="https://search.google.com/local/writereview?placeid=ChIJ38RN-LA5GQ0RYSkkmOuETRY" target="_blank" rel="noopener" style="color:inherit;font-weight:700">⭐ Está satisfeito com a Ibernop? Deixe-nos uma avaliação no Google</a>';
