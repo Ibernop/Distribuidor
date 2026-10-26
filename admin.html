@@ -423,6 +423,20 @@ function loadClientes() {
               : `<button class="btn primary" onclick="setAprovado('${id}', true)">Ativar acesso</button>`}
             <button class="btn" onclick="reenviarConvite('${esc(c.email)}')">Reenviar e-mail de palavra-passe</button>
           </div>
+          <details class="montra-det"><summary>✏️ Editar dados do cliente</summary>
+          <div class="montra-box" style="flex-direction:column; align-items:stretch; gap:6px;">
+            <label style="font-size:.85rem; color:var(--gray);">Nome comercial<input type="text" id="ed-com-${id}" value="${esc(c.nomeComercial || c.empresa || '')}" style="width:100%;"></label>
+            <label style="font-size:.85rem; color:var(--gray);">Nome de faturação<input type="text" id="ed-fat-${id}" value="${esc(c.nomeFaturacao || '')}" style="width:100%;"></label>
+            <label style="font-size:.85rem; color:var(--gray);">NIF<input type="text" id="ed-nif-${id}" value="${esc(c.nif || '')}" inputmode="numeric" style="width:100%;"></label>
+            <label style="font-size:.85rem; color:var(--gray);">Pessoa de contacto<input type="text" id="ed-ctt-${id}" value="${esc(c.contacto || '')}" style="width:100%;"></label>
+            <label style="font-size:.85rem; color:var(--gray);">Telefone<input type="text" id="ed-tel-${id}" value="${esc(c.telefone || '')}" style="width:100%;"></label>
+            <label style="font-size:.85rem; color:var(--gray);">Morada de faturação<input type="text" id="ed-mf-${id}" value="${esc(c.moradaFaturacao || c.morada || '')}" style="width:100%;"></label>
+            <label style="font-size:.85rem; color:var(--gray);">Morada de entrega<input type="text" id="ed-me-${id}" value="${esc(c.moradaEntrega || c.moradaFaturacao || c.morada || '')}" style="width:100%;"></label>
+            <label style="font-size:.85rem; color:var(--gray);">Localidade<input type="text" id="ed-loc-${id}" value="${esc(c.localidade || '')}" style="width:100%;"></label>
+            <p style="font-size:.8rem; color:var(--gray); margin:2px 0;">O e-mail de acesso do cliente não se altera aqui. As encomendas já feitas mantêm os dados antigos.</p>
+            <button class="btn primary" onclick="guardarDadosCliente('${id}')">Guardar dados</button>
+          </div>
+          </details>
           <details class="montra-det"><summary>Montra no site · ${publicas[id] ? 'visível' : 'não visível'}</summary>
           <div class="montra-box">
             <div class="montra-foto">${publicas[id] && publicas[id].foto ? `<img src="${publicas[id].foto}" alt="">` : '<span>Sem foto</span>'}</div>
@@ -535,6 +549,18 @@ function guardarCliente(id) {
     catalogo: document.getElementById('cat-' + id).value || 'tudo',
     pagamentos
   }).then(() => alert('Cliente guardado.'));
+}
+
+function guardarDadosCliente(id) {
+  const v = k => document.getElementById(k + '-' + id).value.trim();
+  const nomeComercial = v('ed-com'), nomeFaturacao = v('ed-fat'), nif = v('ed-nif').replace(/\s+/g, ''), moradaFaturacao = v('ed-mf');
+  if (!nomeComercial || !nomeFaturacao || !moradaFaturacao) { alert('Preencha o nome comercial, o nome de faturação e a morada de faturação.'); return; }
+  if (!/^\d{9}$/.test(nif)) { alert('O NIF deve ter 9 números.'); return; }
+  db.collection('clientes_b2b').doc(id).update({
+    nomeComercial, empresa: nomeComercial, nomeFaturacao, nif,
+    contacto: v('ed-ctt'), telefone: v('ed-tel'),
+    moradaFaturacao, morada: moradaFaturacao, moradaEntrega: v('ed-me') || moradaFaturacao, localidade: v('ed-loc')
+  }).then(() => { alert('Dados do cliente guardados.'); loadClientes(); }).catch(e => alert('Não foi possível guardar: ' + (e.message || e)));
 }
 
 function setAprovado(uid, aprovado) {
