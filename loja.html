@@ -126,7 +126,7 @@ section { padding: 48px 0; }
 .lr-barra span{font-size:.88rem;white-space:nowrap}.lr-barra .btn{padding:9px 16px}
 @media(max-width:600px){.lr-linha{grid-template-columns:36px 1fr 64px;row-gap:4px}.lr-img{width:36px;height:36px}.lr-img img{max-width:36px;max-height:36px}.lr-preco{grid-column:2;grid-row:2;font-size:.85rem}.lr-qtd{grid-column:3;grid-row:1/3;width:64px}.lr-barra{bottom:84px}}
 #cartProgresso{padding:12px 20px 0}#cartProgresso:empty{display:none}
-.pg-txt{font-size:.85rem;margin-bottom:6px}.pg-barra{height:8px;background:var(--border);border-radius:9px;overflow:hidden}.pg-barra i{display:block;height:100%;background:var(--gold);border-radius:9px;transition:width .3s}
+.pg-txt{font-size:1.1rem;margin-bottom:8px}.pg-barra{height:12px;background:var(--border);border-radius:9px;overflow:hidden}.pg-barra i{display:block;height:100%;background:var(--gold);border-radius:9px;transition:width .3s}
 .pg-dica{margin-top:8px;font-size:.8rem;background:#eaf3fd;color:#0f5fb0;padding:7px 10px;border-radius:9px}
 .tl{display:flex;align-items:center;gap:6px;margin:10px 0 8px;flex-wrap:wrap}.tl>b{flex:1;min-width:14px;height:2px;background:var(--border)}
 .tl-p{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--gray);font-weight:600}.tl-p i{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--border);font-style:normal;font-size:.72rem;font-weight:800}
@@ -152,13 +152,13 @@ section { padding: 48px 0; }
 .cart-fab { position: fixed; bottom: 24px; right: 24px; background: var(--charcoal); color: #fff; border: none; border-radius: var(--radius-pill); padding: 14px 22px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,0.25); z-index: 40; display: flex; align-items: center; }
 .cart-backdrop { position: fixed; inset: 0; background: rgba(20,25,23,0.55); z-index: 60; opacity: 0; visibility: hidden; transition: opacity .2s ease; }
 .cart-backdrop.open { opacity: 1; visibility: visible; }
-.cart-drawer { position: fixed; top: 0; right: -420px; width: min(420px, 92vw); height: 100%; background: #fff; z-index: 61; transition: right .25s ease; display: flex; flex-direction: column; }
+.cart-drawer { position: fixed; top: 0; right: -600px; width: min(600px, 100vw); height: 100%; background: #fff; z-index: 61; transition: right .25s ease; display: flex; flex-direction: column; }
 .cart-drawer.open { right: 0; }
 .cart-header { padding: 20px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
 .cart-items { flex: 1; overflow-y: auto; padding: 16px 22px; }
-.cart-item { display: flex; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+.cart-item { display: flex; justify-content: space-between; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--border); font-size: 1.05rem; line-height: 1.4; }
 .cart-footer { padding: 18px 22px; border-top: 1px solid var(--border); }
-.cart-total { display: flex; justify-content: space-between; font-weight: 800; font-size: 1.05rem; margin-bottom: 14px; }
+.cart-total { display: flex; justify-content: space-between; font-weight: 800; font-size: 1.25rem; margin-bottom: 14px; }
 .payment-method-select { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
 .payment-opt { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; font-size: 0.88rem; }
 .payment-opt input { margin: 0; }
@@ -455,13 +455,13 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
   <div id="cartProgresso"></div>
   <div class="cart-items" id="cartItems"></div>
   <div class="cart-footer">
-    <div class="cart-total" style="font-size:0.9rem; font-weight:600; color:var(--gray); margin-bottom:6px;"><span>Subtotal</span><span id="cartSubtotal">0,00€</span></div>
-    <div id="cartDescontoRow" class="cart-total" style="font-size:0.9rem; font-weight:600; color:var(--gold-dark); margin-bottom:6px; display:none;"><span>Desconto</span><span id="cartDescontoValor">0,00€</span></div>
-    <div id="cartPortesRow" class="cart-total" style="font-size:0.9rem; font-weight:600; color:var(--gray); margin-bottom:6px; display:none;"><span>Portes (encomenda abaixo de 150€)</span><span id="cartPortes">0,00€</span></div>
-    <div class="cart-total" style="border-top:1px solid var(--border); padding-top:10px; font-size:0.95rem;"><span>Total sem IVA</span><span id="cartTotal">0,00€</span></div>
-    <div class="cart-total" style="font-size:0.9rem; font-weight:600; color:var(--gray); margin:4px 0;"><span>IVA (23%)</span><span id="cartIva">0,00€</span></div>
+    <div class="cart-total" style="font-size:1.05rem; font-weight:600; color:var(--gray); margin-bottom:6px;"><span>Subtotal</span><span id="cartSubtotal">0,00€</span></div>
+    <div id="cartDescontoRow" class="cart-total" style="font-size:1.05rem; font-weight:600; color:var(--gold-dark); margin-bottom:6px; display:none;"><span>Desconto</span><span id="cartDescontoValor">0,00€</span></div>
+    <div id="cartPortesRow" class="cart-total" style="font-size:1.05rem; font-weight:600; color:var(--gray); margin-bottom:6px; display:none;"><span>Portes (encomenda abaixo de 150€)</span><span id="cartPortes">0,00€</span></div>
+    <div class="cart-total" style="border-top:1px solid var(--border); padding-top:10px; font-size:1.1rem;"><span>Total sem IVA</span><span id="cartTotal">0,00€</span></div>
+    <div class="cart-total" style="font-size:1.05rem; font-weight:600; color:var(--gray); margin:4px 0;"><span>IVA (23%)</span><span id="cartIva">0,00€</span></div>
     <div class="cart-total" style="border-top:2px solid var(--charcoal); padding-top:10px;"><span>Total com IVA</span><span id="cartTotalIva">0,00€</span></div>
-    <p style="font-size:.75rem; color:var(--gray); margin:-6px 0 12px;">Valores indicativos, confirmados na fatura.</p>
+    <p style="font-size:.9rem; color:var(--gray); margin:-6px 0 12px;">Valores indicativos, confirmados na fatura.</p>
     <div id="minimoMsg"></div>
     <div class="payment-method-select" onchange="renderCart()">
       <label class="payment-opt"><input type="radio" name="payMethod" value="pre" checked> Pré-pagamento</label>
@@ -864,11 +864,11 @@ function atualizarMinimo() {
       const pct = Math.min(100, t / PEDIDO_MINIMO * 100), ok = t >= PEDIDO_MINIMO;
       let dica = ''; let melhor = null;
       Object.keys(cart).forEach(k => { const it = cart[k]; if (it.prox && (!melhor || it.prox.faltam < melhor.prox.faltam)) melhor = it; });
-      if (melhor) dica = `<div class="pg-dica">💡 Junte mais <b>${melhor.prox.faltam}</b> saco(s) ${escH(melhor.gama || '')} de ${escH(melhor.tamanho)} e passa a <b>${melhor.prox.preco.toFixed(2)}€/un.</b></div>`;
+      if (false && melhor) dica = `<div class="pg-dica">💡 Junte mais <b>${melhor.prox.faltam}</b> saco(s) ${escH(melhor.gama || '')} de ${escH(melhor.tamanho)} e passa a <b>${melhor.prox.preco.toFixed(2)}€/un.</b></div>`;
       pg.innerHTML = `<div class="pg-txt">${PORTES_ATIVOS ? (ok ? '✅ Portes grátis' : 'Faltam <b>' + (PEDIDO_MINIMO - t).toFixed(2) + '€</b> para portes grátis (portes ' + PORTES_VALOR.toFixed(2).replace('.', ',') + '€ s/IVA)') : (ok ? '✅ Pedido mínimo atingido' : 'Faltam <b>' + (PEDIDO_MINIMO - t).toFixed(2) + '€</b> para o pedido mínimo de ' + PEDIDO_MINIMO + '€')}</div><div class="pg-barra"><i style="width:${pct}%;${ok ? 'background:#1d7a3e' : ''}"></i></div>${dica}`;
     }
   }
-  if (t > 0 && t < PEDIDO_MINIMO) { el.style.display = 'block'; el.textContent = PORTES_ATIVOS ? 'Encomenda abaixo de ' + PEDIDO_MINIMO + '€ (sem IVA): acrescem portes de ' + PORTES_VALOR.toFixed(2).replace('.', ',') + '€ sem IVA. Faltam ' + (PEDIDO_MINIMO - t).toFixed(2) + '€ para portes grátis.' : 'Pedido mínimo de ' + PEDIDO_MINIMO + '€ (sem IVA). Faltam ' + (PEDIDO_MINIMO - t).toFixed(2) + '€.'; }
+  if (t > 0 && t < PEDIDO_MINIMO && !PORTES_ATIVOS) { el.style.display = 'block'; el.textContent = PORTES_ATIVOS ? 'Encomenda abaixo de ' + PEDIDO_MINIMO + '€ (sem IVA): acrescem portes de ' + PORTES_VALOR.toFixed(2).replace('.', ',') + '€ sem IVA. Faltam ' + (PEDIDO_MINIMO - t).toFixed(2) + '€ para portes grátis.' : 'Pedido mínimo de ' + PEDIDO_MINIMO + '€ (sem IVA). Faltam ' + (PEDIDO_MINIMO - t).toFixed(2) + '€.'; }
   else el.style.display = 'none';
   const b = document.getElementById('btnRever');
   if (b) { const bloq = !PORTES_ATIVOS && t < PEDIDO_MINIMO; b.disabled = bloq; b.style.opacity = bloq ? '.5' : ''; b.style.cursor = bloq ? 'not-allowed' : ''; b.textContent = bloq && t > 0 ? 'Mínimo 150€ sem IVA' : 'Rever encomenda'; }
@@ -1448,10 +1448,10 @@ function renderCart() {
     subtotal += itemSubtotal;
     return `
       <div class="cart-item">
-        <div>${it.nome}<br><span style="color:var(--gray-light);">${espEtiqueta(k)}${it.tamanho} × ${it.qty} · ${it.precoLista != null && it.preco < it.precoLista - 0.004 ? `<s>${it.precoLista.toFixed(2)}€</s> ` : ''}${it.preco.toFixed(2)}€/un.</span>${it.tier ? `<br><span style="color:#1d7a3e;font-size:.78rem;font-weight:700">✓ Preço de ${it.tier}+ sacos aplicado</span>` : ''}${it.prox ? `<br><span style="color:#0f5fb0;font-size:.78rem">Junte mais ${it.prox.faltam} saco(s) ${escH(it.gama || '')} de ${escH(it.tamanho)} e passa a ${it.prox.preco.toFixed(2)}€/un. (poupa ${((it.preco - it.prox.preco) * it.qty).toFixed(2)}€ só nesta linha)</span>` : ''}</div>
+        <div>${it.nome}<br><span style="color:var(--gray-light);">${espEtiqueta(k)}${it.tamanho} × ${it.qty} · ${it.precoLista != null && it.preco < it.precoLista - 0.004 ? `<s>${it.precoLista.toFixed(2)}€</s> ` : ''}${it.preco.toFixed(2)}€/un.</span>${it.tier ? `<br><span style="color:#1d7a3e;font-size:.95rem;font-weight:700">✓ Preço de ${it.tier}+ sacos aplicado</span>` : ''}${it.prox ? `<div style="margin-top:8px;background:#eaf3fd;color:#0f5fb0;padding:8px 12px;border-radius:10px;font-size:.95rem;font-weight:600">💡 Mais ${it.prox.faltam} saco(s) → ${it.prox.preco.toFixed(2)}€/un. (poupa ${((it.preco - it.prox.preco) * it.qty).toFixed(2)}€)</div>` : ''}</div>
         <div style="text-align:right;">
           ${itemSubtotal.toFixed(2)}€<br>
-          <a href="#" onclick="removeFromCart('${k}'); return false;" style="color:var(--red); font-size:0.8rem;">remover</a>
+          <a href="#" onclick="removeFromCart('${k}'); return false;" style="color:var(--red); font-size:0.95rem;">remover</a>
         </div>
       </div>`;
   }).join('');
