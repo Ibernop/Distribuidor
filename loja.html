@@ -904,7 +904,7 @@ function atualizarMinimo() {
   const b = document.getElementById('btnRever');
   if (b) { const bloq = !PORTES_ATIVOS && t < PEDIDO_MINIMO; b.disabled = bloq; b.style.opacity = bloq ? '.5' : ''; b.style.cursor = bloq ? 'not-allowed' : ''; b.textContent = bloq && t > 0 ? 'Mínimo 150€ sem IVA' : 'Rever encomenda'; }
 }
-let moradaEscolhida = 0;
+let moradaEscolhida = 0; let observacoesPedido = '';
 // Moradas de entrega do cliente: a principal + as extra definidas na Gestão
 function moradasCliente(c) { c = c || {}; return [...new Set([c.moradaEntrega || c.moradaFaturacao || c.morada || '', ...(Array.isArray(c.moradasExtra) ? c.moradasExtra : [])].map(x => String(x || '').trim()).filter(Boolean))]; }
 function abrirRevisao() {
@@ -928,7 +928,7 @@ function abrirRevisao() {
       <tr><td><b>Total com IVA</b></td><td style="text-align:right"><b>${(o.total * 1.23).toFixed(2)}€</b></td></tr>
     </table>
     <p style="font-size:.85rem;margin:12px 0 0"><b>Pagamento:</b> ${pag ? pagLabel(pag.value) : ''}<br><b>Entrega:</b> ${moradasCliente(c).length > 1 ? '' : escH(moradasCliente(c)[0] || '')}</p>
-    ${moradasCliente(c).length > 1 ? `<div style="margin-top:6px;font-size:.88rem">${moradasCliente(c).map((m, i) => `<label style="display:flex;gap:8px;align-items:flex-start;padding:7px 8px;border:1px solid var(--line,#dde3e8);border-radius:8px;margin-bottom:6px;cursor:pointer"><input type="radio" name="morEnt" value="${i}" ${i === moradaEscolhida ? 'checked' : ''} onchange="moradaEscolhida=${i}" style="margin-top:3px"><span>${escH(m)}</span></label>`).join('')}</div><p style="font-size:.78rem;color:var(--gray);margin:2px 0 0">Escolha a morada para onde enviar esta encomenda.</p>` : ''}`;
+    ${moradasCliente(c).length > 1 ? `<div style="margin-top:6px;font-size:.88rem">${moradasCliente(c).map((m, i) => `<label style="display:flex;gap:8px;align-items:flex-start;padding:7px 8px;border:1px solid var(--line,#dde3e8);border-radius:8px;margin-bottom:6px;cursor:pointer"><input type="radio" name="morEnt" value="${i}" ${i === moradaEscolhida ? 'checked' : ''} onchange="moradaEscolhida=${i}" style="margin-top:3px"><span>${escH(m)}</span></label>`).join('')}</div><p style="font-size:.78rem;color:var(--gray);margin:2px 0 0">Escolha a morada para onde enviar esta encomenda.</p>` : ''}<label style="display:block;margin-top:12px;font-size:.88rem;font-weight:600">Observações (opcional)<textarea id="obsPedido" maxlength="500" rows="3" placeholder="Ex.: horário de entrega, falar com alguém à chegada, pedido especial…" oninput="observacoesPedido=this.value" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--line,#dde3e8);border-radius:8px;font:inherit;font-weight:400;resize:vertical">${escH(observacoesPedido)}</textarea></label>`;
   document.getElementById('revBack').style.display = 'flex';
 }
 function fecharRevisao() { document.getElementById('revBack').style.display = 'none'; }
@@ -1569,7 +1569,7 @@ function submitPedido() {
     'cliente não aprovado': 'A sua conta ainda não está ativa. Contacte a Ibernop.', 'sem permissão': 'Não tem permissão para encomendar para este cliente.',
     'demasiados pedidos': 'Demasiados pedidos seguidos. Aguarde um minuto e tente de novo.', 'limite diário': 'O serviço atingiu o limite de hoje. Contacte a Ibernop.' };
   currentUser.getIdToken().then(idToken => fetch(EMAILJS.servidor, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ idToken, tipo: 'encomenda', metodoPagamento, moradaIdx: moradaEscolhida, clienteUid: clienteAlvo ? clienteAlvo.uid : '', itens: keys.map(k => ({ key: k, qty: cart[k].qty })) }) }))
+    body: JSON.stringify({ idToken, tipo: 'encomenda', metodoPagamento, moradaIdx: moradaEscolhida, observacoes: String(observacoesPedido || '').trim().slice(0, 500), clienteUid: clienteAlvo ? clienteAlvo.uid : '', itens: keys.map(k => ({ key: k, qty: cart[k].qty })) }) }))
   .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok || !j.ok) { const e = new Error(ERROS[j.erro] || 'Não foi possível enviar a encomenda. Tente novamente ou contacte o seu gestor de zona.'); throw e; } return j; })
   .then(() => {
     msgEl.innerHTML = 'Encomenda enviada! Vamos preparar e avisamos quando for enviada.<br><a href="https://search.google.com/local/writereview?placeid=ChIJ38RN-LA5GQ0RYSkkmOuETRY" target="_blank" rel="noopener" style="color:inherit;font-weight:700">⭐ Está satisfeito com a Ibernop? Deixe-nos uma avaliação no Google</a>';
@@ -1577,7 +1577,7 @@ function submitPedido() {
     cart = {};
     renderCart();
     loadStock();
-    setTimeout(() => { closeCart(); enviandoPedido = false; }, 6000);
+    observacoesPedido = ''; setTimeout(() => { closeCart(); enviandoPedido = false; }, 6000);
   }).catch(err => {
     enviandoPedido = false;
     msgEl.textContent = err.message;
