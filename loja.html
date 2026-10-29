@@ -455,6 +455,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
     <strong>O seu pedido</strong>
     <button onclick="closeCart()" style="background:none; border:none; font-size:1.3rem; cursor:pointer;">✕</button>
   </div>
+  <div style="padding:8px 16px 0"><button type="button" class="btn" onclick="document.getElementById('excelIn').click()" style="width:100%;justify-content:center;background:#fff;border:1px solid var(--border);color:var(--charcoal);font-size:.88rem">📄 Importar encomenda de Excel</button><input type="file" id="excelIn" accept=".xls,.xlsx,.csv" hidden onchange="importarExcel(this)"></div>
   <div id="cartProgresso"></div>
   <div class="cart-items" id="cartItems"></div>
   <div class="cart-grip" id="cartGrip" title="Arraste para cima ou para baixo para ajustar. Duplo toque para repor."><i></i></div>
@@ -1263,6 +1264,88 @@ function adicionarLista() {
   if (n) { renderCart(); avisoCarrinho(n + ' unidade(s)'); contarLista(); }
   if (avisos.length) alert('Não foi possível adicionar:\n' + avisos.join('\n'));
   if (!n && !avisos.length) alert('Indique a quantidade em pelo menos um produto.');
+}
+
+// ---------- Importar encomenda de Excel ----------
+// O ficheiro é lido no próprio navegador do cliente (não é enviado nem guardado). Preços, descontos e portes continuam a ser calculados no servidor.
+const XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+function carregarXlsx() {
+  if (window.XLSX) return Promise.resolve();
+  return new Promise((ok, erro) => {
+    const s = document.createElement('script'); s.src = XLSX_URL; s.integrity = 'sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw'; s.crossOrigin = 'anonymous'; s.referrerPolicy = 'no-referrer';
+    s.onload = ok; s.onerror = () => erro(new Error('carregar')); document.head.appendChild(s);
+  });
+}
+const normCab = s => String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+const numTxt = v => v == null ? '' : (typeof v === 'number' ? v.toFixed(0) : String(v).trim());
+const soDigitos = v => numTxt(v).replace(/\D/g, '');
+const semZeros = v => soDigitos(v).replace(/^0+/, '');
+function importarLinhas(linhas) {
+  let h = -1, cEan = -1, cCod = -1, cQtd = -1;
+  for (let i = 0; i < Math.min(linhas.length, 15) && h < 0; i++) {
+    const cab = (linhas[i] || []).map(normCab);
+    const e = cab.findIndex(c => /^(ean|gtin|codigodebarras|codigobarras|codbarras|barcode)/.test(c));
+    const q = cab.findIndex(c => /^(boxqty|qty|qtd|quant|unidades|caixas|encomenda)/.test(c));
+    const r = cab.findIndex((c, j) => j !== e && /^(suppliercode|referencia|ref|codigo|cod|sku|artigo)/.test(c));
+    if ((e >= 0 || r >= 0) && q >= 0) { h = i; cEan = e; cCod = r; cQtd = q; }
+  }
+  if (h < 0) return { semColunas: true, itens: [], erros: [] };
+  const porEan = {}, porCod = {};
+  produtos.forEach(p => (p.tamanhos || []).forEach(t => {
+    if (t.ean) porEan[soDigitos(t.ean)] = { p, t };
+    if (t.cod) porCod[semZeros(t.cod)] = { p, t };
+  }));
+  const itens = [], erros = [], idx = {};
+  linhas.slice(h + 1, h + 501).forEach((row, n) => {
+    const nl = h + 2 + n, ean = soDigitos(row[cEan]), cod = cCod >= 0 ? semZeros(row[cCod]) : '';
+    const bruto = row[cQtd], qtd = Math.round(parseFloat(String(bruto == null ? '' : bruto).replace(',', '.')));
+    if (!ean && !cod && (bruto === '' || bruto == null)) return;
+    const ref = ean || cod || '(vazio)';
+    const hit = (ean && porEan[ean]) || (cod && porCod[cod]);
+    if (!hit) { erros.push('Linha ' + nl + ': produto não encontrado (' + ref + ')'); return; }
+    if (!(qtd > 0) || qtd > 9999) { erros.push('Linha ' + nl + ': quantidade inválida (' + hit.p.nome + ' ' + hit.t.label + ')'); return; }
+    const key = hit.p.id + '_' + hit.t.label;
+    if (idx[key] !== undefined) itens[idx[key]].qty += qtd; else { idx[key] = itens.length; itens.push({ key, p: hit.p, t: hit.t, qty: qtd }); }
+  });
+  return { itens, erros };
+}
+function importarExcel(inp) {
+  const f = inp.files && inp.files[0]; inp.value = ''; if (!f) return;
+  if (f.size > 2 * 1024 * 1024 || !/\.(xls|xlsx|csv)$/i.test(f.name)) { alert('Escolha um ficheiro Excel (.xls ou .xlsx) com menos de 2 MB.'); return; }
+  carregarXlsx().then(() => f.arrayBuffer()).then(buf => {
+    const wb = XLSX.read(buf, { type: 'array' });
+    const linhas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' });
+    mostrarImportacao(importarLinhas(linhas));
+  }).catch(() => alert('Não foi possível ler o ficheiro. Verifique a ligação à internet e que o ficheiro é um Excel válido.'));
+}
+let importacaoPendente = [];
+function mostrarImportacao(r) {
+  if (r.semColunas) { alert('Não encontrei as colunas no ficheiro. Precisa de uma coluna com o código de barras (EAN) ou a referência e outra com a quantidade.'); return; }
+  importacaoPendente = r.itens;
+  let o = document.getElementById('impBack');
+  if (!o) { o = document.createElement('div'); o.id = 'impBack'; o.style.cssText = 'position:fixed;inset:0;background:rgba(7,32,46,.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px'; document.body.appendChild(o); }
+  const lista = r.itens.map(it => `<tr><td style="white-space:nowrap">${it.qty}×</td><td>${escH(it.p.nome)} <small style="color:var(--gray)">${escH(it.t.label)}</small></td></tr>`).join('');
+  const erros = r.erros.length ? `<div style="margin-top:12px;padding:10px;border-radius:8px;background:#fdecea;color:#b3261e;font-size:.85rem"><b>Não foi possível importar ${r.erros.length} linha(s):</b><br>${r.erros.slice(0, 30).map(escH).join('<br>')}</div>` : '';
+  o.innerHTML = `<div style="background:#fff;border-radius:14px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:18px">
+    <strong style="font-size:1.05rem">Importar encomenda de Excel</strong>
+    <p style="font-size:.88rem;margin:6px 0 10px">${r.itens.length ? '<b>' + r.itens.length + ' produto(s)</b> reconhecido(s). Pode rever tudo no carrinho antes de enviar.' : 'Nenhum produto reconhecido.'}</p>
+    <table style="width:100%;font-size:.88rem">${lista}</table>${erros}
+    <div style="display:flex;gap:8px;margin-top:14px"><button class="btn" style="flex:1;justify-content:center" onclick="fecharImportacao()">Cancelar</button>${r.itens.length ? '<button class="btn btn-gold" style="flex:1;justify-content:center" onclick="confirmarImportacao()">Adicionar ao carrinho</button>' : ''}</div></div>`;
+  o.style.display = 'flex';
+}
+function fecharImportacao() { const o = document.getElementById('impBack'); if (o) o.style.display = 'none'; importacaoPendente = []; }
+function confirmarImportacao() {
+  const avisos = []; let n = 0;
+  importacaoPendente.forEach(it => {
+    if (!(it.t.preco > 0)) { avisos.push(it.p.nome + ' (' + it.t.label + '): sem preço, contacte o seu gestor de zona'); return; }
+    const disp = stockDe(it.p.id, it.t.label), ja = cart[it.key] ? cart[it.key].qty : 0;
+    if (disp !== null && ja + it.qty > disp) { avisos.push(it.p.nome + ' (' + it.t.label + '): só há ' + disp + ' em stock'); return; }
+    if (cart[it.key]) cart[it.key].qty += it.qty; else cart[it.key] = { nome: it.p.nome, tamanho: it.t.label, preco: it.t.preco, qty: it.qty };
+    n += it.qty;
+  });
+  fecharImportacao();
+  if (n) { renderCart(); avisoCarrinho(n + ' unidade(s) do Excel'); }
+  if (avisos.length) alert('Não foi possível adicionar:\n' + avisos.join('\n'));
 }
 
 // ---------- Avise-me quando houver stock ----------
