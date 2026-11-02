@@ -225,7 +225,7 @@ auth.onAuthStateChanged(async user => {
     else {
       try {
         const d = await db.collection('equipa_b2b').doc(user.uid).get();
-        if (d.exists) { const m = d.data(); papel = m.papel; meuVendedorId = m.vendedorId || ''; meuNome = m.nome || ''; ok = papel === 'admin' || (papel === 'vendedor' && !!meuVendedorId); }
+        if (d.exists) { const m = d.data(); papel = m.papel; meuVendedorId = m.vendedorId || ''; meuNome = m.nome || ''; ok = papel === 'admin' || papel === 'armazem' || (papel === 'vendedor' && !!meuVendedorId); }
       } catch (e) { ok = false; }
     }
   }
@@ -286,12 +286,12 @@ function loadIncidencias() {
       <div class="entry-actions" style="align-items:center;flex-wrap:wrap;">
         <input type="text" id="resp-${i.id}" value="${esc(i.resposta || '')}" placeholder="Resposta ao cliente (ex.: nota de crédito, substituição)" style="flex:1;min-width:240px;">
         <button class="btn" onclick="guardarIncidencia('${i.id}', '${i.estado === 'resolvida' ? 'aberta' : 'resolvida'}')">${i.estado === 'resolvida' ? 'Reabrir' : 'Marcar como resolvida'}</button>
-        ${ehVendedor() ? '' : `<button class="btn" style="padding:8px 14px;background:#fff;color:var(--red);border-color:var(--red);" onclick="excluirIncidencia('${i.id}')">Excluir</button>`}
+        ${restrito() ? '' : `<button class="btn" style="padding:8px 14px;background:#fff;color:var(--red);border-color:var(--red);" onclick="excluirIncidencia('${i.id}')">Excluir</button>`}
       </div></div>`).join('');
   }).catch(e => { el.innerHTML = '<div class="empty-state">Erro ao carregar incidências.</div>'; console.error(e); });
 }
 function excluirIncidencia(id) {
-  if (ehVendedor()) return;
+  if (restrito()) return;
   if (!confirm('Excluir definitivamente esta incidência?')) return;
   db.collection('incidencias_b2b').doc(id).delete().then(() => { loadIncidencias(); contarIncidencias(); }).catch(e => alert('Não foi possível excluir: ' + e.message));
 }
@@ -676,12 +676,14 @@ let allPedidos = [];
 let papel = null, meuVendedorId = '', meuNome = '';
 let avisoUnsub = null, pendentesVistos = null;
 const ehVendedor = () => papel === 'vendedor';
+const ehArmazem = () => papel === 'armazem';
+const restrito = () => papel !== 'admin'; // vendedor e armazém: sem funções de administração
 
 // Aviso de backup (só administrador): mostra há quantos dias foi o último e fica vermelho ao fim de 7 dias
 function mostrarAvisoBackup() {
   const b = document.getElementById('avisoBackup'), btn = document.getElementById('btnBackup');
   if (!b || !btn) return;
-  if (ehVendedor()) { b.style.display = 'none'; btn.style.display = 'none'; return; }
+  if (restrito()) { b.style.display = 'none'; btn.style.display = 'none'; return; }
   btn.style.display = '';
   db.collection('config_b2b').doc('ultimo_backup').get().then(d => {
     const x = d.exists ? d.data() : null;
@@ -696,9 +698,10 @@ function mostrarAvisoBackup() {
 }
 
 function aplicarPapel(user) {
-  const v = ehVendedor();
+  const v = restrito();
   ['tabStock', 'tabVendedores', 'tabEquipa', 'btnExpClientes', 'btnImpClientes', 'btnModeloClientes', 'btnImpFin', 'btnModeloFin'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = v ? 'none' : ''; });
-  document.getElementById('papelInfo').textContent = (meuNome || user.email) + ' · ' + (v ? 'Vendedor' : 'Administrador');
+  const tc = document.getElementById('tabClientes'); if (tc) tc.style.display = ehArmazem() ? 'none' : '';
+  document.getElementById('papelInfo').textContent = (meuNome || user.email) + ' · ' + (ehArmazem() ? 'Armazém' : v ? 'Vendedor' : 'Administrador');
   mostrarAvisoBackup();
   iniciarAvisos();
   contarIncidencias();
@@ -765,12 +768,12 @@ function loadEquipa() {
     el.innerHTML = `
       <div class="entry-card">
         <div class="entry-title" style="margin-bottom:6px;">Novo acesso à Gestão</div>
-        <p style="font-size:0.82rem; color:var(--gray); margin:0 0 10px;">Cada pessoa entra com o seu e-mail. O <strong>administrador</strong> vê tudo; o <strong>vendedor</strong> vê os clientes, as encomendas e as incidências da sua zona; pode mudar o estado das encomendas e resolver incidências, mas não altera dados dos clientes, preços nem stock.</p>
+        <p style="font-size:0.82rem; color:var(--gray); margin:0 0 10px;">Cada pessoa entra com o seu e-mail. O <strong>administrador</strong> vê tudo; o <strong>vendedor</strong> vê os clientes, as encomendas e as incidências da sua zona; pode mudar o estado das encomendas e resolver incidências, mas não altera dados dos clientes, preços nem stock. O <strong>armazém</strong> vê todas as encomendas (sem valores) e as incidências, muda o estado das encomendas e resolve incidências; não vê clientes, preços nem stock.</p>
         <div class="auth-error" id="eqErro"></div>
         <div class="form-grid">
           <input type="text" id="eqNome" placeholder="Nome">
           <input type="email" id="eqEmail" placeholder="E-mail de acesso">
-          <select id="eqPapel" onchange="document.getElementById('eqVend').style.display = this.value === 'vendedor' ? '' : 'none'"><option value="vendedor">Vendedor</option><option value="admin">Administrador</option></select>
+          <select id="eqPapel" onchange="document.getElementById('eqVend').style.display = this.value === 'vendedor' ? '' : 'none'"><option value="vendedor">Vendedor</option><option value="armazem">Armazém</option><option value="admin">Administrador</option></select>
           <select id="eqVend">${opcoesVendedor('')}</select>
           <input type="tel" id="eqTel" placeholder="Telemóvel do gestor (aparece no e-mail ao cliente)">
         </div>
@@ -778,7 +781,7 @@ function loadEquipa() {
       </div>` + (membros.length ? membros.map(m => `
       <div class="entry-card">
         <div class="entry-top">
-          <div><div class="entry-title">${esc(m.nome)}</div><div class="entry-sub">${esc(m.email)} · ${m.papel === 'admin' ? 'Administrador' : 'Vendedor — ' + esc(nomeVendedor(m.vendedorId))}</div>${m.papel !== 'admin' && m.vendedorId ? `<div class="entry-sub" style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap"><input type="tel" id="teq-${m.id}" value="${esc((vendedores.find(x => x.id === m.vendedorId) || {}).telefone || '')}" placeholder="Telemóvel do gestor" style="width:180px"><button class="btn" style="padding:6px 12px" onclick="guardarTelEquipa('${m.id}','${m.vendedorId}')">Guardar telemóvel</button></div>` : ''}</div>
+          <div><div class="entry-title">${esc(m.nome)}</div><div class="entry-sub">${esc(m.email)} · ${m.papel === 'admin' ? 'Administrador' : m.papel === 'armazem' ? 'Armazém' : 'Vendedor — ' + esc(nomeVendedor(m.vendedorId))}</div>${m.papel !== 'admin' && m.vendedorId ? `<div class="entry-sub" style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap"><input type="tel" id="teq-${m.id}" value="${esc((vendedores.find(x => x.id === m.vendedorId) || {}).telefone || '')}" placeholder="Telemóvel do gestor" style="width:180px"><button class="btn" style="padding:6px 12px" onclick="guardarTelEquipa('${m.id}','${m.vendedorId}')">Guardar telemóvel</button></div>` : ''}</div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn" onclick="reenviarConvite('${esc(m.email)}')">Reenviar e-mail</button><button class="btn" onclick="removerMembro('${m.id}')">Retirar acesso</button></div>
         </div>
       </div>`).join('') : '<div class="empty-state">Ainda não há outras pessoas com acesso. A conta ibernop@outlook.com é sempre administradora.</div>');
@@ -941,6 +944,7 @@ function totaisOficiais(p) {
   return { subtotal, desconto, valorDesconto, total, iva: Math.round(total * 23) / 100, comIva: Math.round(total * 123) / 100, diferente: Math.abs(total - (p.total || 0)) > 0.01, desconhecido };
 }
 function carregarRefsPedidos() {
+  if (ehArmazem()) { pedidosClientes = {}; pedidosPrecos = {}; return Promise.resolve(); } // armazém não vê clientes nem preços
   const qc = ehVendedor() ? db.collection('clientes_b2b').where('vendedorId', '==', meuVendedorId) : db.collection('clientes_b2b');
   return Promise.all([qc.get(), carregarPrivado().catch(() => null)]).then(([cs]) => {
     pedidosClientes = {}; cs.forEach(d => { pedidosClientes[d.id] = d.data(); });
@@ -1003,6 +1007,12 @@ function mexerStock(p, sinal) {
   const mapa = {};
   (p.itens || []).forEach(it => { const c = chaveItem(it); if (c) mapa[c.key] = { qty: (mapa[c.key] ? mapa[c.key].qty : 0) + it.qty, inicial: c.t.stock || 0 }; });
   const keys = Object.keys(mapa); if (!keys.length) return Promise.resolve();
+  if (ehArmazem()) return db.runTransaction(tx => tx.get(PRIV_S).then(snap => {
+    if (!snap.exists) throw new Error('registo de stock indisponível');
+    const q = snap.data().q || {}; const upd = {};
+    keys.forEach(k => { const atual = typeof q[k] === 'number' ? q[k] : mapa[k].inicial; upd[k] = Math.max(0, atual + sinal * mapa[k].qty); });
+    tx.set(PRIV_S, { q: upd }, { merge: true });
+  }));
   if (privadoAtivo) return db.runTransaction(tx => tx.get(PRIV_S).then(snap => {
     const q = (snap.exists && snap.data().q) || {}; const upd = {};
     keys.forEach(k => { const atual = typeof q[k] === 'number' ? q[k] : mapa[k].inicial; upd[k] = Math.max(0, atual + sinal * mapa[k].qty); });
@@ -1026,7 +1036,7 @@ function loadPedidos() {
     if (snap.empty) { el.innerHTML = '<div class="empty-state">Ainda não há encomendas.</div>'; return; }
     allPedidos = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     el.innerHTML = allPedidos.map(p => {
-      const itensHtml = (p.itens || []).map(it => { const pr = precoOficial(it); const _e = especieItem(it); return `${it.qty}x ${_e ? _e.txt + ' · ' : ''}${esc(it.nome)} (${esc(it.tamanho)}) — ${((pr == null ? it.preco : pr) * it.qty).toFixed(2)}€`; }).join('<br>');
+      const itensHtml = (p.itens || []).map(it => { if (ehArmazem()) return `${it.qty}x ${esc(it.nome)} (${esc(it.tamanho)})`; const pr = precoOficial(it); const _e = especieItem(it); return `${it.qty}x ${_e ? _e.txt + ' · ' : ''}${esc(it.nome)} (${esc(it.tamanho)}) — ${((pr == null ? it.preco : pr) * it.qty).toFixed(2)}€`; }).join('<br>');
       const metodoLabel = pagLabel(p.metodoPagamento);
       let actions = '';
       if (p.estado === 'pendente') actions = `<button class="btn primary" onclick="setEstadoPedido('${p.id}','separado')">Marcar como separado</button>`;
@@ -1037,11 +1047,11 @@ function loadPedidos() {
           <div class="entry-top">
             <div>
               <div class="entry-title">${p.empresa}</div>
-              <div class="entry-sub">${p.nomeFaturacao ? esc(p.nomeFaturacao) + ' · ' : ''}NIF: ${p.nif} · ${metodoLabel}${p.vendedorId ? ' · Vendedor: ' + esc(nomeVendedor(p.vendedorId)) : ''}</div>
+              <div class="entry-sub">${p.nomeFaturacao ? esc(p.nomeFaturacao) + ' · ' : ''}NIF: ${p.nif} · ${metodoLabel}${p.vendedorId && !ehArmazem() ? ' · Vendedor: ' + esc(nomeVendedor(p.vendedorId)) : ''}</div>
               ${p.moradaEntrega ? `<div class="entry-sub">Entrega: ${esc(p.moradaEntrega)}</div>` : ''}
               ${p.observacoes ? `<div class="entry-sub" style="background:#fff7e0;border:1px solid #e8c766;border-radius:8px;padding:6px 10px;margin-top:6px;color:#07202e"><b>💬 Observações do cliente:</b> ${esc(p.observacoes)}</div>` : ''}
               ${p.feitoPor ? `<div class="entry-sub" style="color:#0f5fb0;font-weight:700">🧾 Feita por ${esc(p.feitoPor.nome || p.feitoPor.email)} em nome do cliente</div>` : ''}
-              ${(() => { const o = totaisOficiais(p); return `<div class="entry-sub">Subtotal: ${o.subtotal.toFixed(2)}€${o.desconto ? ` · Desconto (${o.desconto}%): -${o.valorDesconto.toFixed(2)}€` : ''} · <strong>Total s/ IVA: ${o.total.toFixed(2)}€</strong> · IVA 23%: ${o.iva.toFixed(2)}€ · <strong>c/ IVA: ${o.comIva.toFixed(2)}€</strong></div>` + (o.diferente ? `<div class="entry-sub" style="color:var(--red);font-weight:700">Atenção: valores recalculados pela tabela atual e pelo desconto da ficha. O cliente enviou ${(p.total || 0).toFixed(2)}€ s/ IVA. Confirme antes de faturar.</div>` : '') + (o.desconhecido ? `<div class="entry-sub" style="color:var(--red)">Há produtos que já não estão na tabela; foi usado o preço enviado.</div>` : ''); })()}
+              ${ehArmazem() ? '' : (() => { const o = totaisOficiais(p); return `<div class="entry-sub">Subtotal: ${o.subtotal.toFixed(2)}€${o.desconto ? ` · Desconto (${o.desconto}%): -${o.valorDesconto.toFixed(2)}€` : ''} · <strong>Total s/ IVA: ${o.total.toFixed(2)}€</strong> · IVA 23%: ${o.iva.toFixed(2)}€ · <strong>c/ IVA: ${o.comIva.toFixed(2)}€</strong></div>` + (o.diferente ? `<div class="entry-sub" style="color:var(--red);font-weight:700">Atenção: valores recalculados pela tabela atual e pelo desconto da ficha. O cliente enviou ${(p.total || 0).toFixed(2)}€ s/ IVA. Confirme antes de faturar.</div>` : '') + (o.desconhecido ? `<div class="entry-sub" style="color:var(--red)">Há produtos que já não estão na tabela; foi usado o preço enviado.</div>` : ''); })()}
             </div>
             <span class="badge ${['pendente','separado','enviado'].includes(p.estado) ? p.estado : ''}">${esc(p.estado)}</span>
           </div>
@@ -1049,7 +1059,7 @@ function loadPedidos() {
           <div class="entry-actions">
             <button class="btn" style="background:var(--charcoal); color:#fff; border-color:var(--charcoal);" onclick="abrirListaSeparacao('${p.id}')">📋 Lista de separação</button>
             ${actions}
-            ${ehVendedor() ? '' : `<button class="btn" style="padding:8px 14px;background:#fff;color:var(--red);border-color:var(--red);margin-left:auto;" onclick="excluirPedido('${p.id}')">Excluir</button>`}
+            ${restrito() ? '' : `<button class="btn" style="padding:8px 14px;background:#fff;color:var(--red);border-color:var(--red);margin-left:auto;" onclick="excluirPedido('${p.id}')">Excluir</button>`}
           </div>
         </div>`;
     }).join('');
@@ -1057,7 +1067,7 @@ function loadPedidos() {
 }
 // Excluir encomenda (só administrador). Se já estava separada, o stock é reposto.
 function excluirPedido(id) {
-  if (ehVendedor()) return;
+  if (restrito()) return;
   const p = allPedidos.find(x => x.id === id); if (!p) return;
   if (!confirm('Excluir definitivamente a encomenda de ' + (p.empresa || '') + '? Esta ação não pode ser desfeita.')) return;
   (p.estado === 'separado' ? mexerStock(p, 1) : Promise.resolve())
@@ -1091,7 +1101,7 @@ async function carregarPrivado() {
     if (!pm) { pm = {}; produtos.forEach(p => p.tamanhos.forEach(t => { if (t.preco > 0) pm[p.id + '_' + t.label] = t.preco; })); if (ps) ps.forEach(d => { if (typeof d.data().preco === 'number') pm[d.id] = d.data().preco; }); }
     if (!sm) { sm = {}; produtos.forEach(p => p.tamanhos.forEach(t => { sm[p.id + '_' + t.label] = t.stock || 0; })); if (es) es.forEach(d => { if (typeof d.data().qty === 'number') sm[d.id] = d.data().qty; }); }
     // Migração automática (só um administrador consegue gravar)
-    if (acessivel && !ehVendedor()) {
+    if (acessivel && !restrito()) {
       try {
         if (!(dp && dp.exists) && Object.values(pm).some(v => v > 0)) await PRIV_P.set({ p: pm, esc: typeof ESCALOES !== 'undefined' ? ESCALOES : {}, escQtd: typeof ESCALOES_QTD !== 'undefined' ? ESCALOES_QTD : [10, 23, 31], migradoEm: new Date().toISOString() });
         if (!(ds && ds.exists)) await PRIV_S.set({ q: sm, migradoEm: new Date().toISOString() });
@@ -1140,7 +1150,7 @@ function opcoesDestaque(f) {
 }
 // Termina sozinha a promoção cuja quantidade já foi toda encomendada (conta as encomendas desde que o destaque foi criado)
 async function verificarQtdDestaques() {
-  if (ehVendedor()) return;
+  if (restrito()) return;
   try {
     const d = await db.collection('config_b2b').doc('destaques').get();
     const itens = (d.exists && d.data().itens) || [];
