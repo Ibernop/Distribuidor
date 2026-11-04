@@ -428,7 +428,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
 <section id="catalogView" style="display:none;">
   <div class="wrap">
     <div class="banners" id="banners"><picture class="bn on"><source media="(max-width:700px)" srcset="img/ext/banner-care-760x428px-pt.webp"><img src="img/ext/banner-care-1920x521px-pt.webp" alt="Ownat Care" ></picture><picture class="bn"><source media="(max-width:700px)" srcset="img/ext/banner-author-760x428px-pt.webp"><img src="img/ext/banner-author-1920x521px-pt.webp" alt="Ownat Author" loading="lazy"></picture><picture class="bn"><source media="(max-width:700px)" srcset="img/ext/banner-web-movil-ownat_gos_pt.webp"><img src="img/ext/banner-web-ownat_gos-pt.webp" alt="Ownat — como é natural, eles adoram" loading="lazy"></picture><div class="bn-dots"></div></div>
-    <div id="notifCliente" style="display:none;margin:0 0 16px;padding:12px 16px;border-radius:12px;background:#fff6e5;color:#8a5a00;align-items:center;gap:12px;flex-wrap:wrap"><span style="flex:1;min-width:200px;font-size:.9rem"><b>🔔 Ative as notificações</b> e seja o primeiro a saber dos produtos em destaque e das promoções, assim que os publicarmos.</span><button type="button" class="btn btn-gold" onclick="notifCliente(true)">Ativar notificações</button><button type="button" class="btn" onclick="notifAdiar()">Agora não</button></div>
+    <div id="notifCliente" style="display:none;margin:0 0 16px;padding:12px 16px;border-radius:12px;background:#fff6e5;color:#8a5a00;align-items:center;gap:12px;flex-wrap:wrap"><span id="notifTxt" style="flex:1;min-width:200px;font-size:.9rem"><b>🔔 Ative as notificações</b> e seja o primeiro a saber dos produtos em destaque e das promoções, assim que os publicarmos.</span><button type="button" id="notifBtnOn" class="btn btn-gold" onclick="notifCliente(true)">Ativar notificações</button><button type="button" id="notifBtnOff" class="btn" style="display:none" onclick="notifDesativar()">Desativar notificações</button><button type="button" id="notifBtnLater" class="btn" onclick="notifAdiar()">Agora não</button></div>
     <div class="dest-wrap" id="destaques" style="display:none">
       <div class="dest-head"><h2>⭐ Destaques e promoções</h2><div class="dest-nav"><button type="button" onclick="moverDestaques(-1)" aria-label="Anterior">‹</button><button type="button" onclick="moverDestaques(1)" aria-label="Seguinte">›</button></div></div>
       <div class="dest-track" id="destTrack"></div>
@@ -807,19 +807,41 @@ let minhasEncomendas = [];
 // ---------- Notificações no telemóvel/computador do cliente (novos destaques e promoções) ----------
 const VAPID_CLIENTE = 'BFMOBKDzFhdaBg2OpTHHzYKqjGrQey7K9IwVYMSrcW3CSPgeCPi-BuI8zHh_toxmc1wNsz25z8j4nCoB3or6m6A';
 function notifAdiar() { try { localStorage.setItem('notif_adiado', String(Date.now())); } catch (e) {} const b = document.getElementById('notifCliente'); if (b) b.style.display = 'none'; }
+function notifMostrar(ativo) {
+  const box = document.getElementById('notifCliente'); if (!box) return;
+  document.getElementById('notifTxt').innerHTML = ativo ? '<b>🔔 Notificações ativas</b> neste aparelho. Pode desativá-las quando quiser.' : '<b>🔔 Ative as notificações</b> e seja o primeiro a saber dos produtos em destaque e das promoções, assim que os publicarmos.';
+  document.getElementById('notifBtnOn').style.display = ativo ? 'none' : '';
+  document.getElementById('notifBtnLater').style.display = ativo ? 'none' : '';
+  document.getElementById('notifBtnOff').style.display = ativo ? '' : 'none';
+  box.style.display = 'flex';
+}
+async function notifDesativar() {
+  try {
+    if (!currentUser) return;
+    let token = null;
+    try { const reg = await navigator.serviceWorker.getRegistration('sw.js') || await navigator.serviceWorker.register('sw.js'); token = await firebase.messaging().getToken({ vapidKey: VAPID_CLIENTE, serviceWorkerRegistration: reg }); } catch (e) {}
+    if (token) await db.collection('notif_clientes').doc(currentUser.uid).set({ tokens: firebase.firestore.FieldValue.arrayRemove(token), atualizado: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    try { await firebase.messaging().deleteToken(); } catch (e) {}
+    try { localStorage.setItem('notif_off', '1'); } catch (e) {}
+    notifMostrar(false);
+    alert('Notificações desativadas neste aparelho. Pode voltar a ativá-las quando quiser.');
+  } catch (e) { console.error(e); alert('Não foi possível desativar as notificações. Tente novamente.'); }
+}
 async function notifCliente(pedir) {
   const box = document.getElementById('notifCliente');
   try {
     if (!box || !currentUser || !currentCliente || currentCliente.preview || currentCliente.emNomeDe) return;
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !firebase.messaging.isSupported() || Notification.permission === 'denied') { box.style.display = 'none'; return; }
-    if (Notification.permission !== 'granted') {
-      if (!pedir) { let ad = 0; try { ad = Number(localStorage.getItem('notif_adiado')) || 0; } catch (e) {} box.style.display = Date.now() - ad > 3 * 864e5 ? 'flex' : 'none'; return; }
-      if (await Notification.requestPermission() !== 'granted') return;
+    let off = false; try { off = localStorage.getItem('notif_off') === '1'; } catch (e) {}
+    if (Notification.permission !== 'granted' || (off && !pedir)) {
+      if (!pedir) { if (off) { notifMostrar(false); return; } let ad = 0; try { ad = Number(localStorage.getItem('notif_adiado')) || 0; } catch (e) {} if (Date.now() - ad > 3 * 864e5) notifMostrar(false); else box.style.display = 'none'; return; }
+      if (Notification.permission !== 'granted' && await Notification.requestPermission() !== 'granted') return;
     }
     const reg = await navigator.serviceWorker.register('sw.js'); await navigator.serviceWorker.ready;
     const token = await firebase.messaging().getToken({ vapidKey: VAPID_CLIENTE, serviceWorkerRegistration: reg });
     if (token) await db.collection('notif_clientes').doc(currentUser.uid).set({ email: currentUser.email || '', empresa: currentCliente.empresa || '', tokens: firebase.firestore.FieldValue.arrayUnion(token), atualizado: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-    box.style.display = 'none';
+    try { localStorage.removeItem('notif_off'); } catch (e) {}
+    notifMostrar(true);
     if (pedir) alert('Notificações ativadas neste aparelho. Vai receber um aviso quando houver novos produtos em destaque.');
   } catch (e) { console.error(e); if (pedir) alert('Não foi possível ativar as notificações neste aparelho.'); }
 }
