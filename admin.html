@@ -1047,7 +1047,7 @@ function loadPedidos() {
         <div class="entry-card">
           <div class="entry-top">
             <div>
-              <div class="entry-title">${p.empresa}</div>
+              <div class="entry-title">${esc(p.empresa)}</div>
               <div class="entry-sub">${p.nomeFaturacao ? esc(p.nomeFaturacao) + ' · ' : ''}NIF: ${p.nif} · ${metodoLabel}${p.vendedorId && !ehArmazem() ? ' · Vendedor: ' + esc(nomeVendedor(p.vendedorId)) : ''}</div>
               ${p.moradaEntrega ? `<div class="entry-sub">Entrega: ${esc(p.moradaEntrega)}</div>` : ''}
               ${p.observacoes ? `<div class="entry-sub" style="background:#fff7e0;border:1px solid #e8c766;border-radius:8px;padding:6px 10px;margin-top:6px;color:#07202e"><b>💬 Observações do cliente:</b> ${esc(p.observacoes)}</div>` : ''}
@@ -1301,7 +1301,7 @@ function guardarStock(key) {
 function abrirListaSeparacao(id) {
   const p = allPedidos.find(x => x.id === id);
   if (!p) return;
-  document.getElementById('separacaoCliente').textContent = `${p.empresa} · Pedido ${id.slice(-6).toUpperCase()}`;
+  document.getElementById('separacaoCliente').textContent = `${esc(p.empresa)} · Pedido ${id.slice(-6).toUpperCase()}`;
   document.getElementById('separacaoLista').innerHTML = (p.itens || []).map((it, i) => `
     <label class="separacao-item" id="sep-item-${i}">
       <input type="checkbox" onchange="document.getElementById('sep-item-${i}').classList.toggle('riscado', this.checked)">
