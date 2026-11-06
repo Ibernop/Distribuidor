@@ -511,7 +511,7 @@ body.demo #clienteNav [data-v="historico"], body.demo #clienteNav [data-v="incid
 <footer class="site">
   <div class="wrap">
     <div class="ft-cols">
-      <div><img src="img/ext/ibernop-logo-branco.png" alt="Ibernop" style="height:64px"><p>Distribuidor de produtos para animais, fundado por médicos veterinários.</p><p style="margin-top:10px"><a href="https://www.instagram.com/_ibernop/" target="_blank" rel="noopener">📷 @_ibernop no Instagram</a></p></div>
+      <div><img src="img/ext/ibernop-logo-branco.png" alt="Ibernop" style="height:64px"><p>Distribuidor de produtos para animais, fundado por médicos veterinários.</p></div>
       <div><h4>Ibernop - Produtos para Animais, Lda</h4><p>Rua dos Tractores, 506 – Armazém AI<br>Alto Estanqueiro-Jardia, Montijo<br>Portugal<br><span style="opacity:.75">NIF 516007068</span></p></div>
       <div><h4>Contacto</h4><p>📞 <a href="tel:+351938093411">938 093 411</a> · <a href="tel:+351212454927">212 454 927</a><br>✉️ <a href="mailto:geral@ibernop.com">geral@ibernop.com</a><br>📦 <a href="mailto:encomendas@ibernop.com">encomendas@ibernop.com</a></p><a class="gbtn" href="https://search.google.com/local/writereview?placeid=ChIJ38RN-LA5GQ0RYSkkmOuETRY" target="_blank" rel="noopener">⭐ Avalie-nos no Google</a></div>
     </div>
@@ -1143,10 +1143,12 @@ function enviarIncidencia() {
   const p = produtos.find(x => String(x.id) === v('incProduto'));
   if (!v('incFatura') || !v('incData') || !p || !v('incPeso')) { msg.textContent = 'Preencha o n.º e a data da fatura, a gama, o produto e o peso.'; msg.style.color = 'var(--red)'; return; }
   const t = p.tamanhos.find(x => x.label === v('incPeso')) || {};
-  const inc = { clienteUid: currentUser.uid, empresa: currentCliente.nomeComercial || currentCliente.empresa || '', nif: currentCliente.nif || '',
+  const emNome = currentCliente.emNomeDe && clienteAlvo;
+  const inc = { clienteUid: emNome ? clienteAlvo.uid : currentUser.uid, empresa: currentCliente.nomeComercial || currentCliente.empresa || '', nif: currentCliente.nif || '',
     vendedorId: currentCliente.vendedorId || '', fatura: v('incFatura'), dataFatura: v('incData'), tipo: v('incTipo'), gama: p.gama, produto: p.nome + (espInc(p) ? ' — ' + espInc(p) : ''),
     referencia: t.cod || '', ean: t.ean || '', peso: v('incPeso'), quantidade: Number(v('incQtd')) || 1, descricao: v('incDesc'),
     estado: 'aberta', criadoEm: firebase.firestore.FieldValue.serverTimestamp() };
+  if (emNome) inc.feitoPor = { nome: currentUser.displayName || currentUser.email || '', email: currentUser.email || '' };
   msg.textContent = 'A enviar...'; msg.style.color = 'var(--gray)';
   db.collection('incidencias_b2b').add(inc).then(ref => {
     enviarEmail(EMAILJS.tplIncidencia, { referencia_incidencia: ref.id.slice(-6).toUpperCase(), tipo: inc.tipo, fatura: inc.fatura, data_fatura: inc.dataFatura.split('-').reverse().join('/'), gama: inc.gama, produto: inc.produto, referencia: inc.referencia, peso: inc.peso, quantidade: inc.quantidade, descricao: inc.descricao || '—' });
@@ -1158,7 +1160,8 @@ function enviarIncidencia() {
 function carregarIncidencias() {
   const el = document.getElementById('incLista');
   el.innerHTML = '<p class="hist-vazio">A carregar...</p>';
-  db.collection('incidencias_b2b').where('clienteUid', '==', currentUser.uid).get().then(snap => {
+  const uidAlvo = (currentCliente.emNomeDe && clienteAlvo) ? clienteAlvo.uid : currentUser.uid;
+  db.collection('incidencias_b2b').where('clienteUid', '==', uidAlvo).get().then(snap => {
     const l = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => ((b.criadoEm && b.criadoEm.seconds) || 0) - ((a.criadoEm && a.criadoEm.seconds) || 0));
     el.innerHTML = l.length ? l.map(i => `<div class="inc-item"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;"><strong>${escH(i.tipo)} · ${escH(i.produto)} ${escH(i.peso)}</strong><span class="inc-estado ${i.estado === 'resolvida' ? 'resolvida' : ''}">${i.estado === 'resolvida' ? 'Resolvida' : 'Em análise'}</span></div>
       <div class="hist-vazio" style="font-size:.85rem;margin-top:4px;">Fatura ${escH(i.fatura)} de ${escH((i.dataFatura || '').split('-').reverse().join('/'))} · Ref. ${escH(i.referencia)} · Qtd ${i.quantidade} · Comunicada em ${dataPT(i.criadoEm)}</div>${i.descricao ? `<div style="font-size:.9rem;margin-top:6px;">${escH(i.descricao)}</div>` : ''}${i.resposta ? `<div style="font-size:.9rem;margin-top:6px;"><b>Resposta:</b> ${escH(i.resposta)}</div>` : ''}</div>`).join('')
